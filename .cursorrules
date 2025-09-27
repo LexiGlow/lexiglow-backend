@@ -1,0 +1,145 @@
+# LexiGlow Backend - Cursor Rules
+
+## Project Context
+This is a Flask-based REST API backend for LexiGlow with OpenAPI/Connexion integration and MongoDB support.
+
+## Technology Stack
+- **Framework**: Flask with Connexion for OpenAPI integration
+- **Database**: MongoDB with PyMongo
+- **API Documentation**: OpenAPI 3.0 (Swagger UI)
+- **Authentication**: TBD (likely JWT-based)
+- **CORS**: Flask-CORS enabled
+- **Environment**: Python 3.13.7 with pyenv
+- **Testing**: pytest
+- **Code Quality**: Black (formatter), Flake8 (linter)
+
+## Project Structure
+```
+lexiglow-backend/
+├── app/
+│   ├── controllers/     # Business logic and API handlers
+│   ├── routes/         # Additional Flask routes/blueprints
+│   └── __init__.py     # App factory and configuration
+├── openapi/            # OpenAPI specification files
+├── tests/              # Test files
+├── logs/               # Application logs
+├── requirements.txt    # Python dependencies
+├── wsgi.py            # WSGI entry point
+└── .env               # Environment variables
+```
+
+## Coding Standards
+
+### Python Style
+- Use **Black** for code formatting (line length: 88 characters)
+- Follow **PEP 8** conventions
+- Use **type hints** where appropriate
+- Use **f-strings** for string formatting
+- Use **pathlib.Path** for file operations
+
+### Flask/Connexion Patterns
+- Use **Connexion** for API route definitions (defined in OpenAPI spec)
+- Keep business logic in `app/controllers/`
+- Use **Flask blueprints** for additional routes in `app/routes/`
+- Follow **RESTful** API conventions
+- Use proper **HTTP status codes**
+
+### Database Patterns
+- Use **PyMongo** for MongoDB operations
+- Access database via `flask_app.config["MONGO_CLIENT"]`
+- Use **Marshmallow** for data serialization/validation
+- Implement proper **error handling** for database operations
+
+### Error Handling
+- Use **proper HTTP status codes** (400, 401, 404, 500, etc.)
+- Log errors using the configured **logging system**
+- Return **consistent error response format**
+- Handle **MongoDB connection errors** gracefully
+
+### Environment & Configuration
+- Use **python-dotenv** for environment variables
+- Store sensitive data in `.env` file (not committed)
+- Use **os.getenv()** with sensible defaults
+- Configure logging with both **file and console** handlers
+
+## API Development Guidelines
+
+### OpenAPI Integration
+- Define API endpoints in `openapi/openapi.yaml`
+- Use **Connexion** to automatically generate Flask routes
+- Enable **response validation** (`validate_responses=True`)
+- Use **Swagger UI** for API documentation (`/ui` endpoint)
+
+### Controller Structure
+- Place business logic in `app/controllers/`
+- Keep controllers **thin** - delegate to service classes if needed
+- Use **dependency injection** for database connections
+- Return **serialized data** using Marshmallow schemas
+
+### Testing
+- Write **unit tests** in `tests/` directory
+- Use **pytest** for test execution
+- Mock **external dependencies** (MongoDB, APIs)
+- Test both **success and error** scenarios
+
+## Code Quality
+- Run **Black** before committing: `black .`
+- Run **Flake8** for linting: `flake8`
+- Write **comprehensive docstrings** for functions/classes
+- Use **meaningful variable and function names**
+- Keep functions **small and focused**
+
+## Security Considerations
+- Validate **all input data** using Marshmallow schemas
+- Use **environment variables** for sensitive configuration
+- Implement **proper CORS** configuration for production
+- Add **authentication/authorization** as needed
+- Sanitize **database queries** to prevent injection
+
+## Development Workflow
+1. Define API endpoints in `openapi/openapi.yaml`
+2. Implement controllers in `app/controllers/`
+3. Add any additional routes in `app/routes/`
+4. Write tests in `tests/`
+5. Run `black` and `flake8` before committing
+6. Test API using Swagger UI at `http://localhost:5000/ui`
+
+## Common Patterns
+
+### Database Operations
+```python
+# Access MongoDB
+db = flask_app.config["MONGO_DB"]
+collection = db["collection_name"]
+
+# Query with error handling
+try:
+    result = collection.find_one({"field": "value"})
+except Exception as e:
+    logger.error(f"Database error: {e}")
+    return {"error": "Database operation failed"}, 500
+```
+
+### API Response Format
+```python
+# Success response
+return {"data": result, "message": "Success"}, 200
+
+# Error response
+return {"error": "Error message", "code": "ERROR_CODE"}, 400
+```
+
+### Logging
+```python
+import logging
+logger = logging.getLogger(__name__)
+logger.info("Operation completed successfully")
+logger.error(f"Error occurred: {error}")
+```
+
+## Notes
+- The app uses **Connexion** for automatic route generation from OpenAPI spec
+- MongoDB connection is configured in the app factory
+- CORS is enabled for cross-origin requests
+- Logging is configured to write to both console and file
+- Use the existing project structure and patterns

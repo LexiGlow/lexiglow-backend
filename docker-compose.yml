@@ -1,3 +1,19 @@
+# LexiGlow Backend Docker Compose Configuration
+#
+# Quick Start:
+#   docker compose up -d
+#
+# Services:
+#   - MongoDB: localhost:27017
+#   - Mongo Express: http://localhost:8081 (admin/admin123)
+#
+# Documentation:
+#   - README.md: Main project documentation
+#   - docker/README.md: Detailed Docker instructions
+#   - QUICKSTART.md: 5-minute setup guide
+#
+# Environment variables are loaded from .env file
+
 version: '3.8'
 
 services:
@@ -13,7 +29,7 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d
+      - ./docker/mongo-init:/docker-entrypoint-initdb.d
     networks:
       - lexiglow-network
 

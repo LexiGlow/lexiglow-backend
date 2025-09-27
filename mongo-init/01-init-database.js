@@ -5,6 +5,7 @@
 db = db.getSiblingDB('lexiglow');
 
 // Create a user for the application
+// Note: In production, these should be passed as environment variables
 db.createUser({
     user: 'lexiglow_user',
     pwd: 'lexiglow_password',

@@ -1,5 +1,6 @@
-Flask>=2.2
-connexion[swagger-ui]>=3.0
+Flask>=2.2,<2.3
+Werkzeug>=2.0,<2.3
+connexion[swagger-ui, flask]==2.14.2
 pymongo>=4.0
 python-dotenv>=0.21
 marshmallow>=3.14

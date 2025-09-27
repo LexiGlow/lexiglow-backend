@@ -1,0 +1,142 @@
+"""
+About API endpoints using Flask blueprints.
+This module provides information about the LexiGlow backend service.
+"""
+
+import logging
+from flask import Blueprint, jsonify, current_app
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+
+logger = logging.getLogger(__name__)
+
+# Create the blueprint
+about_bp = Blueprint("about", __name__)
+
+
+@about_bp.route("/about", methods=["GET"])
+def get_about():
+    """
+    Get information about the LexiGlow backend service.
+
+    Returns:
+        JSON response with service information
+    """
+    logger.info("About endpoint accessed")
+
+    about_info = {
+        "service": "LexiGlow Backend",
+        "version": "1.0.0",
+        "description": "REST API backend for LexiGlow application",
+        "framework": "Flask with Connexion",
+        "database": "MongoDB",
+        "api_documentation": "/ui",
+        "health_check": "/health",
+        "status": "operational",
+    }
+
+    return jsonify(about_info), 200
+
+
+@about_bp.route("/about/version", methods=["GET"])
+def get_version():
+    """
+    Get version information for the service.
+
+    Returns:
+        JSON response with version details
+    """
+    logger.info("Version endpoint accessed")
+
+    version_info = {
+        "version": "1.0.0",
+        "build_date": "2024-01-01",
+        "python_version": "3.13.7",
+        "flask_version": "3.0.0",
+        "connexion_version": "3.0.0",
+    }
+
+    return jsonify(version_info), 200
+
+
+@about_bp.route("/about/db-test", methods=["GET"])
+def test_database_connection():
+    """
+    Test the MongoDB database connection.
+
+    Returns:
+        JSON response with database connection status
+    """
+    logger.info("Database test endpoint accessed")
+
+    try:
+        # Get MongoDB client from Flask app config
+        mongo_client = current_app.config.get("MONGO_CLIENT")
+        mongo_db = current_app.config.get("MONGO_DB")
+
+        if mongo_client is None or mongo_db is None:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "MongoDB client not configured",
+                        "connected": False,
+                    }
+                ),
+                500,
+            )
+
+        # Test the connection by pinging the database
+        mongo_client.admin.command("ping")
+
+        # Get database info
+        db_name = mongo_db.name
+        server_info = mongo_client.server_info()
+
+        db_status = {
+            "status": "success",
+            "message": "Database connection successful",
+            "connected": True,
+            "database_name": db_name,
+            "server_version": server_info.get("version", "unknown"),
+            "server_host": (
+                mongo_client.address[0] if mongo_client.address else "unknown"
+            ),
+            "server_port": (
+                mongo_client.address[1] if mongo_client.address else "unknown"
+            ),
+        }
+
+        logger.info(f"Database connection test successful: {db_name}")
+        return jsonify(db_status), 200
+
+    except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+        error_msg = f"Database connection failed: {str(e)}"
+        logger.error(error_msg)
+
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": error_msg,
+                    "connected": False,
+                    "error_type": type(e).__name__,
+                }
+            ),
+            503,
+        )  # Service Unavailable
+
+    except Exception as e:
+        error_msg = f"Unexpected error during database test: {str(e)}"
+        logger.error(error_msg)
+
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": error_msg,
+                    "connected": False,
+                    "error_type": type(e).__name__,
+                }
+            ),
+            500,
+        )

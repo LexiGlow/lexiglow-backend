@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 import connexion
@@ -8,47 +9,65 @@ from pymongo import MongoClient
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+
 def create_app():
-     # Debug: Check paths and files
+    # Ensure logs directory exists BEFORE configuring logging
+    (BASE_DIR / "logs").mkdir(exist_ok=True)
+
+    # Configure logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(BASE_DIR / "logs" / "app.log", mode="a"),
+        ],
+    )
+    logger = logging.getLogger(__name__)
+
+    # Debug: Check paths and files
     openapi_dir = BASE_DIR / "openapi"
     openapi_file = openapi_dir / "openapi.yaml"
 
-    print(f"🔍 DEBUG: BASE_DIR = {BASE_DIR}")
-    print(f"🔍 DEBUG: OpenAPI specification_dir = {str(BASE_DIR / 'openapi')}")
-    print(f"🔍 DEBUG: OpenAPI dir exists: {openapi_dir.exists()}")
-    print(f"🔍 DEBUG: OpenAPI file exists: {openapi_file.exists()}")
+    logger.debug(f"BASE_DIR = {BASE_DIR}")
+    logger.debug(f"OpenAPI specification_dir = {str(BASE_DIR / 'openapi')}")
+    logger.debug(f"OpenAPI dir exists: {openapi_dir.exists()}")
+    logger.debug(f"OpenAPI file exists: {openapi_file.exists()}")
     """
     Create and configure the Connexion (Flask) app.
     Returns the Connexion app instance (not the Flask app).
     """
-    print(f"🔍 DEBUG: Creating Connexion app...")
+    logger.debug("Creating Connexion app...")
     try:
         app = connexion.App(__name__, specification_dir=str(BASE_DIR / "openapi"))
-        print(f"✅ Connexion app created successfully")
+        logger.info("Connexion app created successfully")
     except Exception as e:
-        print(f"❌ ERROR creating Connexion app: {e}")
+        logger.error(f"ERROR creating Connexion app: {e}")
         raise
 
-        # Add API with debug
-    print(f"🔍 DEBUG: Adding OpenAPI spec...")
+    # Add API with debug
+    logger.debug("Adding OpenAPI spec...")
     try:
+        # Enable more verbose logging for Connexion
+        logging.getLogger("connexion").setLevel(logger.level)
+
         api = app.add_api("openapi.yaml", validate_responses=True)
-        print(f"✅ OpenAPI spec added successfully")
-        print(f"🔍 DEBUG: API object: {api}")
+        logger.info("OpenAPI spec added successfully")
+        logger.debug(f"API object: {api}")
     except Exception as e:
-        print(f"❌ ERROR adding OpenAPI spec: {e}")
-        print(f"🔍 Available files in spec dir:")
+        logger.error(f"ERROR adding OpenAPI spec: {e}")
+        logger.debug("Available files in spec dir:")
         try:
             for file in openapi_dir.iterdir():
-                print(f"  - {file.name}")
+                logger.debug(f"  - {file.name}")
         except:
-            print("  (could not list files)")
+            logger.debug("  (could not list files)")
         raise
 
     flask_app = app.app
-    print(f"🔍 DEBUG: Routes after adding OpenAPI:")
+    logger.debug("Routes after adding OpenAPI:")
     for rule in flask_app.url_map.iter_rules():
-        print(f"  {rule.endpoint} | {rule.methods} | {rule.rule}")
+        logger.debug(f"  {rule.endpoint} | {rule.methods} | {rule.rule}")
     # app = connexion.App(__name__, specification_dir=str(BASE_DIR / "openapi"))
     # Add OpenAPI file (Connexion will create Flask routes automatically)
     # app.add_api("openapi.yaml", validate_responses=True)
@@ -67,6 +86,7 @@ def create_app():
     # Register additional Flask blueprints if needed
     try:
         from .routes import register_routes
+
         register_routes(flask_app)
     except Exception:
         # routes may be empty in skeleton

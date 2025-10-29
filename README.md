@@ -1,6 +1,21 @@
 # LexiGlow Backend
 Flask API with OpenAPI integration and MongoDB support
 
+## 📂 Project Structure
+
+The project follows a clean architecture pattern, separating concerns into distinct layers:
+
+-   **`app/`**: Contains the core application logic, divided into:
+    -   **`core/`**: Application-wide configurations, security, logging, and exception handling.
+    -   **`domain/`**: Business entities and interfaces, representing the core business logic.
+    -   **`infrastructure/`**: Implementations for external concerns like databases (SQLite, MongoDB) and concrete repository implementations.
+    -   **`application/`**: Application services that orchestrate domain logic.
+    -   **`presentation/`**: API definitions and routes (FastAPI).
+-   **`tests/`**: Unit and integration tests for the application.
+-   **`scripts/`**: Utility scripts for database initialization, data seeding, and other development tasks.
+-   **`docker/`**: Docker-related configurations and setup files.
+-   **`openapi.yaml`**: OpenAPI specification for the API.
+
 ## 🚀 Quick Start with Docker
 
 ### Prerequisites

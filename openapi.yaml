@@ -8,7 +8,7 @@ paths:
   /health:
     get:
       summary: Health check
-      operationId: app.controllers.health.get_health
+      operationId: app.presentation.api.v1.health.get_health
       responses:
         '200':
           description: OK
@@ -20,3 +20,86 @@ paths:
                   status:
                     type: string
                     example: ok
+  /about:
+    get:
+      summary: Get information about the service
+      operationId: app.presentation.api.v1.about.get_about
+      responses:
+        '200':
+          description: Service information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                  version:
+                    type: string
+                  description:
+                    type: string
+                  framework:
+                    type: string
+                  database:
+                    type: string
+                  api_documentation:
+                    type: string
+                  health_check:
+                    type: string
+                  status:
+                    type: string
+  /about/version:
+    get:
+      summary: Get service version details
+      operationId: app.presentation.api.v1.about.get_version
+      responses:
+        '200':
+          description: Version details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  build_date:
+                    type: string
+                  python_version:
+                    type: string
+                  flask_version:
+                    type: string
+                  connexion_version:
+                    type: string
+  /about/db-test:
+    get:
+      summary: Test database connection
+      operationId: app.presentation.api.v1.about.test_database_connection
+      responses:
+        '200':
+          description: Database connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  connected:
+                    type: boolean
+        '503':
+          description: Database connection failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  connected:
+                    type: boolean
+                  error_type:
+                    type: string

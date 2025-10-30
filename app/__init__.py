@@ -39,7 +39,7 @@ def create_app():
     """
     logger.debug("Creating Connexion app...")
     try:
-        app = connexion.App(__name__, specification_dir=str(BASE_DIR / "openapi"))
+        app = connexion.App(__name__, specification_dir=str(BASE_DIR))
         logger.info("Connexion app created successfully")
     except Exception as e:
         logger.error(f"ERROR creating Connexion app: {e}")

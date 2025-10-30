@@ -1,8 +1,8 @@
 import sys, os
 import logging
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from wsgi import app
+
+from scripts.wsgi import app
 
 # Configure logging for test
 logging.basicConfig(

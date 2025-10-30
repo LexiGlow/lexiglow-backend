@@ -8,8 +8,8 @@ import os
 import logging
 import pytest
 
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from wsgi import app
+
+from scripts.wsgi import app
 
 # Configure logging for test
 logging.basicConfig(

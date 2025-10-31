@@ -1,10 +1,13 @@
 import os
 import logging
+from logging.config import dictConfig
 from pathlib import Path
 from dotenv import load_dotenv
 import connexion
 from flask_cors import CORS
 from pymongo import MongoClient
+from .core.config import MONGO_URI
+from .core.logging import LOGGING_CONFIG, LOG_LEVEL, LOG_DIR
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -12,19 +15,13 @@ load_dotenv(BASE_DIR / ".env")
 
 def create_app():
     # Ensure logs directory exists BEFORE configuring logging
-    (BASE_DIR / "logs").mkdir(exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Configure logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(BASE_DIR / "logs" / "app.log", mode="a"),
-        ],
-    )
+    # Apply the configuration
+    dictConfig(LOGGING_CONFIG)
+
     logger = logging.getLogger(__name__)
-
+    logger.info(f"Logging configured with level {LOG_LEVEL}")
     # Debug: Check paths and files
     openapi_dir = BASE_DIR / "openapi"
     openapi_file = openapi_dir / "openapi.yaml"
@@ -48,9 +45,6 @@ def create_app():
     # Add API with debug
     logger.debug("Adding OpenAPI spec...")
     try:
-        # Enable more verbose logging for Connexion
-        logging.getLogger("connexion").setLevel(logger.level)
-
         api = app.add_api("openapi.yaml", validate_responses=True)
         logger.info("OpenAPI spec added successfully")
         logger.debug(f"API object: {api}")
@@ -78,8 +72,7 @@ def create_app():
     CORS(flask_app)
 
     # Mongo client (exposed on flask app config)
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/lexiglow")
-    mongo_client = MongoClient(mongo_uri)
+    mongo_client = MongoClient(MONGO_URI)
     flask_app.config["MONGO_CLIENT"] = mongo_client
     flask_app.config["MONGO_DB"] = mongo_client.get_default_database()
 

@@ -110,8 +110,8 @@ def test_database_connection():
         return jsonify(db_status), 200
 
     except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-        error_msg = f"Database connection failed: {str(e)}"
-        logger.error(error_msg)
+        error_msg = "Database connection failed"
+        logger.error(error_msg, exc_info=True)
 
         return (
             jsonify(
@@ -126,8 +126,8 @@ def test_database_connection():
         )  # Service Unavailable
 
     except Exception as e:
-        error_msg = f"Unexpected error during database test: {str(e)}"
-        logger.error(error_msg)
+        error_msg = "Unexpected error during database test"
+        logger.error(error_msg, exc_info=True)
 
         return (
             jsonify(

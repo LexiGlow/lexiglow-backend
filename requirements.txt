@@ -10,3 +10,5 @@ pytest>=7
 black>=24
 flake8>=6
 dotenv>=0.9.9
+SQLAlchemy>=2.0
+pydantic[email]>=2.0

@@ -21,9 +21,6 @@ class Language(BaseModel):
     native_name: str = Field(
         ..., alias="nativeName", description="Native name (e.g., 'English', 'Español')"
     )
-    is_active: bool = Field(
-        True, alias="isActive", description="Whether the language is active"
-    )
     created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
 
     model_config = ConfigDict(
@@ -34,7 +31,6 @@ class Language(BaseModel):
                 "name": "Spanish",
                 "code": "es",
                 "nativeName": "Español",
-                "isActive": True,
                 "createdAt": "2024-01-01T00:00:00Z",
             }
         },

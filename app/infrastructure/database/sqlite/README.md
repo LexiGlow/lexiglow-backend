@@ -405,8 +405,7 @@ with SessionLocal() as session:
         id=str(uuid.uuid4()),
         name="French",
         code="fr",
-        nativeName="Français",
-        isActive=1
+        nativeName="Français"
     )
     session.add(new_lang)
     session.commit()

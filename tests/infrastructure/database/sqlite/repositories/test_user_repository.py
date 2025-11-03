@@ -52,14 +52,12 @@ def setup_database(test_db_path):
             name="English",
             code="en",
             nativeName="English",
-            isActive=1,
         )
         russian = LanguageModel(
             id=str(uuid.UUID("00000000-0000-0000-0000-000000000002")),
             name="Russian",
             code="ru",
             nativeName="Русский",
-            isActive=1,
         )
         session.add_all([english, russian])
         session.commit()

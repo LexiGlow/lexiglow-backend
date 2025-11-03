@@ -53,7 +53,6 @@ def english_language(session):
         name="English",
         code="en",
         nativeName="English",
-        isActive=1,
     )
     session.add(language)
     session.commit()
@@ -68,7 +67,6 @@ def russian_language(session):
         name="Russian",
         code="ru",
         nativeName="Русский",
-        isActive=1,
     )
     session.add(language)
     session.commit()
@@ -106,7 +104,6 @@ class TestLanguageModel:
             name="Spanish",
             code="es",
             nativeName="Español",
-            isActive=1,
         )
         session.add(language)
         session.commit()
@@ -117,9 +114,7 @@ class TestLanguageModel:
         assert queried_language.name == "Spanish"
         assert queried_language.code == "es"
         assert queried_language.nativeName == "Español"
-        assert queried_language.isActive == 1
         assert queried_language.createdAt == language.createdAt
-        
 
     def test_language_unique_code(self, session, english_language):
         """Test that language codes must be unique."""
@@ -128,7 +123,6 @@ class TestLanguageModel:
             name="English US",
             code="en",  # Duplicate code
             nativeName="English",
-            isActive=1,
         )
         session.add(duplicate_language)
 

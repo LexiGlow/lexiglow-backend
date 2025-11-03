@@ -201,15 +201,14 @@ def seed_languages(conn: sqlite3.Connection) -> List[Tuple[str, str]]:
         lang_id = generate_uuid()
         cursor.execute(
             """
-            INSERT INTO Language (id, name, code, nativeName, isActive, createdAt)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO Language (id, name, code, nativeName, createdAt)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 lang_id,
                 lang["name"],
                 lang["code"],
                 lang["native_name"],
-                1,
                 generate_timestamp(30),
             ),
         )

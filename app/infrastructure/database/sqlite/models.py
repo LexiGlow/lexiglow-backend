@@ -35,7 +35,6 @@ class Language(Base):
     name = Column(String, nullable=False)
     code = Column(String, nullable=False, unique=True)
     nativeName = Column(String, nullable=False)
-    isActive = Column(Integer, nullable=False, default=1)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     # Relationships

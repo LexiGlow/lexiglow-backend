@@ -14,13 +14,11 @@ CREATE TABLE Language (
     name TEXT NOT NULL,
     code TEXT NOT NULL UNIQUE, -- ISO 639-1 code (e.g., 'en', 'es')
     nativeName TEXT NOT NULL,
-    isActive INTEGER NOT NULL DEFAULT 1, -- Boolean: 1 = true, 0 = false
     createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Index for language code lookups
 CREATE INDEX idx_language_code ON Language(code);
-CREATE INDEX idx_language_isActive ON Language(isActive);
 
 -- ============================================
 -- Table: User

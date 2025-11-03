@@ -38,8 +38,12 @@ class Language(Base):
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     # Relationships
-    users_native = relationship("User", foreign_keys="User.nativeLanguageId", back_populates="native_language")
-    users_current = relationship("User", foreign_keys="User.currentLanguageId", back_populates="current_language")
+    users_native = relationship(
+        "User", foreign_keys="User.nativeLanguageId", back_populates="native_language"
+    )
+    users_current = relationship(
+        "User", foreign_keys="User.currentLanguageId", back_populates="current_language"
+    )
     user_languages = relationship("UserLanguage", back_populates="language")
     texts = relationship("TextModel", back_populates="language")
     vocabularies = relationship("UserVocabulary", back_populates="language")
@@ -62,18 +66,30 @@ class User(Base):
     nativeLanguageId = Column(String, ForeignKey("Language.id"), nullable=False)
     currentLanguageId = Column(String, ForeignKey("Language.id"), nullable=False)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updatedAt = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
     lastActiveAt = Column(DateTime)
 
     # Relationships
-    native_language = relationship("Language", foreign_keys=[nativeLanguageId], back_populates="users_native")
-    current_language = relationship("Language", foreign_keys=[currentLanguageId], back_populates="users_current")
-    user_languages = relationship("UserLanguage", back_populates="user", cascade="all, delete-orphan")
+    native_language = relationship(
+        "Language", foreign_keys=[nativeLanguageId], back_populates="users_native"
+    )
+    current_language = relationship(
+        "Language", foreign_keys=[currentLanguageId], back_populates="users_current"
+    )
+    user_languages = relationship(
+        "UserLanguage", back_populates="user", cascade="all, delete-orphan"
+    )
     texts = relationship("TextModel", back_populates="author")
-    vocabularies = relationship("UserVocabulary", back_populates="user", cascade="all, delete-orphan")
+    vocabularies = relationship(
+        "UserVocabulary", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
-        return f"<User(id='{self.id}', username='{self.username}', email='{self.email}')>"
+        return (
+            f"<User(id='{self.id}', username='{self.username}', email='{self.email}')>"
+        )
 
 
 class UserLanguage(Base):
@@ -88,11 +104,15 @@ class UserLanguage(Base):
     )
 
     userId = Column(String, ForeignKey("User.id", ondelete="CASCADE"), primary_key=True)
-    languageId = Column(String, ForeignKey("Language.id", ondelete="CASCADE"), primary_key=True)
+    languageId = Column(
+        String, ForeignKey("Language.id", ondelete="CASCADE"), primary_key=True
+    )
     proficiencyLevel = Column(String, nullable=False)
     startedAt = Column(DateTime, nullable=False)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updatedAt = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # Relationships
     user = relationship("User", back_populates="user_languages")
@@ -123,12 +143,16 @@ class TextModel(Base):
     isPublic = Column(Integer, nullable=False, default=1)
     source = Column(String)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updatedAt = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # Relationships
     language = relationship("Language", back_populates="texts")
     author = relationship("User", back_populates="texts")
-    tag_associations = relationship("TextTagAssociation", back_populates="text", cascade="all, delete-orphan")
+    tag_associations = relationship(
+        "TextTagAssociation", back_populates="text", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Text(id='{self.id}', title='{self.title}', level='{self.proficiencyLevel}')>"
@@ -138,19 +162,25 @@ class UserVocabulary(Base):
     """UserVocabulary model - represents user's vocabulary collections."""
 
     __tablename__ = "UserVocabulary"
-    __table_args__ = (UniqueConstraint("userId", "languageId", name="unique_user_language_vocab"),)
+    __table_args__ = (
+        UniqueConstraint("userId", "languageId", name="unique_user_language_vocab"),
+    )
 
     id = Column(String, primary_key=True)
     userId = Column(String, ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
     languageId = Column(String, ForeignKey("Language.id"), nullable=False)
     name = Column(String, nullable=False)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updatedAt = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # Relationships
     user = relationship("User", back_populates="vocabularies")
     language = relationship("Language", back_populates="vocabularies")
-    items = relationship("UserVocabularyItem", back_populates="vocabulary", cascade="all, delete-orphan")
+    items = relationship(
+        "UserVocabularyItem", back_populates="vocabulary", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<UserVocabulary(id='{self.id}', userId='{self.userId}', name='{self.name}')>"
@@ -178,7 +208,9 @@ class UserVocabularyItem(Base):
     )
 
     id = Column(String, primary_key=True)
-    userVocabularyId = Column(String, ForeignKey("UserVocabulary.id", ondelete="CASCADE"), nullable=False)
+    userVocabularyId = Column(
+        String, ForeignKey("UserVocabulary.id", ondelete="CASCADE"), nullable=False
+    )
     term = Column(String, nullable=False)
     lemma = Column(String)
     stemma = Column(String)
@@ -189,7 +221,9 @@ class UserVocabularyItem(Base):
     confidenceLevel = Column(String, nullable=False, default="A1")
     notes = Column(Text)
     createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updatedAt = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # Relationships
     vocabulary = relationship("UserVocabulary", back_populates="items")
@@ -208,7 +242,9 @@ class TextTag(Base):
     description = Column(Text)
 
     # Relationships
-    text_associations = relationship("TextTagAssociation", back_populates="tag", cascade="all, delete-orphan")
+    text_associations = relationship(
+        "TextTagAssociation", back_populates="tag", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<TextTag(id='{self.id}', name='{self.name}')>"
@@ -220,7 +256,9 @@ class TextTagAssociation(Base):
     __tablename__ = "TextTagAssociation"
 
     textId = Column(String, ForeignKey("Text.id", ondelete="CASCADE"), primary_key=True)
-    tagId = Column(String, ForeignKey("TextTag.id", ondelete="CASCADE"), primary_key=True)
+    tagId = Column(
+        String, ForeignKey("TextTag.id", ondelete="CASCADE"), primary_key=True
+    )
 
     # Relationships
     text = relationship("TextModel", back_populates="tag_associations")
@@ -285,4 +323,3 @@ __all__ = [
     "get_all_models",
     "get_model_by_table_name",
 ]
-

@@ -1,21 +1,14 @@
-#!/usr/bin/env python3
 """
-Test script for SQLAlchemy ORM models.
+Unit tests for SQLAlchemy ORM models.
 
-This script demonstrates how to use the SQLAlchemy ORM models
-to interact with the SQLite database.
+Tests cover CRUD operations, relationships, queries, and constraints
+for all database models in the LexiGlow backend.
 """
 
-import logging
-import sys
 import uuid
 from datetime import datetime
-from pathlib import Path
 
-# Add project root to Python path
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
-
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -30,194 +23,718 @@ from app.infrastructure.database.sqlite.models import (
     TextTag,
     TextTagAssociation,
     get_all_models,
+    get_model_by_table_name,
 )
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
 
-
-def create_test_database(db_path: Path):
-    """
-    Create a test database with tables.
-
-    Args:
-        db_path: Path to database file
-
-    Returns:
-        SQLAlchemy engine
-    """
-    # Create engine
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
-
-    # Create all tables
+@pytest.fixture(scope="function")
+def engine():
+    """Create an in-memory SQLite database engine for testing."""
+    engine = create_engine("sqlite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
-    logger.info(f"Created database with {len(get_all_models())} tables")
+    yield engine
+    engine.dispose()
 
-    return engine
 
-
-def test_basic_crud():
-    """Test basic CRUD operations with ORM models."""
-    logger.info("Testing basic CRUD operations...")
-
-    db_path = Path("/tmp/test_orm.db")
-    engine = create_test_database(db_path)
+@pytest.fixture(scope="function")
+def session(engine):
+    """Create a new database session for a test."""
     SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+    yield session
+    session.close()
 
-    with SessionLocal() as session:
-        # Create languages
-        english = Language(
+
+@pytest.fixture
+def english_language(session):
+    """Create and return an English language record."""
+    language = Language(
+        id=str(uuid.uuid4()),
+        name="English",
+        code="en",
+        nativeName="English",
+        isActive=1,
+    )
+    session.add(language)
+    session.commit()
+    return language
+
+
+@pytest.fixture
+def russian_language(session):
+    """Create and return a Russian language record."""
+    language = Language(
+        id=str(uuid.uuid4()),
+        name="Russian",
+        code="ru",
+        nativeName="Русский",
+        isActive=1,
+    )
+    session.add(language)
+    session.commit()
+    return language
+
+
+@pytest.fixture
+def test_user(session, english_language, russian_language):
+    """Create and return a test user."""
+    user = User(
+        id=str(uuid.uuid4()),
+        email="john@example.com",
+        username="johndoe",
+        passwordHash="$2b$12$hashedpassword",
+        firstName="John",
+        lastName="Doe",
+        nativeLanguageId=english_language.id,
+        currentLanguageId=russian_language.id,
+    )
+    session.add(user)
+    session.commit()
+    return user
+
+
+# Language Model Tests
+
+
+class TestLanguageModel:
+    """Test cases for the Language model."""
+
+    def test_create_language(self, session):
+        """Test creating a new language."""
+        language = Language(
             id=str(uuid.uuid4()),
-            name="English",
-            code="en",
+            name="Spanish",
+            code="es",
+            nativeName="Español",
+            isActive=1,
+        )
+        session.add(language)
+        session.commit()
+
+        queried_language = session.query(Language).filter_by(id=language.id).first()
+        assert queried_language is not None
+        assert queried_language.id == language.id
+        assert queried_language.name == "Spanish"
+        assert queried_language.code == "es"
+        assert queried_language.nativeName == "Español"
+        assert queried_language.isActive == 1
+        assert queried_language.createdAt == language.createdAt
+        
+
+    def test_language_unique_code(self, session, english_language):
+        """Test that language codes must be unique."""
+        duplicate_language = Language(
+            id=str(uuid.uuid4()),
+            name="English US",
+            code="en",  # Duplicate code
             nativeName="English",
             isActive=1,
         )
-        russian = Language(
-            id=str(uuid.uuid4()),
-            name="Russian",
-            code="ru",
-            nativeName="Русский",
-            isActive=1,
-        )
+        session.add(duplicate_language)
 
-        session.add_all([english, russian])
-        session.commit()
-        logger.info("✅ Created 2 languages")
+        with pytest.raises(Exception):  # SQLAlchemy will raise IntegrityError
+            session.commit()
 
-        # Create user
-        user = User(
-            id=str(uuid.uuid4()),
-            email="john@example.com",
-            username="johndoe",
-            passwordHash="$2b$12$...",
-            firstName="John",
-            lastName="Doe",
-            nativeLanguageId=english.id,
-            currentLanguageId=russian.id,
-        )
-
-        session.add(user)
-        session.commit()
-        logger.info(f"✅ Created user: {user.username}")
-
-        # Create user language association
-        user_lang = UserLanguage(
-            userId=user.id,
-            languageId=russian.id,
-            proficiencyLevel="A2",
-            startedAt=datetime.utcnow(),
-        )
-
-        session.add(user_lang)
-        session.commit()
-        logger.info("✅ Created user-language association")
-
-        # Query data using relationships
-        queried_user = session.query(User).filter_by(username="johndoe").first()
-        logger.info(f"Queried user: {queried_user.username}")
-        logger.info(f"  Native language: {queried_user.native_language.name}")
-        logger.info(f"  Current language: {queried_user.current_language.name}")
-        logger.info(f"  Learning languages: {len(queried_user.user_languages)}")
-
-        # Update user
-        queried_user.lastActiveAt = datetime.utcnow()
-        session.commit()
-        logger.info("✅ Updated user last active timestamp")
-
-        # Delete user (cascade will delete related records)
-        session.delete(queried_user)
-        session.commit()
-        logger.info("✅ Deleted user")
-
-    logger.info("✅ Basic CRUD test passed")
+    def test_language_repr(self, english_language):
+        """Test language string representation."""
+        expected = f"<Language(id='{english_language.id}', code='en', name='English')>"
+        assert repr(english_language) == expected
 
 
-def test_relationships():
-    """Test model relationships."""
-    logger.info("Testing model relationships...")
+# User Model Tests
 
-    db_path = Path("/tmp/test_orm_relations.db")
-    engine = create_test_database(db_path)
-    SessionLocal = sessionmaker(bind=engine)
 
-    with SessionLocal() as session:
-        # Create base data
-        english = Language(
-            id=str(uuid.uuid4()),
-            name="English",
-            code="en",
-            nativeName="English",
-            isActive=1,
-        )
+class TestUserModel:
+    """Test cases for the User model."""
 
+    def test_create_user(self, session, english_language, russian_language):
+        """Test creating a new user."""
         user = User(
             id=str(uuid.uuid4()),
             email="alice@example.com",
             username="alice",
-            passwordHash="$2b$12$...",
+            passwordHash="$2b$12$hashedpassword",
             firstName="Alice",
             lastName="Smith",
-            nativeLanguageId=english.id,
-            currentLanguageId=english.id,
+            nativeLanguageId=english_language.id,
+            currentLanguageId=russian_language.id,
         )
-
-        session.add_all([english, user])
+        session.add(user)
         session.commit()
 
-        # Create text with tags
+        assert user.id is not None
+        assert user.email == "alice@example.com"
+        assert user.username == "alice"
+        assert user.firstName == "Alice"
+        assert user.lastName == "Smith"
+        assert user.createdAt is not None
+        assert user.updatedAt is not None
+
+    def test_user_unique_email(self, session, test_user, russian_language):
+        """Test that user emails must be unique."""
+        duplicate_user = User(
+            id=str(uuid.uuid4()),
+            email=test_user.email,  # Duplicate email
+            username="different",
+            passwordHash="$2b$12$hashedpassword",
+            firstName="Jane",
+            lastName="Doe",
+            nativeLanguageId=test_user.nativeLanguageId,
+            currentLanguageId=russian_language.id,
+        )
+        session.add(duplicate_user)
+
+        with pytest.raises(Exception):
+            session.commit()
+
+    def test_user_unique_username(self, session, test_user, russian_language):
+        """Test that usernames must be unique."""
+        duplicate_user = User(
+            id=str(uuid.uuid4()),
+            email="different@example.com",
+            username=test_user.username,  # Duplicate username
+            passwordHash="$2b$12$hashedpassword",
+            firstName="Jane",
+            lastName="Doe",
+            nativeLanguageId=test_user.nativeLanguageId,
+            currentLanguageId=russian_language.id,
+        )
+        session.add(duplicate_user)
+
+        with pytest.raises(Exception):
+            session.commit()
+
+    def test_user_language_relationships(
+        self, test_user, english_language, russian_language
+    ):
+        """Test user relationships with languages."""
+        assert test_user.native_language.id == english_language.id
+        assert test_user.current_language.id == russian_language.id
+        assert test_user.native_language.name == "English"
+        assert test_user.current_language.name == "Russian"
+
+    def test_update_user_last_active(self, session, test_user):
+        """Test updating user's last active timestamp."""
+        now = datetime.utcnow()
+        test_user.lastActiveAt = now
+        session.commit()
+
+        updated_user = session.query(User).filter_by(id=test_user.id).first()
+        assert updated_user.lastActiveAt is not None
+        assert updated_user.lastActiveAt.replace(microsecond=0) == now.replace(
+            microsecond=0
+        )
+
+    def test_delete_user_cascade(self, session, test_user, russian_language):
+        """Test that deleting a user cascades to related records."""
+        # Create user language association
+        user_lang = UserLanguage(
+            userId=test_user.id,
+            languageId=russian_language.id,
+            proficiencyLevel="A2",
+            startedAt=datetime.utcnow(),
+        )
+        session.add(user_lang)
+        session.commit()
+
+        user_id = test_user.id
+
+        # Delete user
+        session.delete(test_user)
+        session.commit()
+
+        # Verify user is deleted
+        deleted_user = session.query(User).filter_by(id=user_id).first()
+        assert deleted_user is None
+
+        # Verify user language association is also deleted (cascade)
+        deleted_user_lang = (
+            session.query(UserLanguage).filter_by(userId=user_id).first()
+        )
+        assert deleted_user_lang is None
+
+    def test_user_repr(self, test_user):
+        """Test user string representation."""
+        expected = (
+            f"<User(id='{test_user.id}', username='johndoe', email='john@example.com')>"
+        )
+        assert repr(test_user) == expected
+
+
+# UserLanguage Model Tests
+
+
+class TestUserLanguageModel:
+    """Test cases for the UserLanguage model."""
+
+    def test_create_user_language(self, session, test_user, russian_language):
+        """Test creating a user language association."""
+        started_at = datetime.utcnow()
+        user_lang = UserLanguage(
+            userId=test_user.id,
+            languageId=russian_language.id,
+            proficiencyLevel="A2",
+            startedAt=started_at,
+        )
+        session.add(user_lang)
+        session.commit()
+
+        assert user_lang.userId == test_user.id
+        assert user_lang.languageId == russian_language.id
+        assert user_lang.proficiencyLevel == "A2"
+        assert user_lang.startedAt is not None
+        assert user_lang.createdAt is not None
+
+    def test_user_language_relationships(self, session, test_user, russian_language):
+        """Test user language relationships."""
+        user_lang = UserLanguage(
+            userId=test_user.id,
+            languageId=russian_language.id,
+            proficiencyLevel="B1",
+            startedAt=datetime.utcnow(),
+        )
+        session.add(user_lang)
+        session.commit()
+
+        assert user_lang.user.username == test_user.username
+        assert user_lang.language.name == "Russian"
+
+    def test_user_language_proficiency_levels(
+        self, session, test_user, russian_language
+    ):
+        """Test valid proficiency levels."""
+        valid_levels = ["A1", "A2", "B1", "B2", "C1", "C2"]
+
+        for level in valid_levels:
+            user_lang = UserLanguage(
+                userId=test_user.id,
+                languageId=russian_language.id,
+                proficiencyLevel=level,
+                startedAt=datetime.utcnow(),
+            )
+            session.add(user_lang)
+            # Clean up after each test
+            session.rollback()
+
+    def test_user_language_repr(self, session, test_user, russian_language):
+        """Test user language string representation."""
+        user_lang = UserLanguage(
+            userId=test_user.id,
+            languageId=russian_language.id,
+            proficiencyLevel="A2",
+            startedAt=datetime.utcnow(),
+        )
+        session.add(user_lang)
+        session.commit()
+
+        expected = f"<UserLanguage(userId='{test_user.id}', languageId='{russian_language.id}', level='A2')>"
+        assert repr(user_lang) == expected
+
+
+# Text Model Tests
+
+
+class TestTextModel:
+    """Test cases for the Text model."""
+
+    def test_create_text(self, session, test_user, english_language):
+        """Test creating a new text."""
         text = TextModel(
             id=str(uuid.uuid4()),
             title="Introduction to Python",
             content="Python is a high-level programming language...",
-            languageId=english.id,
-            authorId=user.id,
+            languageId=english_language.id,
+            authorId=test_user.id,
             proficiencyLevel="B1",
             wordCount=50,
             isPublic=1,
         )
+        session.add(text)
+        session.commit()
 
-        tag1 = TextTag(id=str(uuid.uuid4()), name="programming", description="Programming tutorials")
-        tag2 = TextTag(id=str(uuid.uuid4()), name="education", description="Educational content")
+        assert text.id is not None
+        assert text.title == "Introduction to Python"
+        assert text.proficiencyLevel == "B1"
+        assert text.wordCount == 50
+        assert text.isPublic == 1
+        assert text.createdAt is not None
+
+    def test_text_relationships(self, session, test_user, english_language):
+        """Test text relationships with author and language."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Test Article",
+            content="Content here...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="A1",
+            wordCount=20,
+            isPublic=1,
+        )
+        session.add(text)
+        session.commit()
+
+        assert text.author.username == test_user.username
+        assert text.language.name == "English"
+
+    def test_text_with_source(self, session, test_user, english_language):
+        """Test creating text with optional source."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Article",
+            content="Content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="B2",
+            wordCount=100,
+            isPublic=1,
+            source="https://example.com/article",
+        )
+        session.add(text)
+        session.commit()
+
+        assert text.source == "https://example.com/article"
+
+    def test_text_repr(self, session, test_user, english_language):
+        """Test text string representation."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Test Text",
+            content="Content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="C1",
+            wordCount=75,
+            isPublic=1,
+        )
+        session.add(text)
+        session.commit()
+
+        expected = f"<Text(id='{text.id}', title='Test Text', level='C1')>"
+        assert repr(text) == expected
+
+
+# TextTag Model Tests
+
+
+class TestTextTagModel:
+    """Test cases for the TextTag model."""
+
+    def test_create_text_tag(self, session):
+        """Test creating a text tag."""
+        tag = TextTag(
+            id=str(uuid.uuid4()),
+            name="programming",
+            description="Programming tutorials",
+        )
+        session.add(tag)
+        session.commit()
+
+        assert tag.id is not None
+        assert tag.name == "programming"
+        assert tag.description == "Programming tutorials"
+
+    def test_text_tag_unique_name(self, session):
+        """Test that tag names must be unique."""
+        tag1 = TextTag(
+            id=str(uuid.uuid4()),
+            name="science",
+            description="Science articles",
+        )
+        session.add(tag1)
+        session.commit()
+
+        tag2 = TextTag(
+            id=str(uuid.uuid4()),
+            name="science",  # Duplicate name
+            description="Different description",
+        )
+        session.add(tag2)
+
+        with pytest.raises(Exception):
+            session.commit()
+
+    def test_text_tag_repr(self, session):
+        """Test text tag string representation."""
+        tag = TextTag(
+            id=str(uuid.uuid4()),
+            name="education",
+        )
+        session.add(tag)
+        session.commit()
+
+        expected = f"<TextTag(id='{tag.id}', name='education')>"
+        assert repr(tag) == expected
+
+
+# TextTagAssociation Model Tests
+
+
+class TestTextTagAssociationModel:
+    """Test cases for the TextTagAssociation model."""
+
+    def test_create_text_tag_association(self, session, test_user, english_language):
+        """Test creating a text-tag association."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Python Guide",
+            content="Guide content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="B1",
+            wordCount=100,
+            isPublic=1,
+        )
+        tag = TextTag(id=str(uuid.uuid4()), name="tutorial")
+
+        session.add_all([text, tag])
+        session.commit()
+
+        assoc = TextTagAssociation(textId=text.id, tagId=tag.id)
+        session.add(assoc)
+        session.commit()
+
+        assert assoc.textId == text.id
+        assert assoc.tagId == tag.id
+
+    def test_text_tag_association_relationships(
+        self, session, test_user, english_language
+    ):
+        """Test text-tag association relationships."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Article",
+            content="Content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="A2",
+            wordCount=50,
+            isPublic=1,
+        )
+        tag = TextTag(id=str(uuid.uuid4()), name="news")
+
+        session.add_all([text, tag])
+        session.commit()
+
+        assoc = TextTagAssociation(textId=text.id, tagId=tag.id)
+        session.add(assoc)
+        session.commit()
+
+        assert assoc.text.title == "Article"
+        assert assoc.tag.name == "news"
+
+    def test_text_with_multiple_tags(self, session, test_user, english_language):
+        """Test text with multiple tags."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Python Tutorial",
+            content="Content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="B1",
+            wordCount=150,
+            isPublic=1,
+        )
+        tag1 = TextTag(id=str(uuid.uuid4()), name="programming")
+        tag2 = TextTag(id=str(uuid.uuid4()), name="education")
 
         session.add_all([text, tag1, tag2])
         session.commit()
 
-        # Create tag associations
         assoc1 = TextTagAssociation(textId=text.id, tagId=tag1.id)
         assoc2 = TextTagAssociation(textId=text.id, tagId=tag2.id)
-
         session.add_all([assoc1, assoc2])
         session.commit()
 
-        # Query with relationships
         queried_text = session.query(TextModel).filter_by(id=text.id).first()
-        logger.info(f"Text: {queried_text.title}")
-        logger.info(f"  Author: {queried_text.author.username}")
-        logger.info(f"  Language: {queried_text.language.name}")
-        logger.info(f"  Tags: {len(queried_text.tag_associations)}")
-        for assoc in queried_text.tag_associations:
-            logger.info(f"    - {assoc.tag.name}")
+        assert len(queried_text.tag_associations) == 2
+        tag_names = [assoc.tag.name for assoc in queried_text.tag_associations]
+        assert "programming" in tag_names
+        assert "education" in tag_names
 
-        # Create vocabulary
+    def test_delete_text_cascades_associations(
+        self, session, test_user, english_language
+    ):
+        """Test that deleting a text deletes its tag associations."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Article",
+            content="Content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="A1",
+            wordCount=25,
+            isPublic=1,
+        )
+        tag = TextTag(id=str(uuid.uuid4()), name="test")
+
+        session.add_all([text, tag])
+        session.commit()
+
+        assoc = TextTagAssociation(textId=text.id, tagId=tag.id)
+        session.add(assoc)
+        session.commit()
+
+        text_id = text.id
+
+        # Delete text
+        session.delete(text)
+        session.commit()
+
+        # Verify association is deleted
+        deleted_assoc = (
+            session.query(TextTagAssociation).filter_by(textId=text_id).first()
+        )
+        assert deleted_assoc is None
+
+    def test_text_tag_association_repr(self, session, test_user, english_language):
+        """Test text tag association string representation."""
+        text = TextModel(
+            id=str(uuid.uuid4()),
+            title="Article",
+            content="Content...",
+            languageId=english_language.id,
+            authorId=test_user.id,
+            proficiencyLevel="B2",
+            wordCount=80,
+            isPublic=1,
+        )
+        tag = TextTag(id=str(uuid.uuid4()), name="sample")
+
+        session.add_all([text, tag])
+        session.commit()
+
+        assoc = TextTagAssociation(textId=text.id, tagId=tag.id)
+        session.add(assoc)
+        session.commit()
+
+        expected = f"<TextTagAssociation(textId='{text.id}', tagId='{tag.id}')>"
+        assert repr(assoc) == expected
+
+
+# UserVocabulary Model Tests
+
+
+class TestUserVocabularyModel:
+    """Test cases for the UserVocabulary model."""
+
+    def test_create_user_vocabulary(self, session, test_user, english_language):
+        """Test creating a user vocabulary."""
         vocab = UserVocabulary(
             id=str(uuid.uuid4()),
-            userId=user.id,
-            languageId=english.id,
+            userId=test_user.id,
+            languageId=english_language.id,
             name="My English Vocabulary",
         )
-
         session.add(vocab)
         session.commit()
 
-        # Add vocabulary items
-        item1 = UserVocabularyItem(
+        assert vocab.id is not None
+        assert vocab.userId == test_user.id
+        assert vocab.languageId == english_language.id
+        assert vocab.name == "My English Vocabulary"
+        assert vocab.createdAt is not None
+
+    def test_user_vocabulary_relationships(self, session, test_user, english_language):
+        """Test user vocabulary relationships."""
+        vocab = UserVocabulary(
             id=str(uuid.uuid4()),
-            userVocabularyId=vocab.id,
+            userId=test_user.id,
+            languageId=english_language.id,
+            name="Test Vocabulary",
+        )
+        session.add(vocab)
+        session.commit()
+
+        assert vocab.user.username == test_user.username
+        assert vocab.language.name == "English"
+
+    def test_user_vocabulary_unique_constraint(
+        self, session, test_user, english_language
+    ):
+        """Test unique constraint on userId and languageId."""
+        vocab1 = UserVocabulary(
+            id=str(uuid.uuid4()),
+            userId=test_user.id,
+            languageId=english_language.id,
+            name="First Vocabulary",
+        )
+        session.add(vocab1)
+        session.commit()
+
+        vocab2 = UserVocabulary(
+            id=str(uuid.uuid4()),
+            userId=test_user.id,
+            languageId=english_language.id,  # Same user and language
+            name="Second Vocabulary",
+        )
+        session.add(vocab2)
+
+        with pytest.raises(Exception):
+            session.commit()
+
+    def test_delete_user_cascades_vocabulary(
+        self, session, test_user, english_language
+    ):
+        """Test that deleting a user deletes their vocabularies."""
+        vocab = UserVocabulary(
+            id=str(uuid.uuid4()),
+            userId=test_user.id,
+            languageId=english_language.id,
+            name="Test Vocabulary",
+        )
+        session.add(vocab)
+        session.commit()
+
+        vocab_id = vocab.id
+
+        # Delete user
+        session.delete(test_user)
+        session.commit()
+
+        # Verify vocabulary is deleted
+        deleted_vocab = session.query(UserVocabulary).filter_by(id=vocab_id).first()
+        assert deleted_vocab is None
+
+    def test_user_vocabulary_repr(self, session, test_user, english_language):
+        """Test user vocabulary string representation."""
+        vocab = UserVocabulary(
+            id=str(uuid.uuid4()),
+            userId=test_user.id,
+            languageId=english_language.id,
+            name="My Vocabulary",
+        )
+        session.add(vocab)
+        session.commit()
+
+        expected = f"<UserVocabulary(id='{vocab.id}', userId='{test_user.id}', name='My Vocabulary')>"
+        assert repr(vocab) == expected
+
+
+# UserVocabularyItem Model Tests
+
+
+class TestUserVocabularyItemModel:
+    """Test cases for the UserVocabularyItem model."""
+
+    @pytest.fixture
+    def test_vocabulary(self, session, test_user, english_language):
+        """Create a test vocabulary."""
+        vocab = UserVocabulary(
+            id=str(uuid.uuid4()),
+            userId=test_user.id,
+            languageId=english_language.id,
+            name="Test Vocabulary",
+        )
+        session.add(vocab)
+        session.commit()
+        return vocab
+
+    def test_create_vocabulary_item(self, session, test_vocabulary):
+        """Test creating a vocabulary item."""
+        item = UserVocabularyItem(
+            id=str(uuid.uuid4()),
+            userVocabularyId=test_vocabulary.id,
             term="function",
             lemma="function",
             partOfSpeech="NOUN",
@@ -226,138 +743,320 @@ def test_relationships():
             timesReviewed=5,
             confidenceLevel="A2",
         )
+        session.add(item)
+        session.commit()
+
+        assert item.id is not None
+        assert item.term == "function"
+        assert item.lemma == "function"
+        assert item.partOfSpeech == "NOUN"
+        assert item.status == "LEARNING"
+        assert item.timesReviewed == 5
+        assert item.confidenceLevel == "A2"
+
+    def test_vocabulary_item_defaults(self, session, test_vocabulary):
+        """Test vocabulary item default values."""
+        item = UserVocabularyItem(
+            id=str(uuid.uuid4()),
+            userVocabularyId=test_vocabulary.id,
+            term="test",
+        )
+        session.add(item)
+        session.commit()
+
+        assert item.status == "NEW"
+        assert item.timesReviewed == 0
+        assert item.confidenceLevel == "A1"
+        assert item.createdAt is not None
+
+    def test_vocabulary_item_relationship(self, session, test_vocabulary):
+        """Test vocabulary item relationship with vocabulary."""
+        item = UserVocabularyItem(
+            id=str(uuid.uuid4()),
+            userVocabularyId=test_vocabulary.id,
+            term="variable",
+        )
+        session.add(item)
+        session.commit()
+
+        assert item.vocabulary.name == "Test Vocabulary"
+
+    def test_vocabulary_with_multiple_items(self, session, test_vocabulary):
+        """Test vocabulary with multiple items."""
+        items = [
+            UserVocabularyItem(
+                id=str(uuid.uuid4()),
+                userVocabularyId=test_vocabulary.id,
+                term="function",
+                status="KNOWN",
+            ),
+            UserVocabularyItem(
+                id=str(uuid.uuid4()),
+                userVocabularyId=test_vocabulary.id,
+                term="variable",
+                status="LEARNING",
+            ),
+            UserVocabularyItem(
+                id=str(uuid.uuid4()),
+                userVocabularyId=test_vocabulary.id,
+                term="constant",
+                status="NEW",
+            ),
+        ]
+        session.add_all(items)
+        session.commit()
+
+        queried_vocab = (
+            session.query(UserVocabulary).filter_by(id=test_vocabulary.id).first()
+        )
+        assert len(queried_vocab.items) == 3
+        terms = [item.term for item in queried_vocab.items]
+        assert "function" in terms
+        assert "variable" in terms
+        assert "constant" in terms
+
+    def test_vocabulary_item_unique_constraint(self, session, test_vocabulary):
+        """Test unique constraint on userVocabularyId and term."""
+        item1 = UserVocabularyItem(
+            id=str(uuid.uuid4()),
+            userVocabularyId=test_vocabulary.id,
+            term="duplicate",
+        )
+        session.add(item1)
+        session.commit()
 
         item2 = UserVocabularyItem(
             id=str(uuid.uuid4()),
-            userVocabularyId=vocab.id,
-            term="variable",
-            lemma="variable",
-            partOfSpeech="NOUN",
-            frequency=0.90,
-            status="KNOWN",
-            timesReviewed=10,
-            confidenceLevel="B1",
+            userVocabularyId=test_vocabulary.id,
+            term="duplicate",  # Duplicate term in same vocabulary
         )
+        session.add(item2)
 
-        session.add_all([item1, item2])
+        with pytest.raises(Exception):
+            session.commit()
+
+    def test_delete_vocabulary_cascades_items(self, session, test_vocabulary):
+        """Test that deleting a vocabulary deletes its items."""
+        item = UserVocabularyItem(
+            id=str(uuid.uuid4()),
+            userVocabularyId=test_vocabulary.id,
+            term="test",
+        )
+        session.add(item)
         session.commit()
 
-        # Query vocabulary with items
-        queried_vocab = session.query(UserVocabulary).filter_by(id=vocab.id).first()
-        logger.info(f"Vocabulary: {queried_vocab.name}")
-        logger.info(f"  User: {queried_vocab.user.username}")
-        logger.info(f"  Language: {queried_vocab.language.name}")
-        logger.info(f"  Items: {len(queried_vocab.items)}")
-        for item in queried_vocab.items:
-            logger.info(
-                f"    - {item.term} ({item.partOfSpeech}): {item.status}, "
-                f"reviewed {item.timesReviewed} times"
-            )
+        item_id = item.id
 
-    logger.info("✅ Relationships test passed")
+        # Delete vocabulary
+        session.delete(test_vocabulary)
+        session.commit()
 
+        # Verify item is deleted
+        deleted_item = session.query(UserVocabularyItem).filter_by(id=item_id).first()
+        assert deleted_item is None
 
-def test_queries():
-    """Test various query patterns."""
-    logger.info("Testing query patterns...")
-
-    db_path = Path("/tmp/test_orm_queries.db")
-    engine = create_test_database(db_path)
-    SessionLocal = sessionmaker(bind=engine)
-
-    with SessionLocal() as session:
-        # Create test data
-        english = Language(
+    def test_vocabulary_item_with_notes(self, session, test_vocabulary):
+        """Test vocabulary item with optional notes."""
+        item = UserVocabularyItem(
             id=str(uuid.uuid4()),
-            name="English",
-            code="en",
-            nativeName="English",
-            isActive=1,
+            userVocabularyId=test_vocabulary.id,
+            term="algorithm",
+            notes="Important concept in computer science",
         )
+        session.add(item)
+        session.commit()
 
+        assert item.notes == "Important concept in computer science"
+
+    def test_vocabulary_item_repr(self, session, test_vocabulary):
+        """Test vocabulary item string representation."""
+        item = UserVocabularyItem(
+            id=str(uuid.uuid4()),
+            userVocabularyId=test_vocabulary.id,
+            term="test",
+            status="MASTERED",
+        )
+        session.add(item)
+        session.commit()
+
+        expected = (
+            f"<UserVocabularyItem(id='{item.id}', term='test', status='MASTERED')>"
+        )
+        assert repr(item) == expected
+
+
+# Query Tests
+
+
+class TestQueryPatterns:
+    """Test various query patterns."""
+
+    def test_query_all_users(self, session, english_language):
+        """Test querying all users."""
         users_data = [
             ("alice", "alice@example.com", "Alice", "Smith"),
             ("bob", "bob@example.com", "Bob", "Johnson"),
             ("charlie", "charlie@example.com", "Charlie", "Brown"),
         ]
 
-        users = []
         for username, email, first_name, last_name in users_data:
             user = User(
                 id=str(uuid.uuid4()),
                 email=email,
                 username=username,
-                passwordHash="$2b$12$...",
+                passwordHash="$2b$12$hashedpassword",
                 firstName=first_name,
                 lastName=last_name,
-                nativeLanguageId=english.id,
-                currentLanguageId=english.id,
+                nativeLanguageId=english_language.id,
+                currentLanguageId=english_language.id,
             )
-            users.append(user)
-
-        session.add(english)
-        session.add_all(users)
+            session.add(user)
         session.commit()
 
-        # Query all users
         all_users = session.query(User).all()
-        logger.info(f"All users: {len(all_users)}")
+        assert len(all_users) == 3
 
-        # Filter query
-        alice = session.query(User).filter_by(username="alice").first()
-        logger.info(f"Found user by username: {alice.firstName} {alice.lastName}")
+    def test_filter_query(self, session, test_user):
+        """Test filtering users by username."""
+        found_user = session.query(User).filter_by(username="johndoe").first()
+        assert found_user is not None
+        assert found_user.username == "johndoe"
+        assert found_user.firstName == "John"
 
-        # Filter with condition
+    def test_filter_with_condition(self, session, english_language):
+        """Test filtering with conditions."""
+        users_data = [
+            ("alice", "alice@example.com", "Alice", "Smith"),
+            ("bob", "bob@example.com", "Bob", "Johnson"),
+            ("andrew", "andrew@example.com", "Andrew", "Brown"),
+        ]
+
+        for username, email, first_name, last_name in users_data:
+            user = User(
+                id=str(uuid.uuid4()),
+                email=email,
+                username=username,
+                passwordHash="$2b$12$hashedpassword",
+                firstName=first_name,
+                lastName=last_name,
+                nativeLanguageId=english_language.id,
+                currentLanguageId=english_language.id,
+            )
+            session.add(user)
+        session.commit()
+
         users_with_a = session.query(User).filter(User.firstName.startswith("A")).all()
-        logger.info(f"Users with first name starting with 'A': {len(users_with_a)}")
+        assert len(users_with_a) == 2
+        first_names = [u.firstName for u in users_with_a]
+        assert "Alice" in first_names
+        assert "Andrew" in first_names
 
-        # Order by
+    def test_order_by_query(self, session, english_language):
+        """Test ordering query results."""
+        users_data = [
+            ("charlie", "charlie@example.com", "Charlie", "Brown"),
+            ("alice", "alice@example.com", "Alice", "Smith"),
+            ("bob", "bob@example.com", "Bob", "Johnson"),
+        ]
+
+        for username, email, first_name, last_name in users_data:
+            user = User(
+                id=str(uuid.uuid4()),
+                email=email,
+                username=username,
+                passwordHash="$2b$12$hashedpassword",
+                firstName=first_name,
+                lastName=last_name,
+                nativeLanguageId=english_language.id,
+                currentLanguageId=english_language.id,
+            )
+            session.add(user)
+        session.commit()
+
         ordered_users = session.query(User).order_by(User.username).all()
-        logger.info("Users ordered by username:")
-        for user in ordered_users:
-            logger.info(f"  - {user.username}")
+        usernames = [u.username for u in ordered_users]
+        assert usernames == ["alice", "bob", "charlie"]
 
-        # Count
+    def test_count_query(self, session, english_language):
+        """Test counting query results."""
+        for i in range(5):
+            user = User(
+                id=str(uuid.uuid4()),
+                email=f"user{i}@example.com",
+                username=f"user{i}",
+                passwordHash="$2b$12$hashedpassword",
+                firstName=f"User{i}",
+                lastName="Test",
+                nativeLanguageId=english_language.id,
+                currentLanguageId=english_language.id,
+            )
+            session.add(user)
+        session.commit()
+
         user_count = session.query(User).count()
-        logger.info(f"Total users: {user_count}")
+        assert user_count == 5
 
-        # Join query
+    def test_join_query(self, session, english_language):
+        """Test join query with languages."""
+        users_data = [
+            ("alice", "alice@example.com", "Alice", "Smith"),
+            ("bob", "bob@example.com", "Bob", "Johnson"),
+        ]
+
+        for username, email, first_name, last_name in users_data:
+            user = User(
+                id=str(uuid.uuid4()),
+                email=email,
+                username=username,
+                passwordHash="$2b$12$hashedpassword",
+                firstName=first_name,
+                lastName=last_name,
+                nativeLanguageId=english_language.id,
+                currentLanguageId=english_language.id,
+            )
+            session.add(user)
+        session.commit()
+
         users_with_lang = (
             session.query(User, Language)
             .join(Language, User.nativeLanguageId == Language.id)
             .all()
         )
-        logger.info(f"Users with their native language: {len(users_with_lang)}")
+
+        assert len(users_with_lang) == 2
         for user, lang in users_with_lang:
-            logger.info(f"  - {user.username}: {lang.name}")
-
-    logger.info("✅ Query patterns test passed")
+            assert lang.name == "English"
 
 
-def main():
-    """Run all tests."""
-    logger.info("=" * 60)
-    logger.info("SQLAlchemy ORM Models Tests")
-    logger.info("=" * 60)
-
-    try:
-        test_basic_crud()
-        print()
-        test_relationships()
-        print()
-        test_queries()
-
-        logger.info("=" * 60)
-        logger.info("✅ All ORM tests passed!")
-        logger.info("=" * 60)
-
-    except Exception as e:
-        logger.error(f"❌ Test failed: {e}", exc_info=True)
-        return 1
-
-    return 0
+# Helper Functions Tests
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+class TestHelperFunctions:
+    """Test helper functions."""
 
+    def test_get_all_models(self):
+        """Test getting all model classes."""
+        models = get_all_models()
+        assert len(models) == 8
+        assert Language in models
+        assert User in models
+        assert UserLanguage in models
+        assert TextModel in models
+        assert UserVocabulary in models
+        assert UserVocabularyItem in models
+        assert TextTag in models
+        assert TextTagAssociation in models
+
+    def test_get_model_by_table_name(self):
+        """Test getting model by table name."""
+        assert get_model_by_table_name("Language") == Language
+        assert get_model_by_table_name("User") == User
+        assert get_model_by_table_name("Text") == TextModel
+        assert get_model_by_table_name("UserVocabulary") == UserVocabulary
+
+    def test_get_model_by_invalid_table_name(self):
+        """Test getting model with invalid table name."""
+        with pytest.raises(
+            ValueError, match="Model for table 'InvalidTable' not found"
+        ):
+            get_model_by_table_name("InvalidTable")

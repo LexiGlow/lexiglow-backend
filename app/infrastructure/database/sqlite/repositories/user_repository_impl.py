@@ -19,7 +19,6 @@ from app.core.config import BASE_DIR
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
 from app.infrastructure.database.sqlite.models import User as UserModel
-from app.infrastructure.database.sqlite.session import get_session
 
 
 logger = logging.getLogger(__name__)
@@ -125,7 +124,9 @@ class SQLiteUserRepository(IUserRepository):
                 session.commit()
                 session.refresh(user_model)
 
-                logger.info(f"Created user: {user_model.username} (ID: {user_model.id})")
+                logger.info(
+                    f"Created user: {user_model.username} (ID: {user_model.id})"
+                )
                 return self._model_to_entity(user_model)
 
         except SQLAlchemyError as e:
@@ -147,7 +148,9 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             with self.SessionLocal() as session:
-                user_model = session.query(UserModel).filter_by(id=str(entity_id)).first()
+                user_model = (
+                    session.query(UserModel).filter_by(id=str(entity_id)).first()
+                )
 
                 if user_model:
                     logger.debug(f"Retrieved user by ID: {entity_id}")
@@ -176,14 +179,11 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             with self.SessionLocal() as session:
-                users = (
-                    session.query(UserModel)
-                    .offset(skip)
-                    .limit(limit)
-                    .all()
-                )
+                users = session.query(UserModel).offset(skip).limit(limit).all()
 
-                logger.debug(f"Retrieved {len(users)} users (skip={skip}, limit={limit})")
+                logger.debug(
+                    f"Retrieved {len(users)} users (skip={skip}, limit={limit})"
+                )
                 return [self._model_to_entity(user) for user in users]
 
         except SQLAlchemyError as e:
@@ -206,7 +206,9 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             with self.SessionLocal() as session:
-                user_model = session.query(UserModel).filter_by(id=str(entity_id)).first()
+                user_model = (
+                    session.query(UserModel).filter_by(id=str(entity_id)).first()
+                )
 
                 if not user_model:
                     logger.warning(f"User not found for update: {entity_id}")
@@ -250,7 +252,9 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             with self.SessionLocal() as session:
-                user_model = session.query(UserModel).filter_by(id=str(entity_id)).first()
+                user_model = (
+                    session.query(UserModel).filter_by(id=str(entity_id)).first()
+                )
 
                 if not user_model:
                     logger.warning(f"User not found for deletion: {entity_id}")
@@ -282,9 +286,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             with self.SessionLocal() as session:
                 exists = (
-                    session.query(UserModel.id)
-                    .filter_by(id=str(entity_id))
-                    .first()
+                    session.query(UserModel.id).filter_by(id=str(entity_id)).first()
                     is not None
                 )
 
@@ -338,7 +340,9 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             with self.SessionLocal() as session:
-                user_model = session.query(UserModel).filter_by(username=username).first()
+                user_model = (
+                    session.query(UserModel).filter_by(username=username).first()
+                )
 
                 if user_model:
                     logger.debug(f"Retrieved user by username: {username}")
@@ -367,9 +371,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             with self.SessionLocal() as session:
                 exists = (
-                    session.query(UserModel.id)
-                    .filter_by(email=email)
-                    .first()
+                    session.query(UserModel.id).filter_by(email=email).first()
                     is not None
                 )
 
@@ -396,9 +398,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             with self.SessionLocal() as session:
                 exists = (
-                    session.query(UserModel.id)
-                    .filter_by(username=username)
-                    .first()
+                    session.query(UserModel.id).filter_by(username=username).first()
                     is not None
                 )
 
@@ -439,4 +439,3 @@ class SQLiteUserRepository(IUserRepository):
         except SQLAlchemyError as e:
             logger.error(f"Failed to update last active: {e}")
             raise Exception(f"Failed to update last active: {e}")
-

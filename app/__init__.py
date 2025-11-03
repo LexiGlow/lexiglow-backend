@@ -13,7 +13,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-def def create_app():
+def create_app():
+    """
+    Create and configure the Connexion (Flask) app.
+    Returns the Connexion app instance (not the Flask app).
+    """
     # Apply the logging configuration.
     # The log directory is created within the logging_config module.
     dictConfig(LOGGING_CONFIG)
@@ -29,10 +33,6 @@ def def create_app():
     logger.debug(f"OpenAPI specification_dir = {str(BASE_DIR / 'openapi')}")
     logger.debug(f"OpenAPI dir exists: {openapi_dir.exists()}")
     logger.debug(f"OpenAPI file exists: {openapi_file.exists()}")
-    """
-    Create and configure the Connexion (Flask) app.
-    Returns the Connexion app instance (not the Flask app).
-    """
     logger.debug("Creating Connexion app...")
     try:
         app = connexion.App(__name__, specification_dir=str(BASE_DIR))

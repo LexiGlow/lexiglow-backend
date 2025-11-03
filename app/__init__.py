@@ -7,21 +7,20 @@ import connexion
 from flask_cors import CORS
 from pymongo import MongoClient
 from .core.config import MONGO_URI
-from .core.logging import LOGGING_CONFIG, LOG_LEVEL, LOG_DIR
+from .core.logging_config import LOGGING_CONFIG, APP_ENV
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-def create_app():
-    # Ensure logs directory exists BEFORE configuring logging
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Apply the configuration
+def def create_app():
+    # Apply the logging configuration.
+    # The log directory is created within the logging_config module.
     dictConfig(LOGGING_CONFIG)
 
     logger = logging.getLogger(__name__)
-    logger.info(f"Logging configured with level {LOG_LEVEL}")
+    logger.info(f"Starting app in {APP_ENV.upper()} environment")
+
     # Debug: Check paths and files
     openapi_dir = BASE_DIR / "openapi"
     openapi_file = openapi_dir / "openapi.yaml"
@@ -59,14 +58,17 @@ def create_app():
         raise
 
     flask_app = app.app
+
+    # Set Flask's debug mode based on APP_ENV
+    flask_app.debug = APP_ENV == "dev"
+
+    # Load secret key from environment
+    flask_app.config["SECRET_KEY"] = os.environ.get(
+        "SECRET_KEY", "default-secret-key-for-dev"
+    )
     logger.debug("Routes after adding OpenAPI:")
     for rule in flask_app.url_map.iter_rules():
         logger.debug(f"  {rule.endpoint} | {rule.methods} | {rule.rule}")
-    # app = connexion.App(__name__, specification_dir=str(BASE_DIR / "openapi"))
-    # Add OpenAPI file (Connexion will create Flask routes automatically)
-    # app.add_api("openapi.yaml", validate_responses=True)
-
-    # flask_app = app.app
 
     # Enable CORS (tweak origins in production)
     CORS(flask_app)

@@ -148,3 +148,7 @@ for handler in LOGGING_CONFIG["handlers"].values():
 for logger in LOGGING_CONFIG["loggers"].values():
     if "level" not in logger:
         logger["level"] = LOG_LEVEL
+
+# --- Auto-configure logging on module import ---
+# This ensures logging is configured before any other modules create loggers
+logging.config.dictConfig(LOGGING_CONFIG)

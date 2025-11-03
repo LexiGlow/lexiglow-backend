@@ -1,13 +1,12 @@
 import os
 import logging
-from logging.config import dictConfig
 from pathlib import Path
 from dotenv import load_dotenv
 import connexion
 from flask_cors import CORS
 from pymongo import MongoClient
-from .core.config import MONGO_URI
-from .core.logging_config import LOGGING_CONFIG, APP_ENV
+from app.core.config import MONGO_URI
+from app.core.logging_config import APP_ENV
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -18,10 +17,7 @@ def create_app():
     Create and configure the Connexion (Flask) app.
     Returns the Connexion app instance (not the Flask app).
     """
-    # Apply the logging configuration.
-    # The log directory is created within the logging_config module.
-    dictConfig(LOGGING_CONFIG)
-
+    # Logging is already configured when logging_config module was imported above
     logger = logging.getLogger(__name__)
     logger.info(f"Starting app in {APP_ENV.upper()} environment")
 

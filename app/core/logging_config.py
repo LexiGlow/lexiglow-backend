@@ -79,7 +79,7 @@ class JsonFormatter(logging.Formatter):
 
         # Add any extra fields passed to the logger
         standard_keys = logging.LogRecord(
-            "", "", "", "", "", "", "", "" # type: ignore
+            "", "", "", "", "", "", "", ""  # type: ignore
         ).__dict__.keys()
         extra_fields = {
             key: value
@@ -106,19 +106,27 @@ LOGGING_CONFIG = {
             "()": f"{__name__}.JsonFormatter",
             "simple": False,
         },
+        "text_console": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "text_file": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s:%(lineno)d - %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "stream": "ext://sys.stdout",
-            "formatter": "json_console",
+            "formatter": "text_console",
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": str(LOG_FILE_PATH),
             "maxBytes": 10 * 1024 * 1024,  # 10 MB
             "backupCount": 5,
-            "formatter": "json_file",
+            "formatter": "text_file",
         },
         "null": {"class": "logging.NullHandler"},
     },
@@ -148,7 +156,3 @@ for handler in LOGGING_CONFIG["handlers"].values():
 for logger in LOGGING_CONFIG["loggers"].values():
     if "level" not in logger:
         logger["level"] = LOG_LEVEL
-
-# --- Auto-configure logging on module import ---
-# This ensures logging is configured before any other modules create loggers
-logging.config.dictConfig(LOGGING_CONFIG)

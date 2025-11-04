@@ -1,15 +1,20 @@
 import os
 import logging
+import logging.config
 from pathlib import Path
 from dotenv import load_dotenv
 import connexion
 from flask_cors import CORS
 from pymongo import MongoClient
 from app.core.config import MONGO_URI
-from app.core.logging_config import APP_ENV
+from app.core.logging_config import APP_ENV, LOGGING_CONFIG
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
+
+# --- Auto-configure logging on module import ---
+# This ensures logging is configured before any other modules create loggers
+logging.config.dictConfig(LOGGING_CONFIG)
 
 
 def create_app():

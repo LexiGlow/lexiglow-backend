@@ -35,13 +35,16 @@ class UserService:
     """
 
     def __init__(self, repository: Optional[IUserRepository] = None):
+    def __init__(self, repository: IUserRepository):
         """
         Initialize the User service.
 
         Args:
             repository: Optional user repository. If None, creates SQLiteUserRepository.
+            repository: A user repository that conforms to the IUserRepository interface.
         """
         self.repository = repository or SQLiteUserRepository()
+        self.repository = repository
         logger.info("UserService initialized")
 
     def _hash_password(self, password: str) -> str:
@@ -244,10 +247,18 @@ class UserService:
             created_at=existing_entity.created_at,
             updated_at=datetime.utcnow(),
             last_active_at=existing_entity.last_active_at,
+        # Create a copy of the existing entity to update
+        updated_entity = existing_entity.model_copy(
+            update=user_data.model_dump(exclude_unset=True)
         )
+
+        # Ensure password hash is not changed and update the timestamp
+        updated_entity.password_hash = existing_entity.password_hash
+        updated_entity.updated_at = datetime.utcnow()
 
         # Update in repository
         updated = self.repository.update(user_id, updated_entity)
+
         if updated is None:
             logger.error(f"Failed to update user: {user_id}")
             return None

@@ -1,9 +1,16 @@
 openapi: 3.0.3
 info:
-  title: LexiGlow Backend (skeleton)
+  title: LexiGlow API
+  description: |
+    The official API for LexiGlow, a language learning application.
+    This documentation provides details on all available endpoints.
   version: "0.1.0"
+  contact:
+    name: API Support
+    email: support@lexiglow.com
 servers:
-  - url: /
+  - url: http://localhost:8080/
+    description: Development server
 paths:
   /health:
     get:

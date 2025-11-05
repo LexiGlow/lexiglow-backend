@@ -4,10 +4,13 @@ from flask_cors import CORS
 import logging
 import logging.config
 from app.core.logging_config import LOGGING_CONFIG
+from app.core.container import Container
 
 # --- Auto-configure logging on module import ---
 # This ensures logging is configured before any other modules create loggers
 logging.config.dictConfig(LOGGING_CONFIG)
+
+logger = logging.getLogger(__name__)
 
 
 def create_app():
@@ -37,5 +40,10 @@ def create_app():
 
     # Apply CORS to the underlying Flask app
     CORS(connexion_app.app)
+
+    # Initialize dependency injection container
+    container = Container()
+    connexion_app.app.config["CONTAINER"] = container
+    logger.info("Dependency injection container initialized and configured")
 
     return connexion_app

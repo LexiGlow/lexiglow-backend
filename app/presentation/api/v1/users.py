@@ -11,8 +11,8 @@ from uuid import UUID
 
 from pydantic import ValidationError
 
-from app.application.services import UserService
 from app.application.dto.user_dto import UserCreate, UserUpdate
+from app.core.dependencies import get_container
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,8 @@ def get_users(skip: int = 0, limit: int = 100) -> Tuple[List[Dict[str, Any]], in
     """
     try:
         logger.info(f"GET /users called with skip={skip}, limit={limit}")
-        service = UserService()
+        container = get_container()
+        service = container.get_user_service()
         users = service.get_all_users(skip=skip, limit=limit)
 
         # Convert Pydantic models to dicts for JSON response
@@ -68,7 +69,8 @@ def get_user_by_id(userId: str) -> Tuple[Dict[str, Any], int]:
                 "message": "User ID must be a valid UUID",
             }, 400
 
-        service = UserService()
+        container = get_container()
+        service = container.get_user_service()
         user = service.get_user(user_uuid)
 
         if user is None:
@@ -107,7 +109,8 @@ def create_user(body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
             return {"error": "Invalid input data", "message": str(e)}, 400
 
         # Create user via service
-        service = UserService()
+        container = get_container()
+        service = container.get_user_service()
         try:
             created_user = service.create_user(user_data)
             logger.info(f"User created successfully: {created_user.id}")
@@ -155,7 +158,8 @@ def update_user(userId: str, body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]
             return {"error": "Invalid input data", "message": str(e)}, 400
 
         # Update user via service
-        service = UserService()
+        container = get_container()
+        service = container.get_user_service()
         try:
             updated_user = service.update_user(user_uuid, user_data)
 
@@ -202,7 +206,8 @@ def delete_user(userId: str) -> Tuple[Dict[str, Any], int]:
                 "message": "User ID must be a valid UUID",
             }, 400
 
-        service = UserService()
+        container = get_container()
+        service = container.get_user_service()
         deleted = service.delete_user(user_uuid)
 
         if not deleted:

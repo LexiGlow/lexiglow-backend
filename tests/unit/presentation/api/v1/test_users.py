@@ -17,6 +17,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.application.services.user_service import UserService
+from app.core.container import Container
 from app.infrastructure.database.sqlite.models import (
     Base,
     Language as LanguageModel,
@@ -90,16 +91,23 @@ def test_db_with_languages(tmp_path, monkeypatch):
 @pytest.fixture
 def mock_user_service(test_db_with_languages):
     """
-    Create a mock UserService that uses the test database.
+    Create a test container with repository connected to test database.
     
-    This patches the UserService instantiation in endpoints to use
-    a repository connected to the test database.
+    This patches get_container() to return a container instance that uses
+    a repository connected to the test database instead of the default one.
     """
-    def create_service(*args, **kwargs):
-        repo = SQLiteUserRepository(db_path=test_db_with_languages["db_path"])
-        return UserService(repository=repo)
+    # Create a test container
+    test_container = Container()
     
-    with patch("app.presentation.api.v1.users.UserService", side_effect=create_service):
+    # Create test repository with test database
+    test_repo = SQLiteUserRepository(db_path=test_db_with_languages["db_path"])
+    
+    # Override the repository in the container
+    from app.domain.interfaces.user_repository import IUserRepository
+    test_container.register_override(IUserRepository, test_repo)
+    
+    # Patch get_container to return our test container
+    with patch("app.core.dependencies.get_container", return_value=test_container):
         yield
 
 

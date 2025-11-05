@@ -14,7 +14,7 @@ import bcrypt
 
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
-from app.presentation.schemas.user_schema import (
+from app.application.dto.user_dto import (
     UserCreate,
     UserUpdate,
     UserResponse,
@@ -173,7 +173,9 @@ class UserService:
         entities = self.repository.get_all(skip=skip, limit=limit)
         return [self._entity_to_response(entity) for entity in entities]
 
-    def update_user(self, user_id: UUID, user_data: UserUpdate) -> Optional[UserResponse]:
+    def update_user(
+        self, user_id: UUID, user_data: UserUpdate
+    ) -> Optional[UserResponse]:
         """
         Update a user with validation.
 
@@ -214,7 +216,11 @@ class UserService:
         # Build updated entity with only changed fields
         updated_entity = UserEntity(
             id=existing_entity.id,
-            email=user_data.email if user_data.email is not None else existing_entity.email,
+            email=(
+                user_data.email
+                if user_data.email is not None
+                else existing_entity.email
+            ),
             username=(
                 user_data.username
                 if user_data.username is not None
@@ -278,4 +284,3 @@ class UserService:
             logger.warning(f"User not found for deletion: {user_id}")
 
         return deleted
-

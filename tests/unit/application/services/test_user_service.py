@@ -12,7 +12,7 @@ from datetime import datetime
 from app.application.services.user_service import UserService
 from app.domain.interfaces.user_repository import IUserRepository
 from app.domain.entities.user import User as UserEntity
-from app.presentation.schemas.user_schema import UserCreate, UserUpdate, UserResponse
+from app.application.dto.user_dto import UserCreate, UserUpdate, UserResponse
 
 
 @pytest.fixture
@@ -70,14 +70,19 @@ class TestUserService:
     """Test suite for the UserService class."""
 
     def test_create_user_success(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_create: UserCreate
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_create: UserCreate,
     ):
         """Test Case 2.1: Successful user creation."""
         # Arrange
         mock_user_repo.email_exists.return_value = False
         mock_user_repo.username_exists.return_value = False
         mock_user_repo.create.return_value = UserEntity(
-            id=uuid4(), password_hash="hashed_password", **sample_user_create.model_dump(exclude={"password"})
+            id=uuid4(),
+            password_hash="hashed_password",
+            **sample_user_create.model_dump(exclude={"password"})
         )
 
         # Act
@@ -85,7 +90,9 @@ class TestUserService:
 
         # Assert
         mock_user_repo.email_exists.assert_called_once_with(sample_user_create.email)
-        mock_user_repo.username_exists.assert_called_once_with(sample_user_create.username)
+        mock_user_repo.username_exists.assert_called_once_with(
+            sample_user_create.username
+        )
         mock_user_repo.create.assert_called_once()
 
         created_entity_arg = mock_user_repo.create.call_args[0][0]
@@ -97,7 +104,10 @@ class TestUserService:
         assert result.email == sample_user_create.email
 
     def test_create_user_email_exists(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_create: UserCreate
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_create: UserCreate,
     ):
         """Test Case 2.2: Fail on existing email."""
         # Arrange
@@ -112,7 +122,10 @@ class TestUserService:
         mock_user_repo.create.assert_not_called()
 
     def test_create_user_username_exists(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_create: UserCreate
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_create: UserCreate,
     ):
         """Test Case 2.3: Fail on existing username."""
         # Arrange
@@ -123,7 +136,9 @@ class TestUserService:
         with pytest.raises(ValueError, match="Username .* is already taken"):
             user_service.create_user(sample_user_create)
 
-        mock_user_repo.username_exists.assert_called_once_with(sample_user_create.username)
+        mock_user_repo.username_exists.assert_called_once_with(
+            sample_user_create.username
+        )
         mock_user_repo.create.assert_not_called()
 
     def test_password_hashing_bcrypt_format(
@@ -142,7 +157,7 @@ class TestUserService:
         )
         mock_user_repo.email_exists.return_value = False
         mock_user_repo.username_exists.return_value = False
-        
+
         # Create a return entity with proper password hash
         mock_user_repo.create.return_value = UserEntity(
             id=uuid4(),
@@ -156,10 +171,10 @@ class TestUserService:
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        
+
         # Act
         user_service.create_user(user_create)
-        
+
         # Assert
         entity = mock_user_repo.create.call_args[0][0]
         assert entity.password_hash.startswith("$2b$")  # bcrypt prefix
@@ -167,24 +182,30 @@ class TestUserService:
         assert entity.password_hash != user_create.password
 
     def test_create_user_repository_error(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_create: UserCreate
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_create: UserCreate,
     ):
         """Test Case 2.5: Handle repository exceptions during creation."""
         # Arrange
         mock_user_repo.email_exists.return_value = False
         mock_user_repo.username_exists.return_value = False
         mock_user_repo.create.side_effect = Exception("Database connection failed")
-        
+
         # Act & Assert
         with pytest.raises(Exception, match="Database connection failed"):
             user_service.create_user(sample_user_create)
-        
+
         # Verify validation was performed before error
         mock_user_repo.email_exists.assert_called_once()
         mock_user_repo.username_exists.assert_called_once()
 
     def test_get_user_success(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_entity: UserEntity
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_entity: UserEntity,
     ):
         """Test Case 3.1: Get existing user."""
         # Arrange
@@ -212,7 +233,10 @@ class TestUserService:
         assert result is None
 
     def test_get_all_users(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_entity: UserEntity
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_entity: UserEntity,
     ):
         """Test Case 4.1: Get all users."""
         # Arrange
@@ -245,24 +269,27 @@ class TestUserService:
         """Test Case 4.3: Verify pagination parameters are passed correctly."""
         # Arrange
         mock_user_repo.get_all.return_value = []
-        
+
         # Act - Test with explicit parameters
         user_service.get_all_users(skip=10, limit=25)
-        
+
         # Assert
         mock_user_repo.get_all.assert_called_with(skip=10, limit=25)
-        
+
         # Act - Test with defaults
         mock_user_repo.get_all.reset_mock()
         user_service.get_all_users()
-        
+
         # Assert defaults are used
         call_kwargs = mock_user_repo.get_all.call_args[1]
-        assert call_kwargs['skip'] == 0
-        assert call_kwargs['limit'] == 100
+        assert call_kwargs["skip"] == 0
+        assert call_kwargs["limit"] == 100
 
     def test_update_user_success(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_entity: UserEntity
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_entity: UserEntity,
     ):
         """Test Case 5.1: Successful update."""
         # Arrange
@@ -285,12 +312,16 @@ class TestUserService:
 
         update_arg = mock_user_repo.update.call_args[0][1]
         assert update_arg.first_name == "UpdatedName"
-        assert update_arg.password_hash == sample_user_entity.password_hash # Ensure password not changed
+        assert (
+            update_arg.password_hash == sample_user_entity.password_hash
+        )  # Ensure password not changed
         assert update_arg.updated_at > sample_user_entity.updated_at
 
         assert result.first_name == "UpdatedName"
 
-    def test_update_user_not_found(self, user_service: UserService, mock_user_repo: Mock):
+    def test_update_user_not_found(
+        self, user_service: UserService, mock_user_repo: Mock
+    ):
         """Test Case 5.2: Attempt to update a non-existent user."""
         # Arrange
         user_id = uuid4()
@@ -305,7 +336,10 @@ class TestUserService:
         mock_user_repo.update.assert_not_called()
 
     def test_update_user_email_conflict(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_entity: UserEntity
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_entity: UserEntity,
     ):
         """Test Case 5.3: Fail on email conflict."""
         # Arrange
@@ -321,36 +355,42 @@ class TestUserService:
         mock_user_repo.update.assert_not_called()
 
     def test_update_user_username_conflict(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_entity: UserEntity
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_entity: UserEntity,
     ):
         """Test Case 5.4: Fail on username conflict during update."""
         # Arrange
         update_data = UserUpdate(username="existinguser")
         mock_user_repo.get_by_id.return_value = sample_user_entity
         mock_user_repo.username_exists.return_value = True
-        
+
         # Act & Assert
         with pytest.raises(ValueError, match="Username .* is already taken"):
             user_service.update_user(sample_user_entity.id, update_data)
-        
+
         mock_user_repo.username_exists.assert_called_once_with("existinguser")
         mock_user_repo.update.assert_not_called()
 
     def test_update_user_no_changes(
-        self, user_service: UserService, mock_user_repo: Mock, sample_user_entity: UserEntity
+        self,
+        user_service: UserService,
+        mock_user_repo: Mock,
+        sample_user_entity: UserEntity,
     ):
         """Test Case 5.5: Update user with no field changes."""
         # Arrange
         update_data = UserUpdate()  # All fields None
         mock_user_repo.get_by_id.return_value = sample_user_entity
-        
+
         updated_entity = sample_user_entity.model_copy()
         updated_entity.updated_at = datetime.utcnow()
         mock_user_repo.update.return_value = updated_entity
-        
+
         # Act
         result = user_service.update_user(sample_user_entity.id, update_data)
-        
+
         # Assert
         mock_user_repo.get_by_id.assert_called_once()
         mock_user_repo.update.assert_called_once()
@@ -372,7 +412,9 @@ class TestUserService:
         mock_user_repo.delete.assert_called_once_with(user_id)
         assert result is True
 
-    def test_delete_user_not_found(self, user_service: UserService, mock_user_repo: Mock):
+    def test_delete_user_not_found(
+        self, user_service: UserService, mock_user_repo: Mock
+    ):
         """Test Case 6.2: Attempt to delete a non-existent user."""
         # Arrange
         user_id = uuid4()

@@ -12,7 +12,7 @@ from uuid import UUID
 from pydantic import ValidationError
 
 from app.application.services import UserService
-from app.presentation.schemas.user_schema import UserCreate, UserUpdate
+from app.application.dto.user_dto import UserCreate, UserUpdate
 
 
 logger = logging.getLogger(__name__)
@@ -63,14 +63,20 @@ def get_user_by_id(userId: str) -> Tuple[Dict[str, Any], int]:
             user_uuid = UUID(userId)
         except ValueError:
             logger.warning(f"Invalid UUID format: {userId}")
-            return {"error": "Invalid user ID format", "message": "User ID must be a valid UUID"}, 400
+            return {
+                "error": "Invalid user ID format",
+                "message": "User ID must be a valid UUID",
+            }, 400
 
         service = UserService()
         user = service.get_user(user_uuid)
 
         if user is None:
             logger.warning(f"User not found: {userId}")
-            return {"error": "User not found", "message": f"User with ID {userId} does not exist"}, 404
+            return {
+                "error": "User not found",
+                "message": f"User with ID {userId} does not exist",
+            }, 404
 
         logger.info(f"Retrieved user: {userId}")
         return user.model_dump(by_alias=True), 200
@@ -136,7 +142,10 @@ def update_user(userId: str, body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]
             user_uuid = UUID(userId)
         except ValueError:
             logger.warning(f"Invalid UUID format: {userId}")
-            return {"error": "Invalid user ID format", "message": "User ID must be a valid UUID"}, 400
+            return {
+                "error": "Invalid user ID format",
+                "message": "User ID must be a valid UUID",
+            }, 400
 
         # Validate and parse request body
         try:
@@ -152,7 +161,10 @@ def update_user(userId: str, body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]
 
             if updated_user is None:
                 logger.warning(f"User not found: {userId}")
-                return {"error": "User not found", "message": f"User with ID {userId} does not exist"}, 404
+                return {
+                    "error": "User not found",
+                    "message": f"User with ID {userId} does not exist",
+                }, 404
 
             logger.info(f"User updated successfully: {userId}")
             return updated_user.model_dump(by_alias=True), 200
@@ -185,14 +197,20 @@ def delete_user(userId: str) -> Tuple[Dict[str, Any], int]:
             user_uuid = UUID(userId)
         except ValueError:
             logger.warning(f"Invalid UUID format: {userId}")
-            return {"error": "Invalid user ID format", "message": "User ID must be a valid UUID"}, 400
+            return {
+                "error": "Invalid user ID format",
+                "message": "User ID must be a valid UUID",
+            }, 400
 
         service = UserService()
         deleted = service.delete_user(user_uuid)
 
         if not deleted:
             logger.warning(f"User not found for deletion: {userId}")
-            return {"error": "User not found", "message": f"User with ID {userId} does not exist"}, 404
+            return {
+                "error": "User not found",
+                "message": f"User with ID {userId} does not exist",
+            }, 404
 
         logger.info(f"User deleted successfully: {userId}")
         return {}, 204
@@ -200,4 +218,3 @@ def delete_user(userId: str) -> Tuple[Dict[str, Any], int]:
     except Exception as e:
         logger.error(f"Error deleting user {userId}: {e}", exc_info=True)
         return {"error": "Internal server error", "message": str(e)}, 500
-

@@ -1,7 +1,8 @@
 """
-User request and response schemas.
+User Data Transfer Objects (DTOs).
 
-This module defines schemas for user-related API requests and responses.
+This module defines DTOs for user-related service operations.
+These DTOs represent the contract between the application layer and other layers.
 """
 
 from datetime import datetime
@@ -12,7 +13,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class UserCreate(BaseModel):
-    """Schema for creating a new user."""
+    """DTO for creating a new user."""
 
     email: EmailStr
     username: str
@@ -26,7 +27,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    """Schema for updating user information."""
+    """DTO for updating user information."""
 
     email: Optional[EmailStr] = None
     username: Optional[str] = None
@@ -39,7 +40,7 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Schema for user responses (excluding sensitive data like password hash)."""
+    """DTO for user responses (excluding sensitive data like password hash)."""
 
     id: UUID
     email: EmailStr
@@ -53,3 +54,4 @@ class UserResponse(BaseModel):
     last_active_at: Optional[datetime] = Field(None, alias="lastActiveAt")
 
     model_config = ConfigDict(populate_by_name=True)
+

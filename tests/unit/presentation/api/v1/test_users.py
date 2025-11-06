@@ -106,9 +106,9 @@ def mock_user_service(test_db_with_languages):
     from app.domain.interfaces.user_repository import IUserRepository
     test_container.register_override(IUserRepository, test_repo)
     
-    # Patch get_container to return our test container
-    with patch("app.core.dependencies.get_container", return_value=test_container):
-        yield
+    # Set the test container in the Flask app config
+    app.config["CONTAINER"] = test_container
+    yield
 
 
 # Test Data Helpers

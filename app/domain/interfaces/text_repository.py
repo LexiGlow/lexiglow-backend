@@ -42,19 +42,19 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_by_author(
-        self, author_id: UUID, skip: int = 0, limit: int = 100
+    def get_by_user(
+        self, user_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[Text]:
         """
-        Retrieve texts by author.
+        Retrieve texts by user.
 
         Args:
-            author_id: The UUID of the author (user)
+            user_id: The UUID of the user
             skip: Number of texts to skip (for pagination)
             limit: Maximum number of texts to return
 
         Returns:
-            List of texts by the specified author
+            List of texts by the specified user
 
         Raises:
             RepositoryError: If the retrieval fails

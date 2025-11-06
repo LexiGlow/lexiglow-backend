@@ -84,7 +84,7 @@ def language_id():
 
 
 @pytest.fixture
-def author_id():
+def user_id():
     return UUID("10000000-0000-0000-0000-000000000001")
 
 
@@ -97,7 +97,7 @@ def tag_ids():
 
 
 @pytest.fixture
-def sample_text_entity(language_id, author_id) -> Callable:
+def sample_text_entity(language_id, user_id) -> Callable:
     """Factory fixture for creating Text entities."""
 
     def _create_text(
@@ -112,7 +112,7 @@ def sample_text_entity(language_id, author_id) -> Callable:
             title=title,
             content=content,
             language_id=language_id,
-            author_id=author_id,
+            user_id=user_id,
             proficiency_level=level,
             word_count=len(content.split()),
             is_public=is_public,
@@ -234,12 +234,12 @@ class TestTextQueries:
         assert len(texts) == 1
         assert texts[0].language_id == language_id
 
-    def test_get_by_author(self, repository, sample_text_entity, author_id):
-        """Test retrieving texts by author."""
+    def test_get_by_user(self, repository, sample_text_entity, user_id):
+        """Test retrieving texts by user."""
         repository.create(sample_text_entity())
-        texts = repository.get_by_author(author_id)
+        texts = repository.get_by_user(user_id)
         assert len(texts) == 1
-        assert texts[0].author_id == author_id
+        assert texts[0].user_id == user_id
 
     def test_get_by_proficiency_level(self, repository, sample_text_entity):
         """Test retrieving texts by proficiency level."""
@@ -293,14 +293,14 @@ class TestTextQueries:
 class TestEntityConversionText:
     """Test entity/model conversion methods for Text."""
 
-    def test_model_to_entity_conversion(self, repository, language_id, author_id):
+    def test_model_to_entity_conversion(self, repository, language_id, user_id):
         """Test converting Text ORM model to domain entity."""
         text_model = TextModel(
             id=str(uuid.uuid4()),
             title="Model Title",
             content="Model content.",
             languageId=str(language_id),
-            authorId=str(author_id),
+            userId=str(user_id),
             proficiencyLevel=ProficiencyLevel.B2.value,
             wordCount=3,
             isPublic=1,

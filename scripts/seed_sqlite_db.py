@@ -349,14 +349,14 @@ def seed_texts(
 
         for text_data in texts:
             text_id = generate_uuid()
-            # Some texts have authors, some are system content (authorId = NULL)
-            author_id = random.choice([None] + user_ids[:2])
+            # Some texts have users, some are system content (userId = NULL)
+            user_id = random.choice([None] + user_ids[:2])
             word_count = len(text_data["content"].split())
 
             cursor.execute(
                 """
                 INSERT INTO Text (
-                    id, title, content, languageId, authorId, proficiencyLevel,
+                    id, title, content, languageId, userId, proficiencyLevel,
                     wordCount, isPublic, source, createdAt, updatedAt
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -366,7 +366,7 @@ def seed_texts(
                     text_data["title"],
                     text_data["content"],
                     lang_id,
-                    author_id,
+                    user_id,
                     text_data["level"],
                     word_count,
                     1,

@@ -338,7 +338,7 @@ class TestTextModel:
             title="Introduction to Python",
             content="Python is a high-level programming language...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="B1",
             wordCount=50,
             isPublic=1,
@@ -354,13 +354,13 @@ class TestTextModel:
         assert text.createdAt is not None
 
     def test_text_relationships(self, session, test_user, english_language):
-        """Test text relationships with author and language."""
+        """Test text relationships with user and language."""
         text = TextModel(
             id=str(uuid.uuid4()),
             title="Test Article",
             content="Content here...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="A1",
             wordCount=20,
             isPublic=1,
@@ -368,7 +368,7 @@ class TestTextModel:
         session.add(text)
         session.commit()
 
-        assert text.author.username == test_user.username
+        assert text.user.username == test_user.username
         assert text.language.name == "English"
 
     def test_text_with_source(self, session, test_user, english_language):
@@ -378,7 +378,7 @@ class TestTextModel:
             title="Article",
             content="Content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="B2",
             wordCount=100,
             isPublic=1,
@@ -396,7 +396,7 @@ class TestTextModel:
             title="Test Text",
             content="Content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="C1",
             wordCount=75,
             isPublic=1,
@@ -474,7 +474,7 @@ class TestTextTagAssociationModel:
             title="Python Guide",
             content="Guide content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="B1",
             wordCount=100,
             isPublic=1,
@@ -500,7 +500,7 @@ class TestTextTagAssociationModel:
             title="Article",
             content="Content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="A2",
             wordCount=50,
             isPublic=1,
@@ -524,7 +524,7 @@ class TestTextTagAssociationModel:
             title="Python Tutorial",
             content="Content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="B1",
             wordCount=150,
             isPublic=1,
@@ -555,7 +555,7 @@ class TestTextTagAssociationModel:
             title="Article",
             content="Content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="A1",
             wordCount=25,
             isPublic=1,
@@ -588,7 +588,7 @@ class TestTextTagAssociationModel:
             title="Article",
             content="Content...",
             languageId=english_language.id,
-            authorId=test_user.id,
+            userId=test_user.id,
             proficiencyLevel="B2",
             wordCount=80,
             isPublic=1,

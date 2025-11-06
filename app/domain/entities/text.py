@@ -20,8 +20,8 @@ class Text(BaseModel):
     title: str = Field(..., description="Title of the text")
     content: str = Field(..., description="The actual text content")
     language_id: UUID = Field(..., alias="languageId", description="FK to Language")
-    author_id: Optional[UUID] = Field(
-        None, alias="authorId", description="FK to User (nullable for system content)"
+    user_id: Optional[UUID] = Field(
+        None, alias="userId", description="FK to User (nullable for system content)"
     )
     proficiency_level: ProficiencyLevel = Field(
         ..., alias="proficiencyLevel", description="Required proficiency level"
@@ -46,7 +46,7 @@ class Text(BaseModel):
                 "title": "Introduction to Spanish Grammar",
                 "content": "El gato está en la casa...",
                 "languageId": "123e4567-e89b-12d3-a456-426614174001",
-                "authorId": None,
+                "userId": None,
                 "proficiencyLevel": "A1",
                 "wordCount": 250,
                 "isPublic": True,

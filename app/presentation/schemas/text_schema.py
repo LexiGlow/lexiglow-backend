@@ -18,7 +18,7 @@ class TextCreate(BaseModel):
     title: str
     content: str
     language_id: UUID = Field(..., alias="languageId")
-    author_id: Optional[UUID] = Field(None, alias="authorId")
+    user_id: Optional[UUID] = Field(None, alias="userId")
     proficiency_level: ProficiencyLevel = Field(..., alias="proficiencyLevel")
     word_count: int = Field(..., alias="wordCount")
     is_public: bool = Field(True, alias="isPublic")

@@ -68,7 +68,7 @@ class SQLiteTextRepository(ITextRepository):
             title=model.title,
             content=model.content,
             language_id=UUID(model.languageId),
-            author_id=UUID(model.authorId) if model.authorId else None,
+            user_id=UUID(model.userId) if model.userId else None,
             proficiency_level=ProficiencyLevel(model.proficiencyLevel),
             word_count=model.wordCount,
             is_public=bool(model.isPublic),
@@ -92,7 +92,7 @@ class SQLiteTextRepository(ITextRepository):
             title=entity.title,
             content=entity.content,
             languageId=str(entity.language_id),
-            authorId=str(entity.author_id) if entity.author_id else None,
+            userId=str(entity.user_id) if entity.user_id else None,
             proficiencyLevel=entity.proficiency_level.value,
             wordCount=entity.word_count,
             isPublic=int(entity.is_public),
@@ -222,7 +222,7 @@ class SQLiteTextRepository(ITextRepository):
                 text_model.title = entity.title
                 text_model.content = entity.content
                 text_model.languageId = str(entity.language_id)
-                text_model.authorId = str(entity.author_id) if entity.author_id else None
+                text_model.userId = str(entity.user_id) if entity.user_id else None
                 text_model.proficiencyLevel = entity.proficiency_level.value
                 text_model.wordCount = entity.word_count
                 text_model.isPublic = int(entity.is_public)
@@ -336,19 +336,19 @@ class SQLiteTextRepository(ITextRepository):
             logger.error(f"Failed to get texts by language: {e}")
             raise Exception(f"Failed to get texts by language: {e}")
 
-    def get_by_author(
-        self, author_id: UUID, skip: int = 0, limit: int = 100
+    def get_by_user(
+        self, user_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[TextEntity]:
         """
-        Retrieve texts by author.
+        Retrieve texts by user.
 
         Args:
-            author_id: The UUID of the author (user)
+            user_id: The UUID of the user
             skip: Number of texts to skip (for pagination)
             limit: Maximum number of texts to return
 
         Returns:
-            List of texts by the specified author
+            List of texts by the specified user
 
         Raises:
             RepositoryError: If the retrieval fails
@@ -357,21 +357,21 @@ class SQLiteTextRepository(ITextRepository):
             with self.SessionLocal() as session:
                 texts = (
                     session.query(TextModel)
-                    .filter_by(authorId=str(author_id))
+                    .filter_by(userId=str(user_id))
                     .offset(skip)
                     .limit(limit)
                     .all()
                 )
 
                 logger.debug(
-                    f"Retrieved {len(texts)} texts for author {author_id} "
+                    f"Retrieved {len(texts)} texts for user {user_id} "
                     f"(skip={skip}, limit={limit})"
                 )
                 return [self._model_to_entity(text) for text in texts]
 
         except SQLAlchemyError as e:
-            logger.error(f"Failed to get texts by author: {e}")
-            raise Exception(f"Failed to get texts by author: {e}")
+            logger.error(f"Failed to get texts by user: {e}")
+            raise Exception(f"Failed to get texts by user: {e}")
 
     def get_by_proficiency_level(
         self, proficiency_level: ProficiencyLevel, skip: int = 0, limit: int = 100

@@ -77,7 +77,7 @@ CREATE TABLE Text (
     title TEXT NOT NULL,
     content TEXT NOT NULL,
     languageId TEXT NOT NULL,
-    authorId TEXT, -- Nullable: null for system content, user ID for user-submitted
+    userId TEXT, -- Nullable: null for system content, user ID for user-submitted
     proficiencyLevel TEXT NOT NULL CHECK(proficiencyLevel IN ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')),
     wordCount INTEGER NOT NULL,
     isPublic INTEGER NOT NULL DEFAULT 1, -- Boolean: 1 = public, 0 = private
@@ -86,12 +86,12 @@ CREATE TABLE Text (
     updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (languageId) REFERENCES Language(id) ON DELETE RESTRICT,
-    FOREIGN KEY (authorId) REFERENCES User(id) ON DELETE SET NULL
+    FOREIGN KEY (userId) REFERENCES User(id) ON DELETE SET NULL
 );
 
 -- Indexes for text discovery and filtering
 CREATE INDEX idx_text_languageId ON Text(languageId);
-CREATE INDEX idx_text_authorId ON Text(authorId);
+CREATE INDEX idx_text_userId ON Text(userId);
 CREATE INDEX idx_text_proficiencyLevel ON Text(proficiencyLevel);
 CREATE INDEX idx_text_isPublic ON Text(isPublic);
 CREATE INDEX idx_text_languageId_proficiencyLevel ON Text(languageId, proficiencyLevel);

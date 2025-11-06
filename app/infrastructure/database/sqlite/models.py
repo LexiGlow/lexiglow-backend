@@ -81,7 +81,7 @@ class User(Base):
     user_languages = relationship(
         "UserLanguage", back_populates="user", cascade="all, delete-orphan"
     )
-    texts = relationship("TextModel", back_populates="author")
+    texts = relationship("TextModel", back_populates="user")
     vocabularies = relationship(
         "UserVocabulary", back_populates="user", cascade="all, delete-orphan"
     )
@@ -137,7 +137,7 @@ class TextModel(Base):
     title = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     languageId = Column(String, ForeignKey("Language.id"), nullable=False)
-    authorId = Column(String, ForeignKey("User.id", ondelete="SET NULL"))
+    userId = Column(String, ForeignKey("User.id", ondelete="SET NULL"))
     proficiencyLevel = Column(String, nullable=False)
     wordCount = Column(Integer, nullable=False)
     isPublic = Column(Integer, nullable=False, default=1)
@@ -149,7 +149,7 @@ class TextModel(Base):
 
     # Relationships
     language = relationship("Language", back_populates="texts")
-    author = relationship("User", back_populates="texts")
+    user = relationship("User", back_populates="texts")
     tag_associations = relationship(
         "TextTagAssociation", back_populates="text", cascade="all, delete-orphan"
     )

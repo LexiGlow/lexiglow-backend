@@ -28,6 +28,7 @@ services:
     volumes:
       - ../data/mongodb:/data/db
       - ./mongo-init:/docker-entrypoint-initdb.d
+      - ../scripts:/scripts
     networks:
       - lexiglow-network
 

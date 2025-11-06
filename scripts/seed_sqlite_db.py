@@ -14,6 +14,7 @@ Options:
 """
 
 import argparse
+import json
 import logging
 import os
 import random
@@ -22,7 +23,7 @@ import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 from dotenv import load_dotenv
 
@@ -41,113 +42,14 @@ load_dotenv(BASE_DIR / ".env")
 
 # Configuration
 SQLITE_DB_PATH = BASE_DIR / os.getenv("SQLITE_DB_PATH", "data/lexiglow.db")
+SAMPLE_DATA_PATH = BASE_DIR / "scripts" / "sample_data.json"
 
 
-# Sample data
-LANGUAGES = [
-    {
-        "code": "en",
-        "name": "English",
-        "native_name": "English",
-    },
-    {
-        "code": "ru",
-        "name": "Russian",
-        "native_name": "Русский",
-    },
-    {
-        "code": "sr",
-        "name": "Serbian",
-        "native_name": "Српски",
-    },
-]
-
-FIRST_NAMES = ["John", "Jane", "Michael", "Sarah", "David", "Emma", "Alex", "Maria"]
-LAST_NAMES = [
-    "Smith",
-    "Johnson",
-    "Williams",
-    "Brown",
-    "Jones",
-    "Davis",
-    "Miller",
-    "Wilson",
-]
-
-TEXT_TAGS = [
-    {"name": "fiction", "description": "Fictional stories and narratives"},
-    {"name": "news", "description": "Current events and news articles"},
-    {"name": "business", "description": "Business and professional content"},
-    {"name": "education", "description": "Educational materials"},
-    {"name": "technology", "description": "Technology and programming"},
-]
-
-SAMPLE_TEXTS = {
-    "en": [
-        {
-            "title": "Introduction to Programming",
-            "content": "Programming is the process of creating a set of instructions that tell a computer how to perform a task. It involves writing code in various programming languages.",
-            "level": "A2",
-        },
-        {
-            "title": "The Art of Cooking",
-            "content": "Cooking is both an art and a science. Understanding the basic principles of heat, flavor, and texture can help you create delicious meals.",
-            "level": "B1",
-        },
-    ],
-    "ru": [
-        {
-            "title": "Введение в программирование",
-            "content": "Программирование - это процесс создания набора инструкций, которые говорят компьютеру, как выполнить задачу. Это включает в себя написание кода на различных языках программирования.",
-            "level": "A2",
-        },
-        {
-            "title": "Искусство кулинарии",
-            "content": "Кулинария - это одновременно искусство и наука. Понимание основных принципов тепла, вкуса и текстуры может помочь вам создавать вкусные блюда.",
-            "level": "B1",
-        },
-    ],
-    "sr": [
-        {
-            "title": "Увод у програмирање",
-            "content": "Програмирање је процес креирања скупа инструкција које говоре рачунару како да изврши задатак. То укључује писање кода на различитим програмским језицима.",
-            "level": "A2",
-        },
-        {
-            "title": "Уметност кувања",
-            "content": "Кување је и уметност и наука. Разумевање основних принципа топлоте, укуса и текстуре може вам помоћи да креирате укусна јела.",
-            "level": "B1",
-        },
-    ],
-}
-
-PROFICIENCY_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"]
-PARTS_OF_SPEECH = ["NOUN", "VERB", "ADJECTIVE", "ADVERB", "PRONOUN", "PREPOSITION"]
-VOCABULARY_STATUSES = ["NEW", "LEARNING", "KNOWN", "MASTERED"]
-
-SAMPLE_VOCABULARY = {
-    "en": [
-        {"term": "computer", "lemma": "computer", "pos": "NOUN"},
-        {"term": "program", "lemma": "program", "pos": "NOUN"},
-        {"term": "learn", "lemma": "learn", "pos": "VERB"},
-        {"term": "read", "lemma": "read", "pos": "VERB"},
-        {"term": "write", "lemma": "write", "pos": "VERB"},
-    ],
-    "ru": [
-        {"term": "компьютер", "lemma": "компьютер", "pos": "NOUN"},
-        {"term": "программа", "lemma": "программа", "pos": "NOUN"},
-        {"term": "учить", "lemma": "учить", "pos": "VERB"},
-        {"term": "читать", "lemma": "читать", "pos": "VERB"},
-        {"term": "писать", "lemma": "писать", "pos": "VERB"},
-    ],
-    "sr": [
-        {"term": "рачунар", "lemma": "рачунар", "pos": "NOUN"},
-        {"term": "програм", "lemma": "програм", "pos": "NOUN"},
-        {"term": "учити", "lemma": "учити", "pos": "VERB"},
-        {"term": "читати", "lemma": "читати", "pos": "VERB"},
-        {"term": "писати", "lemma": "писати", "pos": "VERB"},
-    ],
-}
+def load_sample_data() -> Dict[str, Any]:
+    """Load sample data from JSON file."""
+    logger.info(f"Loading sample data from {SAMPLE_DATA_PATH}")
+    with open(SAMPLE_DATA_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def generate_uuid() -> str:
@@ -191,13 +93,13 @@ def clear_database(conn: sqlite3.Connection) -> None:
     logger.info("Database cleared successfully")
 
 
-def seed_languages(conn: sqlite3.Connection) -> List[Tuple[str, str]]:
+def seed_languages(conn: sqlite3.Connection, data: Dict[str, Any]) -> List[Tuple[str, str]]:
     """Seed Language table."""
     logger.info("Seeding languages...")
     cursor = conn.cursor()
     language_ids = []
 
-    for lang in LANGUAGES:
+    for lang in data["languages"]:
         lang_id = generate_uuid()
         cursor.execute(
             """
@@ -221,7 +123,7 @@ def seed_languages(conn: sqlite3.Connection) -> List[Tuple[str, str]]:
 
 
 def seed_users(
-    conn: sqlite3.Connection, language_ids: List[Tuple[str, str]], count: int = 5
+    conn: sqlite3.Connection, data: Dict[str, Any], language_ids: List[Tuple[str, str]], count: int = 5
 ) -> List[str]:
     """Seed User table."""
     logger.info(f"Seeding {count} users...")
@@ -230,8 +132,8 @@ def seed_users(
 
     for i in range(count):
         user_id = generate_uuid()
-        first_name = random.choice(FIRST_NAMES)
-        last_name = random.choice(LAST_NAMES)
+        first_name = random.choice(data["first_names"])
+        last_name = random.choice(data["last_names"])
         username = f"{first_name.lower()}{last_name.lower()}{i}"
         email = f"{username}@example.com"
 
@@ -272,7 +174,7 @@ def seed_users(
 
 
 def seed_user_languages(
-    conn: sqlite3.Connection, user_ids: List[str], language_ids: List[Tuple[str, str]]
+    conn: sqlite3.Connection, data: Dict[str, Any], user_ids: List[str], language_ids: List[Tuple[str, str]]
 ) -> None:
     """Seed UserLanguage table."""
     logger.info("Seeding user languages...")
@@ -285,7 +187,7 @@ def seed_user_languages(
         learning_languages = random.sample(language_ids, num_languages)
 
         for lang_id, lang_code in learning_languages:
-            proficiency = random.choice(PROFICIENCY_LEVELS)
+            proficiency = random.choice(data["proficiency_levels"])
             started_days = random.randint(30, 365)
 
             cursor.execute(
@@ -310,13 +212,13 @@ def seed_user_languages(
     logger.info(f"Created {count} user-language associations")
 
 
-def seed_text_tags(conn: sqlite3.Connection) -> List[str]:
+def seed_text_tags(conn: sqlite3.Connection, data: Dict[str, Any]) -> List[str]:
     """Seed TextTag table."""
     logger.info("Seeding text tags...")
     cursor = conn.cursor()
     tag_ids = []
 
-    for tag in TEXT_TAGS:
+    for tag in data["text_tags"]:
         tag_id = generate_uuid()
         cursor.execute(
             """
@@ -335,6 +237,7 @@ def seed_text_tags(conn: sqlite3.Connection) -> List[str]:
 
 def seed_texts(
     conn: sqlite3.Connection,
+    data: Dict[str, Any],
     language_ids: List[Tuple[str, str]],
     user_ids: List[str],
     tag_ids: List[str],
@@ -345,7 +248,7 @@ def seed_texts(
     text_ids = []
 
     for lang_id, lang_code in language_ids:
-        texts = SAMPLE_TEXTS.get(lang_code, [])
+        texts = data["sample_texts"].get(lang_code, [])
 
         for text_data in texts:
             text_id = generate_uuid()
@@ -398,7 +301,7 @@ def seed_texts(
 
 
 def seed_vocabularies(
-    conn: sqlite3.Connection, user_ids: List[str], language_ids: List[Tuple[str, str]]
+    conn: sqlite3.Connection, data: Dict[str, Any], user_ids: List[str], language_ids: List[Tuple[str, str]]
 ) -> List[Tuple[str, str, str]]:
     """Seed UserVocabulary table."""
     logger.info("Seeding user vocabularies...")
@@ -442,7 +345,7 @@ def seed_vocabularies(
 
 
 def seed_vocabulary_items(
-    conn: sqlite3.Connection, vocab_ids: List[Tuple[str, str, str]]
+    conn: sqlite3.Connection, data: Dict[str, Any], vocab_ids: List[Tuple[str, str, str]]
 ) -> None:
     """Seed UserVocabularyItem table."""
     logger.info("Seeding vocabulary items...")
@@ -451,7 +354,7 @@ def seed_vocabulary_items(
 
     for vocab_id, user_id, lang_code in vocab_ids:
         # Get sample vocabulary for this language
-        vocab_words = SAMPLE_VOCABULARY.get(lang_code, [])
+        vocab_words = data["sample_vocabulary"].get(lang_code, [])
 
         # Add 3-5 words to each vocabulary
         num_words = min(random.randint(3, 5), len(vocab_words))
@@ -459,9 +362,9 @@ def seed_vocabulary_items(
 
         for word_data in selected_words:
             item_id = generate_uuid()
-            status = random.choice(VOCABULARY_STATUSES)
+            status = random.choice(data["vocabulary_statuses"])
             times_reviewed = random.randint(0, 20)
-            confidence = random.choice(PROFICIENCY_LEVELS[:3])  # A1-B1 for simplicity
+            confidence = random.choice(data["proficiency_levels"][:3])  # A1-B1 for simplicity
 
             cursor.execute(
                 """
@@ -511,14 +414,16 @@ def seed_database(db_path: Path, force: bool = False) -> None:
         if force:
             clear_database(conn)
 
+        sample_data = load_sample_data()
+
         # Seed data in dependency order
-        language_ids = seed_languages(conn)
-        user_ids = seed_users(conn, language_ids, count=5)
-        seed_user_languages(conn, user_ids, language_ids)
-        tag_ids = seed_text_tags(conn)
-        text_ids = seed_texts(conn, language_ids, user_ids, tag_ids)
-        vocab_ids = seed_vocabularies(conn, user_ids, language_ids)
-        seed_vocabulary_items(conn, vocab_ids)
+        language_ids = seed_languages(conn, sample_data)
+        user_ids = seed_users(conn, sample_data, language_ids, count=5)
+        seed_user_languages(conn, sample_data, user_ids, language_ids)
+        tag_ids = seed_text_tags(conn, sample_data)
+        text_ids = seed_texts(conn, sample_data, language_ids, user_ids, tag_ids)
+        vocab_ids = seed_vocabularies(conn, sample_data, user_ids, language_ids)
+        seed_vocabulary_items(conn, sample_data, vocab_ids)
 
         logger.info("=" * 60)
         logger.info("✅ Database seeded successfully!")

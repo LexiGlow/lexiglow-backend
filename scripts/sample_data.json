@@ -1,0 +1,102 @@
+
+{
+  "languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "native_name": "English"
+    },
+    {
+      "code": "ru",
+      "name": "Russian",
+      "native_name": "Русский"
+    },
+    {
+      "code": "sr",
+      "name": "Serbian",
+      "native_name": "Српски"
+    }
+  ],
+  "first_names": ["John", "Jane", "Michael", "Sarah", "David", "Emma", "Alex", "Maria"],
+  "last_names": [
+    "Smith",
+    "Johnson",
+    "Williams",
+    "Brown",
+    "Jones",
+    "Davis",
+    "Miller",
+    "Wilson"
+  ],
+  "text_tags": [
+    {"name": "fiction", "description": "Fictional stories and narratives"},
+    {"name": "news", "description": "Current events and news articles"},
+    {"name": "business", "description": "Business and professional content"},
+    {"name": "education", "description": "Educational materials"},
+    {"name": "technology", "description": "Technology and programming"}
+  ],
+  "sample_texts": {
+    "en": [
+      {
+        "title": "Introduction to Programming",
+        "content": "Programming is the process of creating a set of instructions that tell a computer how to perform a task. It involves writing code in various programming languages.",
+        "level": "A2"
+      },
+      {
+        "title": "The Art of Cooking",
+        "content": "Cooking is both an art and a science. Understanding the basic principles of heat, flavor, and texture can help you create delicious meals.",
+        "level": "B1"
+      }
+    ],
+    "ru": [
+      {
+        "title": "Введение в программирование",
+        "content": "Программирование - это процесс создания набора инструкций, которые говорят компьютеру, как выполнить задачу. Это включает в себя написание кода на различных языках программирования.",
+        "level": "A2"
+      },
+      {
+        "title": "Искусство кулинарии",
+        "content": "Кулинария - это одновременно искусство и наука. Понимание основных принципов тепла, вкуса и текстуры может помочь вам создавать вкусные блюда.",
+        "level": "B1"
+      }
+    ],
+    "sr": [
+      {
+        "title": "Увод у програмирање",
+        "content": "Програмирање је процес креирања скупа инструкција које говоре рачунару како да изврши задатак. То укључује писање кода на различитим програмским језицима.",
+        "level": "A2"
+      },
+      {
+        "title": "Уметност кувања",
+        "content": "Кување је и уметност и наука. Разумевање основних принципа топлоте, укуса и текстуре може вам помоћи да креирате укусна јела.",
+        "level": "B1"
+      }
+    ]
+  },
+  "proficiency_levels": ["A1", "A2", "B1", "B2", "C1", "C2"],
+  "parts_of_speech": ["NOUN", "VERB", "ADJECTIVE", "ADVERB", "PRONOUN", "PREPOSITION"],
+  "vocabulary_statuses": ["NEW", "LEARNING", "KNOWN", "MASTERED"],
+  "sample_vocabulary": {
+    "en": [
+      {"term": "computer", "lemma": "computer", "pos": "NOUN"},
+      {"term": "program", "lemma": "program", "pos": "NOUN"},
+      {"term": "learn", "lemma": "learn", "pos": "VERB"},
+      {"term": "read", "lemma": "read", "pos": "VERB"},
+      {"term": "write", "lemma": "write", "pos": "VERB"}
+    ],
+    "ru": [
+      {"term": "компьютер", "lemma": "компьютер", "pos": "NOUN"},
+      {"term": "программа", "lemma": "программа", "pos": "NOUN"},
+      {"term": "учить", "lemma": "учить", "pos": "VERB"},
+      {"term": "читать", "lemma": "читать", "pos": "VERB"},
+      {"term": "писать", "lemma": "писать", "pos": "VERB"}
+    ],
+    "sr": [
+      {"term": "рачунар", "lemma": "рачунар", "pos": "NOUN"},
+      {"term": "програм", "lemma": "програм", "pos": "NOUN"},
+      {"term": "учити", "lemma": "учити", "pos": "VERB"},
+      {"term": "читати", "lemma": "читати", "pos": "VERB"},
+      {"term": "писати", "lemma": "писати", "pos": "VERB"}
+    ]
+  }
+}

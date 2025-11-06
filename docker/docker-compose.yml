@@ -14,8 +14,6 @@
 #
 # Environment variables are loaded from .env file
 
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
@@ -28,8 +26,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
     volumes:
-      - mongodb_data:/data/db
-      - ./docker/mongo-init:/docker-entrypoint-initdb.d
+      - ../data/mongodb:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
     networks:
       - lexiglow-network
 

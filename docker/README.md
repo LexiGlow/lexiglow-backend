@@ -15,7 +15,7 @@ docker/
 ### 1. Start MongoDB Services
 ```bash
 # From project root
-docker compose up -d
+docker compose --env-file .env -f docker/docker-compose.yml up -d
 ```
 
 ### 2. Run Flask Application

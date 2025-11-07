@@ -251,5 +251,7 @@ The architecture supports easy testing through:
 ## 📚 Related Documentation
 
 - [Main README.md](../README.md) - Project overview and setup
+- [tests/README.md](../tests/README.md) - Test structure and guidelines
+- [scripts/README.md](../scripts/README.md) - Utility scripts documentation
 - [docker/README.md](../docker/README.md) - Docker setup
 

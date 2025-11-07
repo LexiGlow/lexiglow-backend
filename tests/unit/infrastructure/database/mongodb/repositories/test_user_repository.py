@@ -270,15 +270,18 @@ class TestUpdateUser:
         created_user = repository.create(sample_user_entity())
         original_updated_at = created_user.updated_at
 
-        # Small delay to ensure timestamp difference
+        # Small delay to ensure timestamp difference (MongoDB has millisecond precision)
         import time
 
-        time.sleep(0.01)
+        time.sleep(0.02)  # 20ms to ensure different millisecond
 
         created_user.first_name = "Modified"
         updated_user = repository.update(created_user.id, created_user)
 
-        assert updated_user.updated_at > original_updated_at
+        # MongoDB stores timestamps with millisecond precision, so >= is acceptable
+        assert updated_user.updated_at >= original_updated_at
+        # But we should have a difference due to the sleep
+        assert (updated_user.updated_at - original_updated_at).total_seconds() >= 0.01
 
 
 class TestDeleteUser:
@@ -441,11 +444,12 @@ class TestUpdateLastActive:
         Test that last_active_at is set to current time.
         """
         created_user = repository.create(sample_user_entity())
+
+        # Capture timestamp before update
         before_update = datetime.now(timezone.utc)
-
         repository.update_last_active(created_user.id)
-
         after_update = datetime.now(timezone.utc)
+
         updated_user = repository.get_by_id(created_user.id)
 
         assert updated_user.last_active_at is not None
@@ -453,4 +457,9 @@ class TestUpdateLastActive:
         last_active = updated_user.last_active_at
         if last_active.tzinfo is None:
             last_active = last_active.replace(tzinfo=timezone.utc)
-        assert before_update <= last_active <= after_update
+        # MongoDB stores timestamps with millisecond precision, so we need to account for rounding
+        # Subtract 1ms from before_update to account for rounding down
+        from datetime import timedelta
+
+        before_update_adjusted = before_update - timedelta(milliseconds=1)
+        assert before_update_adjusted <= last_active <= after_update

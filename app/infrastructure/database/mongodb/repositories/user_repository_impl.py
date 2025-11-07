@@ -59,6 +59,18 @@ class MongoDBUserRepository(IUserRepository):
             if entity.id is None:
                 entity.id = UUID(str(uuid.uuid4()))
 
+            # Check for duplicate email
+            if self.email_exists(entity.email):
+                raise Exception(
+                    f"Failed to create user: Email {entity.email} already exists"
+                )
+
+            # Check for duplicate username
+            if self.username_exists(entity.username):
+                raise Exception(
+                    f"Failed to create user: Username {entity.username} already exists"
+                )
+
             user_model = self._entity_to_model(entity)
             self.collection.insert_one(user_model)
 
@@ -92,10 +104,12 @@ class MongoDBUserRepository(IUserRepository):
         Retrieve all users with pagination.
         """
         try:
-            users = self.collection.find().skip(skip).limit(limit)
-            logger.debug(
-                f"Retrieved {users.count()} users (skip={skip}, limit={limit})"
-            )
+            # Handle limit=0 case - MongoDB treats 0 as "no limit", but we want empty result
+            if limit == 0:
+                return []
+
+            users = list(self.collection.find().skip(skip).limit(limit))
+            logger.debug(f"Retrieved {len(users)} users (skip={skip}, limit={limit})")
             return [self._model_to_entity(user) for user in users]
 
         except PyMongoError as e:
@@ -107,6 +121,8 @@ class MongoDBUserRepository(IUserRepository):
         Update an existing user.
         """
         try:
+            # Update the updated_at timestamp
+            entity.updated_at = datetime.now(timezone.utc)
             user_model = self._entity_to_model(entity)
             result = self.collection.update_one(
                 {"_id": entity_id}, {"$set": user_model}
@@ -114,7 +130,8 @@ class MongoDBUserRepository(IUserRepository):
 
             if result.matched_count:
                 logger.info(f"Updated user: {entity.username} (ID: {entity_id})")
-                return entity
+                # Retrieve the updated entity from database to get MongoDB-rounded timestamps
+                return self.get_by_id(entity_id)
 
             logger.warning(f"User not found for update: {entity_id}")
             return None

@@ -304,24 +304,28 @@ class TestEntityConversionText:
         """
         Test converting MongoDB document to domain entity.
         """
+        text_id = uuid.uuid4()
         text_model_dict = {
-            "_id": str(uuid.uuid4()),
+            "_id": text_id,  # MongoDB returns UUID objects with uuidRepresentation="standard"
             "title": "Model Title",
             "content": "Model content.",
-            "languageId": str(language_id),
-            "userId": str(user_id),
+            "languageId": language_id,  # UUID object
+            "userId": user_id,  # UUID object
             "proficiencyLevel": ProficiencyLevel.B2.value,
             "wordCount": 3,
             "isPublic": True,
             "source": "Model Source",
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "updatedAt": datetime.now(timezone.utc).isoformat(),
+            "createdAt": datetime.now(timezone.utc),
+            "updatedAt": datetime.now(timezone.utc),
         }
         entity = repository._model_to_entity(text_model_dict)
         assert isinstance(entity, TextEntity)
-        assert str(entity.id) == text_model_dict["_id"]
+        assert entity.id == text_id  # _id was converted to id
         assert entity.title == text_model_dict["title"]
         assert entity.proficiency_level == ProficiencyLevel.B2
+        # Verify _id was converted to id (no longer exists in dict)
+        assert "_id" not in text_model_dict
+        assert "id" in text_model_dict
 
     def test_entity_to_model_conversion(self, repository, sample_text_entity):
         """
@@ -330,6 +334,11 @@ class TestEntityConversionText:
         entity = sample_text_entity()
         model = repository._entity_to_model(entity)
         assert isinstance(model, dict)
-        assert model["_id"] == str(entity.id)
+        # _id should be a UUID object (MongoDB stores UUIDs as UUID objects with uuidRepresentation="standard")
+        assert model["_id"] == entity.id
+        assert isinstance(model["_id"], UUID)
         assert model["title"] == entity.title
         assert model["proficiencyLevel"] == entity.proficiency_level.value
+        # Verify id was converted to _id (no longer exists in model)
+        assert "id" not in model
+        assert "_id" in model

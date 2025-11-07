@@ -1,6 +1,18 @@
 # LexiGlow Scripts
 
-This directory contains utility scripts for database management and other development tasks.
+This directory contains utility scripts for environment setup, database management, and other development tasks.
+
+## Environment Scripts
+
+### activate.sh
+
+A shell script to activate the Python virtual environment (`.venv`) and display helpful information and common commands for development.
+
+**Usage:**
+
+```bash
+source scripts/activate.sh
+```
 
 ## Database Scripts
 
@@ -54,6 +66,10 @@ python scripts/create_sqlite_db.py --verbose
 2025-11-01 12:12:55,960 - __main__ - INFO - Created 5 triggers
 2025-11-01 12:12:55,961 - __main__ - INFO - ✅ Database created successfully
 ```
+
+### create_test_sqlite_db.sql
+
+This SQL file defines the complete schema for the SQLite database, including table definitions, indexes, and triggers. It is used by `create_sqlite_db.py` to set up the database structure.
 
 ### seed_sqlite_db.py
 
@@ -128,8 +144,29 @@ python scripts/seed_sqlite_db.py --verbose
 python scripts/create_sqlite_db.py --force && python scripts/seed_sqlite_db.py --force
 ```
 
+## Application Scripts
+
+### debug.py
+
+A Python script for debugging purposes, primarily used to list all registered routes of the Flask application.
+
+**Usage:**
+
+```bash
+python scripts/debug.py
+```
+
+### wsgi.py
+
+This script serves as the Web Server Gateway Interface (WSGI) entry point for the LexiGlow Flask application. It is used by WSGI-compatible web servers (e.g., Gunicorn, uWSGI) to run the application.
+
+**Usage (with Gunicorn example):**
+
+```bash
+gunicorn wsgi:app -b 0.0.0.0:5000
+```
+
 ## Future Scripts
 
 - **migrate_db.py** - Handle database migrations
 - **backup_db.py** - Create database backups
-

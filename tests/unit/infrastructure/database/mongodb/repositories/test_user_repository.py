@@ -11,7 +11,6 @@ from typing import Callable
 from uuid import UUID
 
 import pytest
-from pymongo import MongoClient
 
 from app.domain.entities.user import User as UserEntity
 from app.infrastructure.database.mongodb.repositories.user_repository_impl import (
@@ -23,18 +22,10 @@ from app.infrastructure.database.mongodb.repositories.user_repository_impl impor
 
 
 @pytest.fixture(scope="function")
-def mongo_client():
-    """Provides a PyMongo client for testing."""
-    client = MongoClient("mongodb://localhost:27017/")
-    yield client
-    client.close()
-
-
-@pytest.fixture(scope="function")
-def repository(mongo_client):
+def repository(mongo_client, db_url):
     """Create a MongoDBUserRepository instance with a test database."""
     db_name = f"test_db_{uuid.uuid4().hex}"
-    repo = MongoDBUserRepository(db_url="mongodb://localhost:27017/", db_name=db_name)
+    repo = MongoDBUserRepository(db_url=db_url, db_name=db_name)
     yield repo
     mongo_client.drop_database(db_name)
 

@@ -26,7 +26,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         """
         Initialize the MongoDB Language repository.
         """
-        self.client = MongoClient(db_url)
+        self.client = MongoClient(db_url, uuidRepresentation="standard")
         self.db = self.client[db_name]
         self.collection = self.db.languages
         logger.info(f"MongoDBLanguageRepository initialized with database: {db_name}")
@@ -35,13 +35,20 @@ class MongoDBLanguageRepository(ILanguageRepository):
         """
         Convert MongoDB document to domain entity.
         """
+        # Convert MongoDB _id to entity id
+        if "_id" in model:
+            model["id"] = model.pop("_id")
         return LanguageEntity.model_validate(model)
 
     def _entity_to_model(self, entity: LanguageEntity) -> dict:
         """
         Convert domain entity to MongoDB document.
         """
-        return entity.model_dump(by_alias=True)
+        model = entity.model_dump(by_alias=True)
+        # Convert entity id to MongoDB _id
+        if "id" in model:
+            model["_id"] = model.pop("id")
+        return model
 
     def create(self, entity: LanguageEntity) -> LanguageEntity:
         """
@@ -84,10 +91,14 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Retrieve all languages with pagination.
         """
         try:
-            languages = (
-                self.collection.find().skip(skip).limit(limit)
+            # Handle limit=0 case - MongoDB treats 0 as "no limit", but we want empty result
+            if limit == 0:
+                return []
+
+            languages = list(self.collection.find().skip(skip).limit(limit))
+            logger.debug(
+                f"Retrieved {len(languages)} languages (skip={skip}, limit={limit})"
             )
-            logger.debug(f"Retrieved {languages.count()} languages (skip={skip}, limit={limit})")
             return [self._model_to_entity(language) for language in languages]
 
         except PyMongoError as e:
@@ -103,8 +114,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         try:
             language_model = self._entity_to_model(entity)
             result = self.collection.update_one(
-                {"_id": entity_id},
-                {"$set": language_model}
+                {"_id": entity_id}, {"$set": language_model}
             )
 
             if result.matched_count:
@@ -185,3 +195,15 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to get language by name: {e}")
             raise Exception(f"Failed to get language by name: {e}")
 
+    def code_exists(self, code: str) -> bool:
+        """
+        Check if a language code is already registered.
+        """
+        try:
+            exists = self.collection.count_documents({"code": code}) > 0
+            logger.debug(f"Language code exists check for {code}: {exists}")
+            return exists
+
+        except PyMongoError as e:
+            logger.error(f"Failed to check language code existence: {e}")
+            raise Exception(f"Failed to check language code existence: {e}")

@@ -99,8 +99,15 @@ class TestCreateLanguage:
         # For now, we'll assert that it creates a new entry, as MongoDB allows it without unique index.
         # If unique index is added, uncomment the pytest.raises line.
         # with pytest.raises(Exception, match="Failed to create language"):
+        duplicate_id = duplicate_lang.id
         created_lang = repository.create(duplicate_lang)
-        assert created_lang.id != duplicate_lang.id # Should create a new one with a new ID
+        # The created language should use the provided ID
+        assert created_lang.id == duplicate_id
+        # Verify both languages exist with the same code (MongoDB allows duplicates without unique index)
+        assert repository.get_by_code("fr") is not None
+        all_langs = repository.get_all()
+        fr_langs = [lang for lang in all_langs if lang.code == "fr"]
+        assert len(fr_langs) == 2  # Both languages with code "fr" should exist
 
 
 class TestGetLanguageById:
@@ -146,9 +153,7 @@ class TestGetAllLanguages:
         Test pagination with skip and limit parameters.
         """
         for i in range(5):
-            repository.create(
-                sample_language_entity(name=f"Lang {i}", code=f"l{i}")
-            )
+            repository.create(sample_language_entity(name=f"Lang {i}", code=f"l{i}"))
 
         page1 = repository.get_all(skip=0, limit=2)
         assert len(page1) == 2

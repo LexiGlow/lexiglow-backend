@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, Optional, Type
 
 from app.domain.interfaces.user_repository import IUserRepository
+from app.domain.interfaces.language_repository import ILanguageRepository
+from app.domain.interfaces.text_repository import ITextRepository
 from app.application.services.user_service import UserService
 
 
@@ -88,12 +90,23 @@ class Container:
 
         # Create new instance (lazy initialization)
         try:
-            from app.infrastructure.database.sqlite.repositories.user_repository_impl import (
-                SQLiteUserRepository,
-            )
+            from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
-            logger.debug("Creating SQLiteUserRepository instance")
-            repository = SQLiteUserRepository()
+            if ACTIVE_DATABASE_TYPE == "sqlite":
+                from app.infrastructure.database.sqlite.repositories.user_repository_impl import (
+                    SQLiteUserRepository,
+                )
+                logger.debug("Creating SQLiteUserRepository instance")
+                repository = SQLiteUserRepository()
+            elif ACTIVE_DATABASE_TYPE == "mongodb":
+                from app.infrastructure.database.mongodb.repositories.user_repository_impl import (
+                    MongoDBUserRepository,
+                )
+                logger.debug("Creating MongoDBUserRepository instance")
+                repository = MongoDBUserRepository(db_url=MONGO_URI, db_name="lexiglow")
+            else:
+                raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
+
             self._repositories["user_repository"] = repository
             logger.info("UserRepository initialized and cached")
             return repository
@@ -135,6 +148,104 @@ class Container:
 
         except Exception as e:
             logger.error(f"Failed to create UserService: {e}", exc_info=True)
+            raise
+
+    def get_language_repository(self) -> ILanguageRepository:
+        """
+        Get the LanguageRepository instance (singleton).
+
+        Returns:
+            ILanguageRepository implementation instance
+
+        Raises:
+            Exception: If repository instantiation fails
+        """
+        # Check for override first
+        if ILanguageRepository in self._overrides:
+            override = self._overrides[ILanguageRepository]
+            # If override is a class, instantiate it; if it's an instance, return it
+            if isinstance(override, type):
+                return override()
+            return override
+
+        # Return cached instance if available
+        if "language_repository" in self._repositories:
+            return self._repositories["language_repository"]
+
+        # Create new instance (lazy initialization)
+        try:
+            from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
+
+            if ACTIVE_DATABASE_TYPE == "sqlite":
+                from app.infrastructure.database.sqlite.repositories.language_repository_impl import (
+                    SQLiteLanguageRepository,
+                )
+                logger.debug("Creating SQLiteLanguageRepository instance")
+                repository = SQLiteLanguageRepository()
+            elif ACTIVE_DATABASE_TYPE == "mongodb":
+                from app.infrastructure.database.mongodb.repositories.language_repository_impl import (
+                    MongoDBLanguageRepository,
+                )
+                logger.debug("Creating MongoDBLanguageRepository instance")
+                repository = MongoDBLanguageRepository(db_url=MONGO_URI, db_name="lexiglow")
+            else:
+                raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
+
+            self._repositories["language_repository"] = repository
+            logger.info("LanguageRepository initialized and cached")
+            return repository
+
+        except Exception as e:
+            logger.error(f"Failed to create LanguageRepository: {e}", exc_info=True)
+            raise
+
+    def get_text_repository(self) -> ITextRepository:
+        """
+        Get the TextRepository instance (singleton).
+
+        Returns:
+            ITextRepository implementation instance
+
+        Raises:
+            Exception: If repository instantiation fails
+        """
+        # Check for override first
+        if ITextRepository in self._overrides:
+            override = self._overrides[ITextRepository]
+            # If override is a class, instantiate it; if it's an instance, return it
+            if isinstance(override, type):
+                return override()
+            return override
+
+        # Return cached instance if available
+        if "text_repository" in self._repositories:
+            return self._repositories["text_repository"]
+
+        # Create new instance (lazy initialization)
+        try:
+            from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
+
+            if ACTIVE_DATABASE_TYPE == "sqlite":
+                from app.infrastructure.database.sqlite.repositories.text_repository_impl import (
+                    SQLiteTextRepository,
+                )
+                logger.debug("Creating SQLiteTextRepository instance")
+                repository = SQLiteTextRepository()
+            elif ACTIVE_DATABASE_TYPE == "mongodb":
+                from app.infrastructure.database.mongodb.repositories.text_repository_impl import (
+                    MongoDBTextRepository,
+                )
+                logger.debug("Creating MongoDBTextRepository instance")
+                repository = MongoDBTextRepository(db_url=MONGO_URI, db_name="lexiglow")
+            else:
+                raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
+
+            self._repositories["text_repository"] = repository
+            logger.info("TextRepository initialized and cached")
+            return repository
+
+        except Exception as e:
+            logger.error(f"Failed to create TextRepository: {e}", exc_info=True)
             raise
 
     def __repr__(self) -> str:

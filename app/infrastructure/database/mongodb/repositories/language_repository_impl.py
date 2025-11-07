@@ -1,0 +1,187 @@
+"""
+MongoDB implementation of Language repository.
+"""
+
+import logging
+import uuid
+from typing import List, Optional
+from uuid import UUID
+
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
+
+from app.domain.entities.language import Language as LanguageEntity
+from app.domain.interfaces.language_repository import ILanguageRepository
+
+
+logger = logging.getLogger(__name__)
+
+
+class MongoDBLanguageRepository(ILanguageRepository):
+    """
+    MongoDB implementation of Language repository.
+    """
+
+    def __init__(self, db_url: str, db_name: str):
+        """
+        Initialize the MongoDB Language repository.
+        """
+        self.client = MongoClient(db_url)
+        self.db = self.client[db_name]
+        self.collection = self.db.languages
+        logger.info(f"MongoDBLanguageRepository initialized with database: {db_name}")
+
+    def _model_to_entity(self, model: dict) -> LanguageEntity:
+        """
+        Convert MongoDB document to domain entity.
+        """
+        return LanguageEntity.model_validate(model)
+
+    def _entity_to_model(self, entity: LanguageEntity) -> dict:
+        """
+        Convert domain entity to MongoDB document.
+        """
+        return entity.model_dump(by_alias=True)
+
+    def create(self, entity: LanguageEntity) -> LanguageEntity:
+        """
+        Create a new language in the repository.
+        """
+        try:
+            if entity.id is None:
+                entity.id = UUID(str(uuid.uuid4()))
+
+            language_model = self._entity_to_model(entity)
+            self.collection.insert_one(language_model)
+
+            logger.info(f"Created language: {entity.name} (ID: {entity.id})")
+            return entity
+
+        except PyMongoError as e:
+            logger.error(f"Failed to create language: {e}")
+            raise Exception(f"Failed to create language: {e}")
+
+    def get_by_id(self, entity_id: UUID) -> Optional[LanguageEntity]:
+        """
+        Retrieve a language by its ID.
+        """
+        try:
+            language_model = self.collection.find_one({"_id": entity_id})
+
+            if language_model:
+                logger.debug(f"Retrieved language by ID: {entity_id}")
+                return self._model_to_entity(language_model)
+
+            logger.debug(f"Language not found with ID: {entity_id}")
+            return None
+
+        except PyMongoError as e:
+            logger.error(f"Failed to get language by ID: {e}")
+            raise Exception(f"Failed to get language by ID: {e}")
+
+    def get_all(self, skip: int = 0, limit: int = 100) -> List[LanguageEntity]:
+        """
+        Retrieve all languages with pagination.
+        """
+        try:
+            languages = (
+                self.collection.find().skip(skip).limit(limit)
+            )
+            logger.debug(f"Retrieved {languages.count()} languages (skip={skip}, limit={limit})")
+            return [self._model_to_entity(language) for language in languages]
+
+        except PyMongoError as e:
+            logger.error(f"Failed to get all languages: {e}")
+            raise Exception(f"Failed to get all languages: {e}")
+
+    def update(
+        self, entity_id: UUID, entity: LanguageEntity
+    ) -> Optional[LanguageEntity]:
+        """
+        Update an existing language.
+        """
+        try:
+            language_model = self._entity_to_model(entity)
+            result = self.collection.update_one(
+                {"_id": entity_id},
+                {"$set": language_model}
+            )
+
+            if result.matched_count:
+                logger.info(f"Updated language: {entity.name} (ID: {entity.id})")
+                return entity
+
+            logger.warning(f"Language not found for update: {entity_id}")
+            return None
+
+        except PyMongoError as e:
+            logger.error(f"Failed to update language: {e}")
+            raise Exception(f"Failed to update language: {e}")
+
+    def delete(self, entity_id: UUID) -> bool:
+        """
+        Delete a language by its ID.
+        """
+        try:
+            result = self.collection.delete_one({"_id": entity_id})
+
+            if result.deleted_count:
+                logger.info(f"Deleted language: {entity_id}")
+                return True
+
+            logger.warning(f"Language not found for deletion: {entity_id}")
+            return False
+
+        except PyMongoError as e:
+            logger.error(f"Failed to delete language: {e}")
+            raise Exception(f"Failed to delete language: {e}")
+
+    def exists(self, entity_id: UUID) -> bool:
+        """
+        Check if a language exists by its ID.
+        """
+        try:
+            exists = self.collection.count_documents({"_id": entity_id}) > 0
+            logger.debug(f"Language exists check for {entity_id}: {exists}")
+            return exists
+
+        except PyMongoError as e:
+            logger.error(f"Failed to check language existence: {e}")
+            raise Exception(f"Failed to check language existence: {e}")
+
+    def get_by_code(self, code: str) -> Optional[LanguageEntity]:
+        """
+        Retrieve a language by its ISO 639-1 code.
+        """
+        try:
+            language_model = self.collection.find_one({"code": code})
+
+            if language_model:
+                logger.debug(f"Retrieved language by code: {code}")
+                return self._model_to_entity(language_model)
+
+            logger.debug(f"Language not found with code: {code}")
+            return None
+
+        except PyMongoError as e:
+            logger.error(f"Failed to get language by code: {e}")
+            raise Exception(f"Failed to get language by code: {e}")
+
+    def get_by_name(self, name: str) -> Optional[LanguageEntity]:
+        """
+        Retrieve a language by its name.
+        """
+        try:
+            language_model = self.collection.find_one({"name": name})
+
+            if language_model:
+                logger.debug(f"Retrieved language by name: {name}")
+                return self._model_to_entity(language_model)
+
+            logger.debug(f"Language not found with name: {name}")
+            return None
+
+        except PyMongoError as e:
+            logger.error(f"Failed to get language by name: {e}")
+            raise Exception(f"Failed to get language by name: {e}")
+

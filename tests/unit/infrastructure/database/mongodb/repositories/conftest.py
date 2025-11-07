@@ -15,6 +15,6 @@ def db_url():
 @pytest.fixture(scope="function")
 def mongo_client(db_url):
     """Provides a PyMongo client for testing."""
-    client = MongoClient(db_url)
+    client = MongoClient(db_url, uuidRepresentation="standard")
     yield client
     client.close()

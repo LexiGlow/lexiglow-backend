@@ -27,7 +27,7 @@ class MongoDBUserRepository(IUserRepository):
         """
         Initialize the MongoDB User repository.
         """
-        self.client = MongoClient(db_url)
+        self.client = MongoClient(db_url, uuidRepresentation="standard")
         self.db = self.client[db_name]
         self.collection = self.db.User
         logger.info(f"MongoDBUserRepository initialized with database: {db_name}")
@@ -36,13 +36,20 @@ class MongoDBUserRepository(IUserRepository):
         """
         Convert MongoDB document to domain entity.
         """
+        # Convert MongoDB _id to entity id
+        if "_id" in model:
+            model["id"] = model.pop("_id")
         return UserEntity.model_validate(model)
 
     def _entity_to_model(self, entity: UserEntity) -> dict:
         """
         Convert domain entity to MongoDB document.
         """
-        return entity.model_dump(by_alias=True)
+        model = entity.model_dump(by_alias=True)
+        # Convert entity id to MongoDB _id
+        if "id" in model:
+            model["_id"] = model.pop("id")
+        return model
 
     def create(self, entity: UserEntity) -> UserEntity:
         """
@@ -85,10 +92,10 @@ class MongoDBUserRepository(IUserRepository):
         Retrieve all users with pagination.
         """
         try:
-            users = (
-                self.collection.find().skip(skip).limit(limit)
+            users = self.collection.find().skip(skip).limit(limit)
+            logger.debug(
+                f"Retrieved {users.count()} users (skip={skip}, limit={limit})"
             )
-            logger.debug(f"Retrieved {users.count()} users (skip={skip}, limit={limit})")
             return [self._model_to_entity(user) for user in users]
 
         except PyMongoError as e:
@@ -102,8 +109,7 @@ class MongoDBUserRepository(IUserRepository):
         try:
             user_model = self._entity_to_model(entity)
             result = self.collection.update_one(
-                {"_id": entity_id},
-                {"$set": user_model}
+                {"_id": entity_id}, {"$set": user_model}
             )
 
             if result.matched_count:
@@ -216,8 +222,7 @@ class MongoDBUserRepository(IUserRepository):
         """
         try:
             result = self.collection.update_one(
-                {"_id": user_id},
-                {"$set": {"lastActiveAt": datetime.now(timezone.utc)}}
+                {"_id": user_id}, {"$set": {"lastActiveAt": datetime.now(timezone.utc)}}
             )
 
             if result.matched_count:

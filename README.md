@@ -74,20 +74,20 @@ This section outlines how to set up and run the LexiGlow backend locally without
 ## 📋 Available Services
 
 - **Flask API**: http://localhost:5000
-- **MongoDB**: localhost:27017 (if running with Docker)
+- **MongoDB**: http://localhost:27017 (if running with Docker)
 - **Mongo Express**: http://localhost:8081 (if running with Docker)
+- **API Documentation**: http://localhost:5000/docs
 
-## 🐳 Docker Commands
+## Additional Documentation for Further Reading
 
-For detailed Docker usage and commands, please refer to [docker/README.md](docker/README.md).
+- For `app` dir readme, please refer to [app/README.md](app/README.md).
+- For detailed Docker usage and commands, please refer to [docker/README.md](docker/README.md).
+- For `scripts` dir readme, please refer to [scripts/README.md](scripts/README.md).
+- For `tests` dir readme, please refer to [tests/README.md](tests/README.md).
 
 ## 🧪 Testing
 
 Run tests using pytest:
 ```bash
-pytest
+pytest tests/
 ```
-
-## 📚 API Documentation
-
-Once running, visit the Swagger UI at `http://localhost:5000/docs` to explore the API endpoints.

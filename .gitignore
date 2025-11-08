@@ -210,4 +210,4 @@ __marimo__/
 # data and draft
 data/
 draft/
-data/mongodb/
+logs/

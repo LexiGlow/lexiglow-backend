@@ -4,8 +4,8 @@ This module provides information about the LexiGlow backend service.
 """
 
 import logging
-from flask import Blueprint, jsonify, current_app
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+import os
+from flask import Blueprint, jsonify
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def get_about():
         "version": "1.0.0",
         "description": "REST API backend for LexiGlow application",
         "framework": "Flask with Connexion",
-        "database": "MongoDB",
+        "database": os.getenv("ACTIVE_DATABASE_TYPE", "sqlite"),
         "api_documentation": "/ui",
         "health_check": "/health",
         "status": "operational",
@@ -56,87 +56,3 @@ def get_version():
     }
 
     return jsonify(version_info), 200
-
-
-@about_bp.route("/about/db-test", methods=["GET"])
-def test_database_connection():
-    """
-    Test the MongoDB database connection.
-
-    Returns:
-        JSON response with database connection status
-    """
-    logger.info("Database test endpoint accessed")
-
-    try:
-        # Get MongoDB client from Flask app config
-        mongo_client = current_app.config.get("MONGO_CLIENT")
-        mongo_db = current_app.config.get("MONGO_DB")
-
-        if mongo_client is None or mongo_db is None:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "MongoDB client not configured",
-                        "connected": False,
-                    }
-                ),
-                500,
-            )
-
-        # Test the connection by pinging the database
-        mongo_client.admin.command("ping")
-
-        # Get database info
-        db_name = mongo_db.name
-        server_info = mongo_client.server_info()
-
-        db_status = {
-            "status": "success",
-            "message": "Database connection successful",
-            "connected": True,
-            "database_name": db_name,
-            "server_version": server_info.get("version", "unknown"),
-            "server_host": (
-                mongo_client.address[0] if mongo_client.address else "unknown"
-            ),
-            "server_port": (
-                mongo_client.address[1] if mongo_client.address else "unknown"
-            ),
-        }
-
-        logger.info(f"Database connection test successful: {db_name}")
-        return jsonify(db_status), 200
-
-    except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-        error_msg = "Database connection failed"
-        logger.error(error_msg, exc_info=True)
-
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": error_msg,
-                    "connected": False,
-                    "error_type": type(e).__name__,
-                }
-            ),
-            503,
-        )  # Service Unavailable
-
-    except Exception as e:
-        error_msg = "Unexpected error during database test"
-        logger.error(error_msg, exc_info=True)
-
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": error_msg,
-                    "connected": False,
-                    "error_type": type(e).__name__,
-                }
-            ),
-            500,
-        )

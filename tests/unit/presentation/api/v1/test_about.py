@@ -50,7 +50,7 @@ class TestAboutEndpoints:
         assert data["version"] == "1.0.0"
         assert data["description"] == "REST API backend for LexiGlow application"
         assert data["framework"] == "Flask with Connexion"
-        assert data["database"] == "MongoDB"
+        assert data["database"] in ["sqlite", "mongodb"]  # Value from ACTIVE_DATABASE_TYPE env var
         assert data["api_documentation"] == "/ui"
         assert data["health_check"] == "/health"
         assert data["status"] == "operational"
@@ -196,105 +196,3 @@ def test_version_endpoint_integration():
         data = response.get_json()
         assert data["version"] == "1.0.0"
         logger.info("Version endpoint integration test passed")
-
-
-class TestDatabaseConnectionEndpoint:
-    """Test class for database connection endpoint."""
-
-    def setup_method(self):
-        """Set up test client for each test method."""
-        self.client = app.test_client()
-
-    def test_db_test_endpoint_success_structure(self):
-        """Test the /about/db-test endpoint returns correct response structure."""
-        response = self.client.get("/about/db-test")
-
-        # Should return either 200 (success) or 503 (connection failed)
-        assert response.status_code in [200, 503]
-        assert response.content_type == "application/json"
-
-        data = response.get_json()
-
-        # Check required fields
-        assert "status" in data
-        assert "message" in data
-        assert "connected" in data
-
-        # Check that connected is a boolean
-        assert isinstance(data["connected"], bool)
-
-        logger.info(f"Database test endpoint structure test passed: {data}")
-
-    def test_db_test_endpoint_method_not_allowed(self):
-        """Test that /about/db-test endpoint only accepts GET requests."""
-        # Test POST method
-        response = self.client.post("/about/db-test")
-        assert response.status_code == 405  # Method Not Allowed
-
-        # Test PUT method
-        response = self.client.put("/about/db-test")
-        assert response.status_code == 405
-
-        # Test DELETE method
-        response = self.client.delete("/about/db-test")
-        assert response.status_code == 405
-
-    def test_db_test_endpoint_with_query_params(self):
-        """Test that /about/db-test endpoint works with query parameters."""
-        response = self.client.get("/about/db-test?param1=value1&param2=value2")
-
-        assert response.status_code in [200, 503]
-        data = response.get_json()
-        assert "status" in data
-        assert "connected" in data
-
-        logger.info("Database test endpoint with query params test passed")
-
-    def test_db_test_endpoint_response_headers(self):
-        """Test that /about/db-test endpoint returns appropriate headers."""
-        response = self.client.get("/about/db-test")
-
-        assert response.status_code in [200, 503]
-        assert response.content_type == "application/json"
-
-        logger.info("Database test endpoint headers test passed")
-
-    def test_db_test_endpoint_json_structure(self):
-        """Test that /about/db-test endpoint returns valid JSON structure."""
-        response = self.client.get("/about/db-test")
-
-        assert response.status_code in [200, 503]
-
-        # This will raise an exception if JSON is invalid
-        data = response.get_json()
-        assert isinstance(data, dict)
-        assert len(data) >= 3  # Should have at least status, message, connected
-
-        logger.info("Database test endpoint JSON structure test passed")
-
-    def test_db_test_endpoint_error_handling(self):
-        """Test that /about/db-test endpoint handles errors gracefully."""
-        response = self.client.get("/about/db-test")
-
-        # Should not return 500 (internal server error) for connection issues
-        assert response.status_code != 500
-
-        data = response.get_json()
-
-        # If connection fails, should have error details
-        if not data.get("connected", False):
-            assert "error_type" in data
-            assert data["status"] == "error"
-
-        logger.info("Database test endpoint error handling test passed")
-
-
-def test_db_test_endpoint_integration():
-    """Integration test for database test endpoint using the app directly."""
-    with app.test_client() as client:
-        response = client.get("/about/db-test")
-        assert response.status_code in [200, 503]
-        data = response.get_json()
-        assert "status" in data
-        assert "connected" in data
-        logger.info("Database test endpoint integration test passed")

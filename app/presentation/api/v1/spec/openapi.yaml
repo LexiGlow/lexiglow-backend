@@ -77,39 +77,6 @@ paths:
                     type: string
                   connexion_version:
                     type: string
-  /about/db-test:
-    get:
-      summary: Test database connection
-      operationId: app.presentation.api.v1.about.test_database_connection
-      responses:
-        '200':
-          description: Database connection successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  connected:
-                    type: boolean
-        '503':
-          description: Database connection failed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  connected:
-                    type: boolean
-                  error_type:
-                    type: string
   /users:
     get:
       summary: Get all users

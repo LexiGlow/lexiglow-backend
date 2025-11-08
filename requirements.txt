@@ -3,10 +3,11 @@ Werkzeug>=2.0,<2.3
 connexion[swagger-ui, flask]==2.14.2
 pymongo>=4.0
 python-dotenv>=0.21
-marshmallow>=3.14
 flask-cors>=3.0
 gunicorn>=20
 pytest>=7
 black>=24
 flake8>=6
-dotenv>=0.9.9
+SQLAlchemy>=2.0
+pydantic[email]>=2.0
+bcrypt>=4.0

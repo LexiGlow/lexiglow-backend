@@ -1,0 +1,58 @@
+# LexiGlow Backend Docker Compose Configuration
+#
+# Quick Start:
+#   docker compose up -d
+#
+# Services:
+#   - MongoDB: localhost:27017
+#   - Mongo Express: http://localhost:8081 (admin/admin123)
+#
+# Documentation:
+#   - README.md: Main project documentation
+#   - docker/README.md: Detailed Docker instructions
+#   - QUICKSTART.md: 5-minute setup guide
+#
+# Environment variables are loaded from .env file
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: lexiglow-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    volumes:
+      - ../data/mongodb:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+      - ../scripts:/scripts
+    networks:
+      - lexiglow-network
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: lexiglow-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ADMIN_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ADMIN_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ADMIN_USERNAME}:${MONGO_ADMIN_PASSWORD}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    depends_on:
+      - mongodb
+    networks:
+      - lexiglow-network
+
+volumes:
+  mongodb_data:
+
+
+networks:
+  lexiglow-network:
+    driver: bridge

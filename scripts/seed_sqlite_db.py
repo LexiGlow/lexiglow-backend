@@ -9,7 +9,8 @@ Usage:
     python scripts/seed_sqlite_db.py [--db-path PATH] [--force]
 
 Options:
-    --db-path PATH    Path to the SQLite database file (default: from SQLITE_DB_PATH env var)
+    --db-path PATH    Path to the SQLite database
+                        file (default: from SQLITE_DB_PATH env var)
     --force           Force reseed (clears existing data first)
 """
 
@@ -23,7 +24,7 @@ import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -45,10 +46,10 @@ SQLITE_DB_PATH = BASE_DIR / os.getenv("SQLITE_DB_PATH", "data/lexiglow.db")
 SAMPLE_DATA_PATH = BASE_DIR / "scripts" / "sample_data.json"
 
 
-def load_sample_data() -> Dict[str, Any]:
+def load_sample_data() -> dict[str, Any]:
     """Load sample data from JSON file."""
     logger.info(f"Loading sample data from {SAMPLE_DATA_PATH}")
-    with open(SAMPLE_DATA_PATH, "r", encoding="utf-8") as f:
+    with open(SAMPLE_DATA_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -93,7 +94,9 @@ def clear_database(conn: sqlite3.Connection) -> None:
     logger.info("Database cleared successfully")
 
 
-def seed_languages(conn: sqlite3.Connection, data: Dict[str, Any]) -> List[Tuple[str, str]]:
+def seed_languages(
+    conn: sqlite3.Connection, data: dict[str, Any]
+) -> list[tuple[str, str]]:
     """Seed Language table."""
     logger.info("Seeding languages...")
     cursor = conn.cursor()
@@ -123,8 +126,11 @@ def seed_languages(conn: sqlite3.Connection, data: Dict[str, Any]) -> List[Tuple
 
 
 def seed_users(
-    conn: sqlite3.Connection, data: Dict[str, Any], language_ids: List[Tuple[str, str]], count: int = 5
-) -> List[str]:
+    conn: sqlite3.Connection,
+    data: dict[str, Any],
+    language_ids: list[tuple[str, str]],
+    count: int = 5,
+) -> list[str]:
     """Seed User table."""
     logger.info(f"Seeding {count} users...")
     cursor = conn.cursor()
@@ -143,6 +149,9 @@ def seed_users(
             [lang for lang in language_ids if lang != native_lang]
         )
 
+        # Password hash for "password"
+        password_hash = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYuHwZU3Y4u"
+
         cursor.execute(
             """
             INSERT INTO User (
@@ -155,7 +164,7 @@ def seed_users(
                 user_id,
                 email,
                 username,
-                "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYuHwZU3Y4u",  # "password"
+                password_hash,
                 first_name,
                 last_name,
                 native_lang[0],
@@ -174,7 +183,10 @@ def seed_users(
 
 
 def seed_user_languages(
-    conn: sqlite3.Connection, data: Dict[str, Any], user_ids: List[str], language_ids: List[Tuple[str, str]]
+    conn: sqlite3.Connection,
+    data: dict[str, Any],
+    user_ids: list[str],
+    language_ids: list[tuple[str, str]],
 ) -> None:
     """Seed UserLanguage table."""
     logger.info("Seeding user languages...")
@@ -186,14 +198,15 @@ def seed_user_languages(
         num_languages = random.randint(1, 2)
         learning_languages = random.sample(language_ids, num_languages)
 
-        for lang_id, lang_code in learning_languages:
+        for lang_id, _lang_code in learning_languages:
             proficiency = random.choice(data["proficiency_levels"])
             started_days = random.randint(30, 365)
 
             cursor.execute(
                 """
                 INSERT INTO UserLanguage (
-                    userId, languageId, proficiencyLevel, startedAt, createdAt, updatedAt
+                    userId, languageId, proficiencyLevel,
+                    startedAt, createdAt, updatedAt
                 )
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
@@ -212,7 +225,7 @@ def seed_user_languages(
     logger.info(f"Created {count} user-language associations")
 
 
-def seed_text_tags(conn: sqlite3.Connection, data: Dict[str, Any]) -> List[str]:
+def seed_text_tags(conn: sqlite3.Connection, data: dict[str, Any]) -> list[str]:
     """Seed TextTag table."""
     logger.info("Seeding text tags...")
     cursor = conn.cursor()
@@ -237,11 +250,11 @@ def seed_text_tags(conn: sqlite3.Connection, data: Dict[str, Any]) -> List[str]:
 
 def seed_texts(
     conn: sqlite3.Connection,
-    data: Dict[str, Any],
-    language_ids: List[Tuple[str, str]],
-    user_ids: List[str],
-    tag_ids: List[str],
-) -> List[str]:
+    data: dict[str, Any],
+    language_ids: list[tuple[str, str]],
+    user_ids: list[str],
+    tag_ids: list[str],
+) -> list[str]:
     """Seed Text table."""
     logger.info("Seeding texts...")
     cursor = conn.cursor()
@@ -301,8 +314,11 @@ def seed_texts(
 
 
 def seed_vocabularies(
-    conn: sqlite3.Connection, data: Dict[str, Any], user_ids: List[str], language_ids: List[Tuple[str, str]]
-) -> List[Tuple[str, str, str]]:
+    conn: sqlite3.Connection,
+    data: dict[str, Any],
+    user_ids: list[str],
+    language_ids: list[tuple[str, str]],
+) -> list[tuple[str, str, str]]:
     """Seed UserVocabulary table."""
     logger.info("Seeding user vocabularies...")
     cursor = conn.cursor()
@@ -345,14 +361,16 @@ def seed_vocabularies(
 
 
 def seed_vocabulary_items(
-    conn: sqlite3.Connection, data: Dict[str, Any], vocab_ids: List[Tuple[str, str, str]]
+    conn: sqlite3.Connection,
+    data: dict[str, Any],
+    vocab_ids: list[tuple[str, str, str]],
 ) -> None:
     """Seed UserVocabularyItem table."""
     logger.info("Seeding vocabulary items...")
     cursor = conn.cursor()
     count = 0
 
-    for vocab_id, user_id, lang_code in vocab_ids:
+    for vocab_id, _user_id, lang_code in vocab_ids:
         # Get sample vocabulary for this language
         vocab_words = data["sample_vocabulary"].get(lang_code, [])
 
@@ -364,7 +382,9 @@ def seed_vocabulary_items(
             item_id = generate_uuid()
             status = random.choice(data["vocabulary_statuses"])
             times_reviewed = random.randint(0, 20)
-            confidence = random.choice(data["proficiency_levels"][:3])  # A1-B1 for simplicity
+            confidence = random.choice(
+                data["proficiency_levels"][:3]
+            )  # A1-B1 for simplicity
 
             cursor.execute(
                 """

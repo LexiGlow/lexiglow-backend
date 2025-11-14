@@ -5,6 +5,7 @@ This module provides information about the LexiGlow backend service.
 
 import logging
 import os
+
 from flask import Blueprint, jsonify
 
 logger = logging.getLogger(__name__)

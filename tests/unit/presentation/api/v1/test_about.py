@@ -3,11 +3,7 @@ Test cases for the about API endpoints.
 Tests both /about and /about/version endpoints using Flask test client.
 """
 
-import sys
-import os
 import logging
-import pytest
-
 
 from scripts.wsgi import app
 
@@ -50,7 +46,10 @@ class TestAboutEndpoints:
         assert data["version"] == "1.0.0"
         assert data["description"] == "REST API backend for LexiGlow application"
         assert data["framework"] == "Flask with Connexion"
-        assert data["database"] in ["sqlite", "mongodb"]  # Value from ACTIVE_DATABASE_TYPE env var
+        assert data["database"] in [
+            "sqlite",
+            "mongodb",
+        ]  # Value from ACTIVE_DATABASE_TYPE env var
         assert data["api_documentation"] == "/ui"
         assert data["health_check"] == "/health"
         assert data["status"] == "operational"
@@ -122,7 +121,10 @@ class TestAboutEndpoints:
         logger.info("About endpoint with query params test passed")
 
     def test_version_endpoint_with_query_params(self):
-        """Test that /about/version endpoint works with query parameters (should be ignored)."""
+        """
+        Test that /about/version endpoint works with query parameters
+            (should be ignored).
+        """
         response = self.client.get("/about/version?param1=value1&param2=value2")
 
         assert response.status_code == 200

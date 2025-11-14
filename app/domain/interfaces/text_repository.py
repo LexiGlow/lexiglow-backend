@@ -6,7 +6,6 @@ extending the base repository with text-specific methods.
 """
 
 from abc import abstractmethod
-from typing import List
 from uuid import UUID
 
 from app.domain.entities.enums import ProficiencyLevel
@@ -24,7 +23,7 @@ class ITextRepository(IRepository[Text]):
     @abstractmethod
     def get_by_language(
         self, language_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[Text]:
+    ) -> list[Text]:
         """
         Retrieve texts by language.
 
@@ -42,9 +41,7 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_by_user(
-        self, user_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[Text]:
+    def get_by_user(self, user_id: UUID, skip: int = 0, limit: int = 100) -> list[Text]:
         """
         Retrieve texts by user.
 
@@ -64,7 +61,7 @@ class ITextRepository(IRepository[Text]):
     @abstractmethod
     def get_by_proficiency_level(
         self, proficiency_level: ProficiencyLevel, skip: int = 0, limit: int = 100
-    ) -> List[Text]:
+    ) -> list[Text]:
         """
         Retrieve texts by proficiency level.
 
@@ -82,7 +79,7 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_public_texts(self, skip: int = 0, limit: int = 100) -> List[Text]:
+    def get_public_texts(self, skip: int = 0, limit: int = 100) -> list[Text]:
         """
         Retrieve all public texts.
 
@@ -101,7 +98,7 @@ class ITextRepository(IRepository[Text]):
     @abstractmethod
     def search_by_title(
         self, title_query: str, skip: int = 0, limit: int = 100
-    ) -> List[Text]:
+    ) -> list[Text]:
         """
         Search texts by title.
 
@@ -120,8 +117,8 @@ class ITextRepository(IRepository[Text]):
 
     @abstractmethod
     def get_by_tags(
-        self, tag_ids: List[UUID], skip: int = 0, limit: int = 100
-    ) -> List[Text]:
+        self, tag_ids: list[UUID], skip: int = 0, limit: int = 100
+    ) -> list[Text]:
         """
         Retrieve texts by tags.
 

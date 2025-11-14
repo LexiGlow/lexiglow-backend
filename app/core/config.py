@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from dotenv import dotenv_values
 
 # --- Project Paths ---
@@ -11,6 +12,6 @@ config = dotenv_values(BASE_DIR / ".env")
 MONGO_URI = config.get("MONGO_URI", "mongodb://localhost:27017/lexiglow")
 
 # ACTIVE_DATABASE_TYPE: Specifies which database backend to use
-#("sqlite" or "mongodb")
+# ("sqlite" or "mongodb")
 # Defaults to "sqlite" for local development
 ACTIVE_DATABASE_TYPE = config.get("ACTIVE_DATABASE_TYPE", "sqlite")

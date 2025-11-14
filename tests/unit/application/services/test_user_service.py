@@ -4,15 +4,16 @@ Unit tests for the UserService.
 These tests mock the IUserRepository to test the service's business logic in isolation.
 """
 
-import pytest
-from unittest.mock import Mock, patch, ANY
-from uuid import UUID, uuid4
 from datetime import datetime
+from unittest.mock import Mock
+from uuid import UUID, uuid4
 
+import pytest
+
+from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
 from app.application.services.user_service import UserService
-from app.domain.interfaces.user_repository import IUserRepository
 from app.domain.entities.user import User as UserEntity
-from app.application.dto.user_dto import UserCreate, UserUpdate, UserResponse
+from app.domain.interfaces.user_repository import IUserRepository
 
 
 @pytest.fixture
@@ -82,7 +83,7 @@ class TestUserService:
         mock_user_repo.create.return_value = UserEntity(
             id=uuid4(),
             password_hash="hashed_password",
-            **sample_user_create.model_dump(exclude={"password"})
+            **sample_user_create.model_dump(exclude={"password"}),
         )
 
         # Act

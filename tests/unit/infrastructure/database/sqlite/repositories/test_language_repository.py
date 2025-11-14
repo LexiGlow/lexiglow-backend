@@ -6,20 +6,19 @@ CRUD operations, queries, existence checks, and entity conversions.
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable
 from uuid import UUID
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.domain.entities.language import Language as LanguageEntity
-from app.infrastructure.database.sqlite.models import Base, Language as LanguageModel
+from app.infrastructure.database.sqlite.models import Base
+from app.infrastructure.database.sqlite.models import Language as LanguageModel
 from app.infrastructure.database.sqlite.repositories.language_repository_impl import (
     SQLiteLanguageRepository,
 )
-
 
 # Fixtures
 
@@ -142,9 +141,7 @@ class TestGetAllLanguages:
     def test_get_all_with_pagination(self, repository, sample_language_entity):
         """Test pagination with skip and limit parameters."""
         for i in range(5):
-            repository.create(
-                sample_language_entity(name=f"Lang {i}", code=f"l{i}")
-            )
+            repository.create(sample_language_entity(name=f"Lang {i}", code=f"l{i}"))
 
         page1 = repository.get_all(skip=0, limit=2)
         assert len(page1) == 2

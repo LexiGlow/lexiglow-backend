@@ -5,10 +5,9 @@ This module defines entities related to reading materials and text content.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.entities.enums import ProficiencyLevel
 
@@ -20,7 +19,7 @@ class Text(BaseModel):
     title: str = Field(..., description="Title of the text")
     content: str = Field(..., description="The actual text content")
     language_id: UUID = Field(..., alias="languageId", description="FK to Language")
-    user_id: Optional[UUID] = Field(
+    user_id: UUID | None = Field(
         None, alias="userId", description="FK to User (nullable for system content)"
     )
     proficiency_level: ProficiencyLevel = Field(
@@ -32,7 +31,7 @@ class Text(BaseModel):
     is_public: bool = Field(
         True, alias="isPublic", description="Whether the text is publicly visible"
     )
-    source: Optional[str] = Field(
+    source: str | None = Field(
         None, description="Source reference (URL or book reference)"
     )
     created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
@@ -63,7 +62,7 @@ class TextTag(BaseModel):
 
     id: UUID
     name: str = Field(..., description="Tag name (e.g., 'fiction', 'news', 'business')")
-    description: Optional[str] = Field(None, description="Tag description for clarity")
+    description: str | None = Field(None, description="Tag description for clarity")
 
     model_config = ConfigDict(
         json_schema_extra={

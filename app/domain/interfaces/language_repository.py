@@ -6,7 +6,6 @@ extending the base repository with language-specific methods.
 """
 
 from abc import abstractmethod
-from typing import Optional
 
 from app.domain.entities.language import Language
 from app.domain.interfaces.base_repository import IRepository
@@ -20,7 +19,7 @@ class ILanguageRepository(IRepository[Language]):
     """
 
     @abstractmethod
-    def get_by_code(self, code: str) -> Optional[Language]:
+    def get_by_code(self, code: str) -> Language | None:
         """
         Retrieve a language by its ISO 639-1 code.
 
@@ -36,7 +35,7 @@ class ILanguageRepository(IRepository[Language]):
         pass
 
     @abstractmethod
-    def get_by_name(self, name: str) -> Optional[Language]:
+    def get_by_name(self, name: str) -> Language | None:
         """
         Retrieve a language by its name.
 
@@ -66,4 +65,3 @@ class ILanguageRepository(IRepository[Language]):
             RepositoryError: If the check fails
         """
         pass
-

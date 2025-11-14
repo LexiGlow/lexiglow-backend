@@ -1,10 +1,12 @@
-import os
-import connexion
-from flask_cors import CORS
 import logging
 import logging.config
-from app.core.logging_config import LOGGING_CONFIG
+import os
+
+import connexion
+from flask_cors import CORS
+
 from app.core.container import Container
+from app.core.logging_config import LOGGING_CONFIG
 
 # --- Auto-configure logging on module import ---
 # This ensures logging is configured before any other modules create loggers
@@ -27,9 +29,7 @@ def create_app():
     options = {"swagger_ui": True, "swagger_url": "/docs"}
 
     # Create the Connexion application instance
-    connexion_app = connexion.App(
-        __name__, specification_dir=spec_dir, options=options
-    )
+    connexion_app = connexion.App(__name__, specification_dir=spec_dir, options=options)
 
     # Add the API from the openapi.yaml file
     connexion_app.add_api(

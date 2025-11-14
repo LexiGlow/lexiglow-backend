@@ -4,10 +4,9 @@ Text request and response schemas.
 This module defines schemas for text-related API requests and responses.
 """
 
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.entities.enums import ProficiencyLevel
 
@@ -18,11 +17,11 @@ class TextCreate(BaseModel):
     title: str
     content: str
     language_id: UUID = Field(..., alias="languageId")
-    user_id: Optional[UUID] = Field(None, alias="userId")
+    user_id: UUID | None = Field(None, alias="userId")
     proficiency_level: ProficiencyLevel = Field(..., alias="proficiencyLevel")
     word_count: int = Field(..., alias="wordCount")
     is_public: bool = Field(True, alias="isPublic")
-    source: Optional[str] = None
+    source: str | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -30,14 +29,12 @@ class TextCreate(BaseModel):
 class TextUpdate(BaseModel):
     """Schema for updating text information."""
 
-    title: Optional[str] = None
-    content: Optional[str] = None
-    language_id: Optional[UUID] = Field(None, alias="languageId")
-    proficiency_level: Optional[ProficiencyLevel] = Field(
-        None, alias="proficiencyLevel"
-    )
-    word_count: Optional[int] = Field(None, alias="wordCount")
-    is_public: Optional[bool] = Field(None, alias="isPublic")
-    source: Optional[str] = None
+    title: str | None = None
+    content: str | None = None
+    language_id: UUID | None = Field(None, alias="languageId")
+    proficiency_level: ProficiencyLevel | None = Field(None, alias="proficiencyLevel")
+    word_count: int | None = Field(None, alias="wordCount")
+    is_public: bool | None = Field(None, alias="isPublic")
+    source: str | None = None
 
     model_config = ConfigDict(populate_by_name=True)

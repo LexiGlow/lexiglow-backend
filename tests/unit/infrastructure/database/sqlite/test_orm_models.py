@@ -10,18 +10,19 @@ from datetime import datetime
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
 
 from app.infrastructure.database.sqlite.models import (
     Base,
     Language,
-    User,
-    UserLanguage,
     TextModel,
-    UserVocabulary,
-    UserVocabularyItem,
     TextTag,
     TextTagAssociation,
+    User,
+    UserLanguage,
+    UserVocabulary,
+    UserVocabularyItem,
     get_all_models,
     get_model_by_table_name,
 )
@@ -126,7 +127,7 @@ class TestLanguageModel:
         )
         session.add(duplicate_language)
 
-        with pytest.raises(Exception):  # SQLAlchemy will raise IntegrityError
+        with pytest.raises(IntegrityError):  # SQLAlchemy will raise IntegrityError
             session.commit()
 
     def test_language_repr(self, english_language):
@@ -178,7 +179,7 @@ class TestUserModel:
         )
         session.add(duplicate_user)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             session.commit()
 
     def test_user_unique_username(self, session, test_user, russian_language):
@@ -195,7 +196,7 @@ class TestUserModel:
         )
         session.add(duplicate_user)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             session.commit()
 
     def test_user_language_relationships(
@@ -250,7 +251,8 @@ class TestUserModel:
     def test_user_repr(self, test_user):
         """Test user string representation."""
         expected = (
-            f"<User(id='{test_user.id}', username='johndoe', email='john@example.com')>"
+            f"<User(id='{test_user.id}', username='johndoe', "
+            f"email='john@example.com')>"
         )
         assert repr(test_user) == expected
 
@@ -321,7 +323,10 @@ class TestUserLanguageModel:
         session.add(user_lang)
         session.commit()
 
-        expected = f"<UserLanguage(userId='{test_user.id}', languageId='{russian_language.id}', level='A2')>"
+        expected = (
+            f"<UserLanguage(userId='{test_user.id}', "
+            f"languageId='{russian_language.id}', level='A2')>"
+        )
         assert repr(user_lang) == expected
 
 
@@ -445,7 +450,7 @@ class TestTextTagModel:
         )
         session.add(tag2)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             session.commit()
 
     def test_text_tag_repr(self, session):
@@ -664,7 +669,7 @@ class TestUserVocabularyModel:
         )
         session.add(vocab2)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             session.commit()
 
     def test_delete_user_cascades_vocabulary(
@@ -701,7 +706,10 @@ class TestUserVocabularyModel:
         session.add(vocab)
         session.commit()
 
-        expected = f"<UserVocabulary(id='{vocab.id}', userId='{test_user.id}', name='My Vocabulary')>"
+        expected = (
+            f"<UserVocabulary(id='{vocab.id}', userId='{test_user.id}', "
+            f"name='My Vocabulary')>"
+        )
         assert repr(vocab) == expected
 
 
@@ -826,7 +834,7 @@ class TestUserVocabularyItemModel:
         )
         session.add(item2)
 
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             session.commit()
 
     def test_delete_vocabulary_cascades_items(self, session, test_vocabulary):
@@ -1018,7 +1026,7 @@ class TestQueryPatterns:
         )
 
         assert len(users_with_lang) == 2
-        for user, lang in users_with_lang:
+        for _user, lang in users_with_lang:
             assert lang.name == "English"
 
 

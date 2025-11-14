@@ -5,11 +5,9 @@ Tests cover all methods of the repository implementation including
 CRUD operations, queries, existence checks, and entity conversions.
 """
 
-import tempfile
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Callable
 from uuid import UUID
 
 import pytest
@@ -19,13 +17,16 @@ from sqlalchemy.orm import sessionmaker
 from app.domain.entities.user import User as UserEntity
 from app.infrastructure.database.sqlite.models import (
     Base,
+)
+from app.infrastructure.database.sqlite.models import (
     Language as LanguageModel,
+)
+from app.infrastructure.database.sqlite.models import (
     User as UserModel,
 )
 from app.infrastructure.database.sqlite.repositories.user_repository_impl import (
     SQLiteUserRepository,
 )
-
 
 # Fixtures
 

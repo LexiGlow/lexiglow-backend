@@ -5,10 +5,9 @@ This module defines entities related to users and their language learning.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.domain.entities.enums import ProficiencyLevel
 
@@ -30,7 +29,7 @@ class User(BaseModel):
     )
     created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
     updated_at: datetime = Field(default_factory=datetime.utcnow, alias="updatedAt")
-    last_active_at: Optional[datetime] = Field(
+    last_active_at: datetime | None = Field(
         None, alias="lastActiveAt", description="Last activity timestamp"
     )
 

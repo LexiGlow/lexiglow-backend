@@ -5,10 +5,9 @@ This module defines entities related to user vocabulary collections and items.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.entities.enums import (
     PartOfSpeech,
@@ -50,12 +49,12 @@ class UserVocabularyItem(BaseModel):
         ..., alias="userVocabularyId", description="FK to UserVocabulary"
     )
     term: str = Field(..., description="The word itself")
-    lemma: Optional[str] = Field(None, description="Base/dictionary form of the word")
-    stemma: Optional[str] = Field(None, description="Word stem")
-    part_of_speech: Optional[PartOfSpeech] = Field(
+    lemma: str | None = Field(None, description="Base/dictionary form of the word")
+    stemma: str | None = Field(None, description="Word stem")
+    part_of_speech: PartOfSpeech | None = Field(
         None, alias="partOfSpeech", description="Grammatical category"
     )
-    frequency: Optional[float] = Field(
+    frequency: float | None = Field(
         None, description="How common the word is (frequency score)"
     )
     status: VocabularyItemStatus = Field(
@@ -69,9 +68,7 @@ class UserVocabularyItem(BaseModel):
         alias="confidenceLevel",
         description="User's confidence level",
     )
-    notes: Optional[str] = Field(
-        None, description="User's personal notes about the word"
-    )
+    notes: str | None = Field(None, description="User's personal notes about the word")
     created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
     updated_at: datetime = Field(default_factory=datetime.utcnow, alias="updatedAt")
 

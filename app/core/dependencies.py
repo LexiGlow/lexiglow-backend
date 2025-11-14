@@ -53,4 +53,3 @@ def get_container() -> "Container":
             "DI Container not initialized in Flask application. "
             "Ensure create_app() properly initializes the container."
         ) from e
-

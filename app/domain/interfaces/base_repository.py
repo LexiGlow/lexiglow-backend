@@ -6,7 +6,7 @@ to provide type-safe repository operations for domain entities.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, TypeVar
 from uuid import UUID
 
 # Generic type variable for entities
@@ -41,7 +41,7 @@ class IRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def get_by_id(self, entity_id: UUID) -> Optional[T]:
+    def get_by_id(self, entity_id: UUID) -> T | None:
         """
         Retrieve an entity by its ID.
 
@@ -57,7 +57,7 @@ class IRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[T]:
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
         """
         Retrieve all entities with pagination.
 
@@ -74,7 +74,7 @@ class IRepository(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def update(self, entity_id: UUID, entity: T) -> Optional[T]:
+    def update(self, entity_id: UUID, entity: T) -> T | None:
         """
         Update an existing entity.
 

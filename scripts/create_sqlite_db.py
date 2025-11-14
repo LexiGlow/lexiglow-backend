@@ -9,7 +9,8 @@ Usage:
     python scripts/create_sqlite_db.py [--db-path PATH] [--force]
 
 Options:
-    --db-path PATH    Path to the SQLite database file (default: from SQLITE_DB_PATH env var)
+    --db-path PATH    Path to the SQLite database
+                        file (default: from SQLITE_DB_PATH env var)
     --force           Force recreate database even if it exists
 """
 
@@ -20,6 +21,7 @@ import re
 import sqlite3
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Setup logging
@@ -62,7 +64,7 @@ def extract_sql_from_file(file_path: Path) -> str:
 
     logger.info(f"Reading schema from: {file_path}")
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
 
     # If it's a .sql file, return content directly

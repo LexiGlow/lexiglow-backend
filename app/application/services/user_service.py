@@ -6,20 +6,18 @@ handling business logic, validation, and password hashing.
 """
 
 import logging
-from typing import List, Optional
-from uuid import UUID, uuid4
 from datetime import datetime
+from uuid import UUID, uuid4
 
 import bcrypt
 
-from app.domain.entities.user import User as UserEntity
-from app.domain.interfaces.user_repository import IUserRepository
 from app.application.dto.user_dto import (
     UserCreate,
-    UserUpdate,
     UserResponse,
+    UserUpdate,
 )
-
+from app.domain.entities.user import User as UserEntity
+from app.domain.interfaces.user_repository import IUserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +36,8 @@ class UserService:
         Initialize the User service.
 
         Args:
-            repository: Optional user repository. If None, creates SQLiteUserRepository.
-            repository: A user repository that conforms to the IUserRepository interface.
+            repository: A user repository that conforms to the
+                IUserRepository interface.
         """
         self.repository = repository
         logger.info("UserService initialized")
@@ -132,7 +130,7 @@ class UserService:
 
         return self._entity_to_response(created_entity)
 
-    def get_user(self, user_id: UUID) -> Optional[UserResponse]:
+    def get_user(self, user_id: UUID) -> UserResponse | None:
         """
         Retrieve a user by ID.
 
@@ -154,7 +152,7 @@ class UserService:
 
         return self._entity_to_response(entity)
 
-    def get_all_users(self, skip: int = 0, limit: int = 100) -> List[UserResponse]:
+    def get_all_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
         """
         Retrieve all users with pagination.
 
@@ -173,9 +171,7 @@ class UserService:
         entities = self.repository.get_all(skip=skip, limit=limit)
         return [self._entity_to_response(entity) for entity in entities]
 
-    def update_user(
-        self, user_id: UUID, user_data: UserUpdate
-    ) -> Optional[UserResponse]:
+    def update_user(self, user_id: UUID, user_data: UserUpdate) -> UserResponse | None:
         """
         Update a user with validation.
 
@@ -226,21 +222,16 @@ class UserService:
                 if user_data.username is not None
                 else existing_entity.username
             ),
-            password_hash=existing_entity.password_hash,  # Don't allow password updates via this method
+            # Don't allow password updates via this method
+            password_hash=existing_entity.password_hash,
             first_name=(
                 user_data.first_name
                 if user_data.first_name is not None
                 else existing_entity.first_name
             ),
-            last_name=(
-                user_data.last_name
-                if user_data.last_name is not None
-                else existing_entity.last_name
-            ),
+            last_name=user_data.last_name or existing_entity.last_name,
             native_language_id=(
-                user_data.native_language_id
-                if user_data.native_language_id is not None
-                else existing_entity.native_language_id
+                user_data.native_language_id or existing_entity.native_language_id
             ),
             current_language_id=(
                 user_data.current_language_id

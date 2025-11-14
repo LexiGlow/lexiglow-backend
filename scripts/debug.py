@@ -1,6 +1,8 @@
 import logging
+
 from wsgi import connexion_app
-from app.controllers.health import get_health
+
+from app.presentation.api.v1.health import get_health
 
 # Configure logging for debug script
 logging.basicConfig(

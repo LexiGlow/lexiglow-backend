@@ -79,7 +79,14 @@ class JsonFormatter(logging.Formatter):
 
         # Add any extra fields passed to the logger
         standard_keys = logging.LogRecord(
-            "", "", "", "", "", "", "", ""  # type: ignore
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",  # type: ignore
         ).__dict__.keys()
         extra_fields = {
             key: value
@@ -111,7 +118,10 @@ LOGGING_CONFIG = {
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
         "text_file": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s:%(lineno)d - %(message)s",
+            "format": (
+                "%(asctime)s - %(name)s - %(levelname)s - "
+                "%(module)s - %(funcName)s:%(lineno)d - %(message)s"
+            ),
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },

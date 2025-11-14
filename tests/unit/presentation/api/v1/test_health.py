@@ -1,6 +1,4 @@
-import sys, os
 import logging
-
 
 from scripts.wsgi import app
 

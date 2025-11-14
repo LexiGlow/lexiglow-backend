@@ -6,10 +6,9 @@ These DTOs represent the contract between the application layer and other layers
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
@@ -29,12 +28,12 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     """DTO for updating user information."""
 
-    email: Optional[EmailStr] = None
-    username: Optional[str] = None
-    first_name: Optional[str] = Field(None, alias="firstName")
-    last_name: Optional[str] = Field(None, alias="lastName")
-    native_language_id: Optional[UUID] = Field(None, alias="nativeLanguageId")
-    current_language_id: Optional[UUID] = Field(None, alias="currentLanguageId")
+    email: EmailStr | None = None
+    username: str | None = None
+    first_name: str | None = Field(None, alias="firstName")
+    last_name: str | None = Field(None, alias="lastName")
+    native_language_id: UUID | None = Field(None, alias="nativeLanguageId")
+    current_language_id: UUID | None = Field(None, alias="currentLanguageId")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -51,7 +50,6 @@ class UserResponse(BaseModel):
     current_language_id: UUID = Field(..., alias="currentLanguageId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
-    last_active_at: Optional[datetime] = Field(None, alias="lastActiveAt")
+    last_active_at: datetime | None = Field(None, alias="lastActiveAt")
 
     model_config = ConfigDict(populate_by_name=True)
-

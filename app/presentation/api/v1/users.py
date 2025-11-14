@@ -6,7 +6,7 @@ Handlers are called by Connexion based on operationId in openapi.yaml.
 """
 
 import logging
-from typing import Dict, List, Tuple, Any
+from typing import Any
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -14,11 +14,10 @@ from pydantic import ValidationError
 from app.application.dto.user_dto import UserCreate, UserUpdate
 from app.core.dependencies import get_container
 
-
 logger = logging.getLogger(__name__)
 
 
-def get_users(skip: int = 0, limit: int = 100) -> Tuple[List[Dict[str, Any]], int]:
+def get_users(skip: int = 0, limit: int = 100) -> tuple[list[dict[str, Any]], int]:
     """
     Get all users with pagination.
 
@@ -46,7 +45,7 @@ def get_users(skip: int = 0, limit: int = 100) -> Tuple[List[Dict[str, Any]], in
         return {"error": "Internal server error", "message": str(e)}, 500
 
 
-def get_user_by_id(userId: str) -> Tuple[Dict[str, Any], int]:
+def get_user_by_id(userId: str) -> tuple[dict[str, Any], int]:
     """
     Get a user by ID.
 
@@ -88,7 +87,7 @@ def get_user_by_id(userId: str) -> Tuple[Dict[str, Any], int]:
         return {"error": "Internal server error", "message": str(e)}, 500
 
 
-def create_user(body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+def create_user(body: dict[str, Any]) -> tuple[dict[str, Any], int]:
     """
     Create a new user.
 
@@ -126,7 +125,7 @@ def create_user(body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         return {"error": "Internal server error", "message": str(e)}, 500
 
 
-def update_user(userId: str, body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
+def update_user(userId: str, body: dict[str, Any]) -> tuple[dict[str, Any], int]:
     """
     Update a user.
 
@@ -183,7 +182,7 @@ def update_user(userId: str, body: Dict[str, Any]) -> Tuple[Dict[str, Any], int]
         return {"error": "Internal server error", "message": str(e)}, 500
 
 
-def delete_user(userId: str) -> Tuple[Dict[str, Any], int]:
+def delete_user(userId: str) -> tuple[dict[str, Any], int]:
     """
     Delete a user.
 

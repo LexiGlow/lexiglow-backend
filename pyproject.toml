@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lexiglow-backend"
+version = "0.1.0"
+description = "Backend for the LexiGlow application."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" } # Or use the SPDX identifier: license = "MIT"
+authors = [
+  { name = "Your Name", email = "your@email.com" },
+]
+
+# Core dependencies for your application to run
+dependencies = [
+    "Flask>=2.2,<2.3",
+    "Werkzeug>=2.0,<2.3",
+    "connexion[swagger-ui, flask]==2.14.2",
+    "pymongo>=4.0",
+    "python-dotenv>=0.21",
+    "flask-cors>=3.0",
+    "gunicorn>=20",
+    "SQLAlchemy>=2.0",
+    "pydantic[email]>=2.0",
+    "bcrypt>=4.0",
+]
+
+[project.optional-dependencies]
+# Dependencies for development, linting, and testing
+dev = [
+    "pytest>=7",
+    "ruff>=0.4.4", # Replaces black and flake8
+    "pre-commit>=3",
+]
+
+[tool.ruff]
+# Set the maximum line length. 88 is the standard for Black.
+line-length = 88
+# Assume Python 3.10+ code. Adjust this to your project's minimum Python version.
+target-version = "py310"
+
+[tool.ruff.lint]
+# A good starting set of rules:
+# E, F: Standard pycodestyle and Pyflakes
+# I: isort (import sorting)
+# UP: pyupgrade (modernize code)
+# B: flake8-bugbear (finds likely bugs)
+# C4: flake8-comprehensions (encourages more idiomatic comprehensions)
+select = ["E", "F", "I", "UP", "B", "C4"]
+
+# You can ignore specific rules if they are too noisy for your project.
+# ignore = []
+
+[tool.ruff.format]
+# Use black-compatible formatting.
+quote-style = "double"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

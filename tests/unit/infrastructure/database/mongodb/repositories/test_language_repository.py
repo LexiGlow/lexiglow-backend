@@ -6,18 +6,16 @@ CRUD operations, queries, existence checks, and entity conversions.
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable
 from uuid import UUID
 
 import pytest
-from pymongo.errors import PyMongoError
 
 from app.domain.entities.language import Language as LanguageEntity
 from app.infrastructure.database.mongodb.repositories.language_repository_impl import (
     MongoDBLanguageRepository,
 )
-
 
 # Fixtures
 
@@ -95,15 +93,18 @@ class TestCreateLanguage:
         # MongoDB doesn't automatically raise an exception for duplicate values
         # unless a unique index is explicitly created. For this test, we assume
         # that the application layer or a unique index would prevent this.
-        # If a unique index is added, this test should be updated to expect PyMongoError.
-        # For now, we'll assert that it creates a new entry, as MongoDB allows it without unique index.
+        # If a unique index is added, this test should be updated
+        # to expect PyMongoError.
+        # For now, we'll assert that it creates a new entry,
+        # as MongoDB allows it without unique index.
         # If unique index is added, uncomment the pytest.raises line.
         # with pytest.raises(Exception, match="Failed to create language"):
         duplicate_id = duplicate_lang.id
         created_lang = repository.create(duplicate_lang)
         # The created language should use the provided ID
         assert created_lang.id == duplicate_id
-        # Verify both languages exist with the same code (MongoDB allows duplicates without unique index)
+        # Verify both languages exist with the same code (MongoDB allows duplicates
+        # without unique index)
         assert repository.get_by_code("fr") is not None
         all_langs = repository.get_all()
         fr_langs = [lang for lang in all_langs if lang.code == "fr"]

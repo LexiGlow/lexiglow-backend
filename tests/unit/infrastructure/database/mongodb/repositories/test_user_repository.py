@@ -6,8 +6,8 @@ CRUD operations, queries, existence checks, and entity conversions.
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable
 from uuid import UUID
 
 import pytest
@@ -16,7 +16,6 @@ from app.domain.entities.user import User as UserEntity
 from app.infrastructure.database.mongodb.repositories.user_repository_impl import (
     MongoDBUserRepository,
 )
-
 
 # Fixtures
 
@@ -457,7 +456,8 @@ class TestUpdateLastActive:
         last_active = updated_user.last_active_at
         if last_active.tzinfo is None:
             last_active = last_active.replace(tzinfo=timezone.utc)
-        # MongoDB stores timestamps with millisecond precision, so we need to account for rounding
+        # MongoDB stores timestamps with millisecond precision,
+        # so we need to account for rounding
         # Subtract 1ms from before_update to account for rounding down
         from datetime import timedelta
 

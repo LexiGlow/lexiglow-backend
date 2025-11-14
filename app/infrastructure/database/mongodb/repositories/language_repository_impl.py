@@ -4,7 +4,6 @@ MongoDB implementation of Language repository.
 
 import logging
 import uuid
-from typing import List, Optional
 from uuid import UUID
 
 from pymongo import MongoClient
@@ -12,7 +11,6 @@ from pymongo.errors import PyMongoError
 
 from app.domain.entities.language import Language as LanguageEntity
 from app.domain.interfaces.language_repository import ILanguageRepository
-
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +64,9 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to create language: {e}")
-            raise Exception(f"Failed to create language: {e}")
+            raise Exception(f"Failed to create language: {e}") from e
 
-    def get_by_id(self, entity_id: UUID) -> Optional[LanguageEntity]:
+    def get_by_id(self, entity_id: UUID) -> LanguageEntity | None:
         """
         Retrieve a language by its ID.
         """
@@ -84,14 +82,15 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get language by ID: {e}")
-            raise Exception(f"Failed to get language by ID: {e}")
+            raise Exception(f"Failed to get language by ID: {e}") from e
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[LanguageEntity]:
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[LanguageEntity]:
         """
         Retrieve all languages with pagination.
         """
         try:
-            # Handle limit=0 case - MongoDB treats 0 as "no limit", but we want empty result
+            # Handle limit=0 case - MongoDB treats 0 as "no limit", but we want
+            # empty result
             if limit == 0:
                 return []
 
@@ -103,11 +102,9 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get all languages: {e}")
-            raise Exception(f"Failed to get all languages: {e}")
+            raise Exception(f"Failed to get all languages: {e}") from e
 
-    def update(
-        self, entity_id: UUID, entity: LanguageEntity
-    ) -> Optional[LanguageEntity]:
+    def update(self, entity_id: UUID, entity: LanguageEntity) -> LanguageEntity | None:
         """
         Update an existing language.
         """
@@ -126,7 +123,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to update language: {e}")
-            raise Exception(f"Failed to update language: {e}")
+            raise Exception(f"Failed to update language: {e}") from e
 
     def delete(self, entity_id: UUID) -> bool:
         """
@@ -144,7 +141,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to delete language: {e}")
-            raise Exception(f"Failed to delete language: {e}")
+            raise Exception(f"Failed to delete language: {e}") from e
 
     def exists(self, entity_id: UUID) -> bool:
         """
@@ -157,9 +154,9 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to check language existence: {e}")
-            raise Exception(f"Failed to check language existence: {e}")
+            raise Exception(f"Failed to check language existence: {e}") from e
 
-    def get_by_code(self, code: str) -> Optional[LanguageEntity]:
+    def get_by_code(self, code: str) -> LanguageEntity | None:
         """
         Retrieve a language by its ISO 639-1 code.
         """
@@ -175,9 +172,9 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get language by code: {e}")
-            raise Exception(f"Failed to get language by code: {e}")
+            raise Exception(f"Failed to get language by code: {e}") from e
 
-    def get_by_name(self, name: str) -> Optional[LanguageEntity]:
+    def get_by_name(self, name: str) -> LanguageEntity | None:
         """
         Retrieve a language by its name.
         """
@@ -193,7 +190,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get language by name: {e}")
-            raise Exception(f"Failed to get language by name: {e}")
+            raise Exception(f"Failed to get language by name: {e}") from e
 
     def code_exists(self, code: str) -> bool:
         """
@@ -206,4 +203,4 @@ class MongoDBLanguageRepository(ILanguageRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to check language code existence: {e}")
-            raise Exception(f"Failed to check language code existence: {e}")
+            raise Exception(f"Failed to check language code existence: {e}") from e

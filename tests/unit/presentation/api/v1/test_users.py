@@ -9,10 +9,10 @@ import logging
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
-import pytest
-from pydantic import ValidationError
 
-from app.application.dto.user_dto import UserCreate, UserUpdate, UserResponse
+import pytest
+
+from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
 from app.presentation.api.v1.users import (
     create_user,
     delete_user,
@@ -21,9 +21,10 @@ from app.presentation.api.v1.users import (
     update_user,
 )
 
-
 # Configure logging for tests
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -41,8 +42,8 @@ def mock_container(mock_user_service):
     """
     mock_container_instance = MagicMock()
     mock_container_instance.get_user_service.return_value = mock_user_service
-    
-    with patch('app.presentation.api.v1.users.get_container') as mock_get_container:
+
+    with patch("app.presentation.api.v1.users.get_container") as mock_get_container:
         mock_get_container.return_value = mock_container_instance
         yield mock_get_container
 
@@ -98,7 +99,9 @@ def sample_user_update_data() -> dict:
 class TestGetUsers:
     """Tests for the get_users handler."""
 
-    def test_get_users_success(self, mock_user_service, sample_user_response: UserResponse):
+    def test_get_users_success(
+        self, mock_user_service, sample_user_response: UserResponse
+    ):
         """
         Test get_users returns 200 and a list of users on success.
         """
@@ -172,7 +175,12 @@ class TestGetUsers:
 class TestGetUserById:
     """Tests for the get_user_by_id handler."""
 
-    def test_get_user_by_id_success(self, mock_user_service, sample_user_response: UserResponse, sample_user_id: UUID):
+    def test_get_user_by_id_success(
+        self,
+        mock_user_service,
+        sample_user_response: UserResponse,
+        sample_user_id: UUID,
+    ):
         """
         Test get_user_by_id returns 200 and a user on success.
         """
@@ -224,14 +232,18 @@ class TestGetUserById:
         mock_user_service.get_user.assert_not_called()
         logger.info("get_user_by_id invalid UUID test passed")
 
-    def test_get_user_by_id_handles_exception(self, mock_user_service, sample_user_id: UUID):
+    def test_get_user_by_id_handles_exception(
+        self, mock_user_service, sample_user_id: UUID
+    ):
         """
         Test get_user_by_id returns 500 when the service raises an exception.
         """
         # Arrange
         error_message = "Service unavailable"
         mock_user_service.get_user.side_effect = Exception(error_message)
-        logger.info(f"Testing get_user_by_id with service exception for ID: {sample_user_id}")
+        logger.info(
+            f"Testing get_user_by_id with service exception for ID: {sample_user_id}"
+        )
 
         # Act
         response, status_code = get_user_by_id(str(sample_user_id))
@@ -246,13 +258,20 @@ class TestGetUserById:
 class TestCreateUser:
     """Tests for the create_user handler."""
 
-    def test_create_user_success(self, mock_user_service, sample_user_response: UserResponse, sample_user_create_data: dict):
+    def test_create_user_success(
+        self,
+        mock_user_service,
+        sample_user_response: UserResponse,
+        sample_user_create_data: dict,
+    ):
         """
         Test create_user returns 201 and the created user on success.
         """
         # Arrange
         mock_user_service.create_user.return_value = sample_user_response
-        logger.info(f"Testing create_user with email: {sample_user_create_data['email']}")
+        logger.info(
+            f"Testing create_user with email: {sample_user_create_data['email']}"
+        )
 
         # Act
         response, status_code = create_user(sample_user_create_data)
@@ -269,7 +288,9 @@ class TestCreateUser:
         assert call_args[0].email == sample_user_create_data["email"]
         logger.info("create_user success test passed")
 
-    def test_create_user_invalid_body(self, mock_user_service, sample_user_create_data: dict):
+    def test_create_user_invalid_body(
+        self, mock_user_service, sample_user_create_data: dict
+    ):
         """
         Test create_user returns 400 for an invalid request body.
         """
@@ -287,7 +308,9 @@ class TestCreateUser:
         mock_user_service.create_user.assert_not_called()
         logger.info("create_user invalid body test passed")
 
-    def test_create_user_conflict(self, mock_user_service, sample_user_create_data: dict):
+    def test_create_user_conflict(
+        self, mock_user_service, sample_user_create_data: dict
+    ):
         """
         Test create_user returns 409 when the service reports a conflict.
         """
@@ -305,7 +328,9 @@ class TestCreateUser:
         assert response["message"] == error_message
         logger.info("create_user conflict test passed")
 
-    def test_create_user_handles_exception(self, mock_user_service, sample_user_create_data: dict):
+    def test_create_user_handles_exception(
+        self, mock_user_service, sample_user_create_data: dict
+    ):
         """
         Test create_user returns 500 when the service raises an unexpected exception.
         """
@@ -327,7 +352,13 @@ class TestCreateUser:
 class TestUpdateUser:
     """Tests for the update_user handler."""
 
-    def test_update_user_success(self, mock_user_service, sample_user_response: UserResponse, sample_user_id: UUID, sample_user_update_data: dict):
+    def test_update_user_success(
+        self,
+        mock_user_service,
+        sample_user_response: UserResponse,
+        sample_user_id: UUID,
+        sample_user_update_data: dict,
+    ):
         """
         Test update_user returns 200 and the updated user on success.
         """
@@ -336,7 +367,9 @@ class TestUpdateUser:
         logger.info(f"Testing update_user for ID: {sample_user_id}")
 
         # Act
-        response, status_code = update_user(str(sample_user_id), sample_user_update_data)
+        response, status_code = update_user(
+            str(sample_user_id), sample_user_update_data
+        )
 
         # Assert
         assert status_code == 200
@@ -350,7 +383,9 @@ class TestUpdateUser:
         assert call_args[1].email == sample_user_update_data["email"]
         logger.info("update_user success test passed")
 
-    def test_update_user_not_found(self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict):
+    def test_update_user_not_found(
+        self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict
+    ):
         """
         Test update_user returns 404 when the user does not exist.
         """
@@ -359,7 +394,9 @@ class TestUpdateUser:
         logger.info(f"Testing update_user for non-existent ID: {sample_user_id}")
 
         # Act
-        response, status_code = update_user(str(sample_user_id), sample_user_update_data)
+        response, status_code = update_user(
+            str(sample_user_id), sample_user_update_data
+        )
 
         # Assert
         assert status_code == 404
@@ -367,7 +404,9 @@ class TestUpdateUser:
         mock_user_service.update_user.assert_called_once()
         logger.info("update_user not found test passed")
 
-    def test_update_user_invalid_uuid(self, mock_user_service, sample_user_update_data: dict):
+    def test_update_user_invalid_uuid(
+        self, mock_user_service, sample_user_update_data: dict
+    ):
         """
         Test update_user returns 400 for a malformed UUID.
         """
@@ -401,7 +440,9 @@ class TestUpdateUser:
         mock_user_service.update_user.assert_not_called()
         logger.info("update_user invalid body test passed")
 
-    def test_update_user_conflict(self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict):
+    def test_update_user_conflict(
+        self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict
+    ):
         """
         Test update_user returns 409 when the service reports a conflict.
         """
@@ -411,7 +452,9 @@ class TestUpdateUser:
         logger.info("Testing update_user with a data conflict")
 
         # Act
-        response, status_code = update_user(str(sample_user_id), sample_user_update_data)
+        response, status_code = update_user(
+            str(sample_user_id), sample_user_update_data
+        )
 
         # Assert
         assert status_code == 409
@@ -419,7 +462,9 @@ class TestUpdateUser:
         assert response["message"] == error_message
         logger.info("update_user conflict test passed")
 
-    def test_update_user_handles_exception(self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict):
+    def test_update_user_handles_exception(
+        self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict
+    ):
         """
         Test update_user returns 500 for an unexpected service exception.
         """
@@ -429,7 +474,9 @@ class TestUpdateUser:
         logger.info("Testing update_user with an unexpected service exception")
 
         # Act
-        response, status_code = update_user(str(sample_user_id), sample_user_update_data)
+        response, status_code = update_user(
+            str(sample_user_id), sample_user_update_data
+        )
 
         # Assert
         assert status_code == 500
@@ -492,7 +539,9 @@ class TestDeleteUser:
         mock_user_service.delete_user.assert_not_called()
         logger.info("delete_user invalid UUID test passed")
 
-    def test_delete_user_handles_exception(self, mock_user_service, sample_user_id: UUID):
+    def test_delete_user_handles_exception(
+        self, mock_user_service, sample_user_id: UUID
+    ):
         """
         Test delete_user returns 500 for an unexpected service exception.
         """

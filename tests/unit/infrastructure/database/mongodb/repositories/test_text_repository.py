@@ -6,20 +6,17 @@ CRUD operations, queries, existence checks, and entity conversions.
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable
 from uuid import UUID
 
 import pytest
-from pymongo.errors import PyMongoError
 
 from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
-from app.domain.interfaces.text_repository import ITextRepository
 from app.infrastructure.database.mongodb.repositories.text_repository_impl import (
     MongoDBTextRepository,
 )
-
 
 # Fixtures
 
@@ -280,8 +277,6 @@ class TestTextQueries:
         """
         Test retrieving texts by associated tags.
         """
-        text1 = repository.create(sample_text_entity(title="Text 1"))
-        text2 = repository.create(sample_text_entity(title="Text 2"))
 
         # MongoDB doesn't have direct join tables like SQL. Tags would be embedded
         # or referenced. For this test, we'll assume tags are part of the TextEntity
@@ -306,7 +301,8 @@ class TestEntityConversionText:
         """
         text_id = uuid.uuid4()
         text_model_dict = {
-            "_id": text_id,  # MongoDB returns UUID objects with uuidRepresentation="standard"
+            # MongoDB returns UUID objects with uuidRepresentation="standard"
+            "_id": text_id,
             "title": "Model Title",
             "content": "Model content.",
             "languageId": language_id,  # UUID object
@@ -334,7 +330,8 @@ class TestEntityConversionText:
         entity = sample_text_entity()
         model = repository._entity_to_model(entity)
         assert isinstance(model, dict)
-        # _id should be a UUID object (MongoDB stores UUIDs as UUID objects with uuidRepresentation="standard")
+        # _id should be a UUID object (MongoDB stores UUIDs as UUID objects
+        # with uuidRepresentation="standard")
         assert model["_id"] == entity.id
         assert isinstance(model["_id"], UUID)
         assert model["title"] == entity.title

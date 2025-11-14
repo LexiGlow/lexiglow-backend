@@ -6,8 +6,8 @@ CRUD operations, queries, existence checks, and entity conversions.
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable
 from uuid import UUID
 
 import pytest
@@ -18,16 +18,21 @@ from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
 from app.infrastructure.database.sqlite.models import (
     Base,
-    Language as LanguageModel,
-    User as UserModel,
     TextModel,
-    TextTag as TagModel,
     TextTagAssociation,
+)
+from app.infrastructure.database.sqlite.models import (
+    Language as LanguageModel,
+)
+from app.infrastructure.database.sqlite.models import (
+    TextTag as TagModel,
+)
+from app.infrastructure.database.sqlite.models import (
+    User as UserModel,
 )
 from app.infrastructure.database.sqlite.repositories.text_repository_impl import (
     SQLiteTextRepository,
 )
-
 
 # Fixtures
 
@@ -60,8 +65,12 @@ def setup_database(tmp_path):
             currentLanguageId=lang1.id,
         )
         # Seed Tags
-        tag1 = TagModel(id=str(UUID("20000000-0000-0000-0000-000000000001")), name="news")
-        tag2 = TagModel(id=str(UUID("20000000-0000-0000-0000-000000000002")), name="history")
+        tag1 = TagModel(
+            id=str(UUID("20000000-0000-0000-0000-000000000001")), name="news"
+        )
+        tag2 = TagModel(
+            id=str(UUID("20000000-0000-0000-0000-000000000002")), name="history"
+        )
 
         session.add_all([lang1, user1, tag1, tag2])
         session.commit()
@@ -266,7 +275,7 @@ class TestTextQueries:
         assert results[0].title == "A Quick Brown Fox"
 
         results_case = repository.search_by_title("quick brown")
-        assert len(results_case) == 1 # Assuming case-insensitivity from LIKE
+        assert len(results_case) == 1  # Assuming case-insensitivity from LIKE
 
     def test_get_by_tags(self, repository, sample_text_entity, tag_ids):
         """Test retrieving texts by associated tags."""

@@ -5,7 +5,6 @@ MongoDB implementation of User repository.
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
 from uuid import UUID
 
 from pymongo import MongoClient
@@ -13,7 +12,6 @@ from pymongo.errors import PyMongoError
 
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
-
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +77,9 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to create user: {e}")
-            raise Exception(f"Failed to create user: {e}")
+            raise Exception(f"Failed to create user: {e}") from e
 
-    def get_by_id(self, entity_id: UUID) -> Optional[UserEntity]:
+    def get_by_id(self, entity_id: UUID) -> UserEntity | None:
         """
         Retrieve a user by their ID.
         """
@@ -97,14 +95,15 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get user by ID: {e}")
-            raise Exception(f"Failed to get user by ID: {e}")
+            raise Exception(f"Failed to get user by ID: {e}") from e
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[UserEntity]:
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[UserEntity]:
         """
         Retrieve all users with pagination.
         """
         try:
-            # Handle limit=0 case - MongoDB treats 0 as "no limit", but we want empty result
+            # Handle limit=0 case - MongoDB treats 0 as "no limit", but we want
+            # empty result
             if limit == 0:
                 return []
 
@@ -114,9 +113,9 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get all users: {e}")
-            raise Exception(f"Failed to get all users: {e}")
+            raise Exception(f"Failed to get all users: {e}") from e
 
-    def update(self, entity_id: UUID, entity: UserEntity) -> Optional[UserEntity]:
+    def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
         """
         Update an existing user.
         """
@@ -130,7 +129,8 @@ class MongoDBUserRepository(IUserRepository):
 
             if result.matched_count:
                 logger.info(f"Updated user: {entity.username} (ID: {entity_id})")
-                # Retrieve the updated entity from database to get MongoDB-rounded timestamps
+                # Retrieve the updated entity from database to get
+                # MongoDB-rounded timestamps
                 return self.get_by_id(entity_id)
 
             logger.warning(f"User not found for update: {entity_id}")
@@ -138,7 +138,7 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to update user: {e}")
-            raise Exception(f"Failed to update user: {e}")
+            raise Exception(f"Failed to update user: {e}") from e
 
     def delete(self, entity_id: UUID) -> bool:
         """
@@ -156,7 +156,7 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to delete user: {e}")
-            raise Exception(f"Failed to delete user: {e}")
+            raise Exception(f"Failed to delete user: {e}") from e
 
     def exists(self, entity_id: UUID) -> bool:
         """
@@ -169,9 +169,9 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to check user existence: {e}")
-            raise Exception(f"Failed to check user existence: {e}")
+            raise Exception(f"Failed to check user existence: {e}") from e
 
-    def get_by_email(self, email: str) -> Optional[UserEntity]:
+    def get_by_email(self, email: str) -> UserEntity | None:
         """
         Retrieve a user by their email address.
         """
@@ -187,9 +187,9 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get user by email: {e}")
-            raise Exception(f"Failed to get user by email: {e}")
+            raise Exception(f"Failed to get user by email: {e}") from e
 
-    def get_by_username(self, username: str) -> Optional[UserEntity]:
+    def get_by_username(self, username: str) -> UserEntity | None:
         """
         Retrieve a user by their username.
         """
@@ -205,7 +205,7 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to get user by username: {e}")
-            raise Exception(f"Failed to get user by username: {e}")
+            raise Exception(f"Failed to get user by username: {e}") from e
 
     def email_exists(self, email: str) -> bool:
         """
@@ -218,7 +218,7 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to check email existence: {e}")
-            raise Exception(f"Failed to check email existence: {e}")
+            raise Exception(f"Failed to check email existence: {e}") from e
 
     def username_exists(self, username: str) -> bool:
         """
@@ -231,7 +231,7 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to check username existence: {e}")
-            raise Exception(f"Failed to check username existence: {e}")
+            raise Exception(f"Failed to check username existence: {e}") from e
 
     def update_last_active(self, user_id: UUID) -> bool:
         """
@@ -251,4 +251,4 @@ class MongoDBUserRepository(IUserRepository):
 
         except PyMongoError as e:
             logger.error(f"Failed to update last active: {e}")
-            raise Exception(f"Failed to update last active: {e}")
+            raise Exception(f"Failed to update last active: {e}") from e

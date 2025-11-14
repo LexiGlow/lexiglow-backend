@@ -8,12 +8,11 @@ using SQLAlchemy ORM and raw SQL queries.
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import create_engine, or_
-from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession
+from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
 
 from app.core.config import BASE_DIR
 from app.domain.entities.enums import ProficiencyLevel
@@ -23,7 +22,6 @@ from app.infrastructure.database.sqlite.models import (
     TextModel,
     TextTagAssociation,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +34,7 @@ class SQLiteTextRepository(ITextRepository):
     and provides all methods defined in ITextRepository interface.
     """
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         """
         Initialize the SQLite Text repository.
 
@@ -128,16 +126,14 @@ class SQLiteTextRepository(ITextRepository):
                 session.commit()
                 session.refresh(text_model)
 
-                logger.info(
-                    f"Created text: {text_model.title} (ID: {text_model.id})"
-                )
+                logger.info(f"Created text: {text_model.title} (ID: {text_model.id})")
                 return self._model_to_entity(text_model)
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to create text: {e}")
-            raise Exception(f"Failed to create text: {e}")
+            raise Exception(f"Failed to create text: {e}") from e
 
-    def get_by_id(self, entity_id: UUID) -> Optional[TextEntity]:
+    def get_by_id(self, entity_id: UUID) -> TextEntity | None:
         """
         Retrieve a text by its ID.
 
@@ -165,9 +161,9 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get text by ID: {e}")
-            raise Exception(f"Failed to get text by ID: {e}")
+            raise Exception(f"Failed to get text by ID: {e}") from e
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[TextEntity]:
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[TextEntity]:
         """
         Retrieve all texts with pagination.
 
@@ -192,9 +188,9 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get all texts: {e}")
-            raise Exception(f"Failed to get all texts: {e}")
+            raise Exception(f"Failed to get all texts: {e}") from e
 
-    def update(self, entity_id: UUID, entity: TextEntity) -> Optional[TextEntity]:
+    def update(self, entity_id: UUID, entity: TextEntity) -> TextEntity | None:
         """
         Update an existing text.
 
@@ -237,7 +233,7 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to update text: {e}")
-            raise Exception(f"Failed to update text: {e}")
+            raise Exception(f"Failed to update text: {e}") from e
 
     def delete(self, entity_id: UUID) -> bool:
         """
@@ -270,7 +266,7 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to delete text: {e}")
-            raise Exception(f"Failed to delete text: {e}")
+            raise Exception(f"Failed to delete text: {e}") from e
 
     def exists(self, entity_id: UUID) -> bool:
         """
@@ -297,11 +293,11 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to check text existence: {e}")
-            raise Exception(f"Failed to check text existence: {e}")
+            raise Exception(f"Failed to check text existence: {e}") from e
 
     def get_by_language(
         self, language_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[TextEntity]:
+    ) -> list[TextEntity]:
         """
         Retrieve texts by language.
 
@@ -334,11 +330,11 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get texts by language: {e}")
-            raise Exception(f"Failed to get texts by language: {e}")
+            raise Exception(f"Failed to get texts by language: {e}") from e
 
     def get_by_user(
         self, user_id: UUID, skip: int = 0, limit: int = 100
-    ) -> List[TextEntity]:
+    ) -> list[TextEntity]:
         """
         Retrieve texts by user.
 
@@ -371,11 +367,11 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get texts by user: {e}")
-            raise Exception(f"Failed to get texts by user: {e}")
+            raise Exception(f"Failed to get texts by user: {e}") from e
 
     def get_by_proficiency_level(
         self, proficiency_level: ProficiencyLevel, skip: int = 0, limit: int = 100
-    ) -> List[TextEntity]:
+    ) -> list[TextEntity]:
         """
         Retrieve texts by proficiency level.
 
@@ -408,9 +404,9 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get texts by proficiency level: {e}")
-            raise Exception(f"Failed to get texts by proficiency level: {e}")
+            raise Exception(f"Failed to get texts by proficiency level: {e}") from e
 
-    def get_public_texts(self, skip: int = 0, limit: int = 100) -> List[TextEntity]:
+    def get_public_texts(self, skip: int = 0, limit: int = 100) -> list[TextEntity]:
         """
         Retrieve all public texts.
 
@@ -441,11 +437,11 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get public texts: {e}")
-            raise Exception(f"Failed to get public texts: {e}")
+            raise Exception(f"Failed to get public texts: {e}") from e
 
     def search_by_title(
         self, title_query: str, skip: int = 0, limit: int = 100
-    ) -> List[TextEntity]:
+    ) -> list[TextEntity]:
         """
         Search texts by title.
 
@@ -480,11 +476,11 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to search texts by title: {e}")
-            raise Exception(f"Failed to search texts by title: {e}")
+            raise Exception(f"Failed to search texts by title: {e}") from e
 
     def get_by_tags(
-        self, tag_ids: List[UUID], skip: int = 0, limit: int = 100
-    ) -> List[TextEntity]:
+        self, tag_ids: list[UUID], skip: int = 0, limit: int = 100
+    ) -> list[TextEntity]:
         """
         Retrieve texts by tags.
 
@@ -523,5 +519,4 @@ class SQLiteTextRepository(ITextRepository):
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to get texts by tags: {e}")
-            raise Exception(f"Failed to get texts by tags: {e}")
-
+            raise Exception(f"Failed to get texts by tags: {e}") from e

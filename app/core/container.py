@@ -7,13 +7,12 @@ configuration and easy testing with mock dependencies.
 """
 
 import logging
-from typing import Dict, Any, Optional, Type
+from typing import Any
 
-from app.domain.interfaces.user_repository import IUserRepository
+from app.application.services.user_service import UserService
 from app.domain.interfaces.language_repository import ILanguageRepository
 from app.domain.interfaces.text_repository import ITextRepository
-from app.application.services.user_service import UserService
-
+from app.domain.interfaces.user_repository import IUserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +33,12 @@ class Container:
 
     def __init__(self):
         """Initialize the DI container with empty caches."""
-        self._repositories: Dict[str, Any] = {}
-        self._services: Dict[str, Any] = {}
-        self._overrides: Dict[Type, Any] = {}
+        self._repositories: dict[str, Any] = {}
+        self._services: dict[str, Any] = {}
+        self._overrides: dict[type, Any] = {}
         logger.info("DI Container initialized")
 
-    def register_override(self, interface: Type, implementation: Any) -> None:
+    def register_override(self, interface: type, implementation: Any) -> None:
         """
         Register an override for dependency injection (primarily for testing).
 
@@ -93,15 +92,17 @@ class Container:
             from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
             if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.sqlite.repositories.user_repository_impl import (
+                from app.infrastructure.database.repositories import (
                     SQLiteUserRepository,
                 )
+
                 logger.debug("Creating SQLiteUserRepository instance")
                 repository = SQLiteUserRepository()
             elif ACTIVE_DATABASE_TYPE == "mongodb":
-                from app.infrastructure.database.mongodb.repositories.user_repository_impl import (
+                from app.infrastructure.database.repositories import (
                     MongoDBUserRepository,
                 )
+
                 logger.debug("Creating MongoDBUserRepository instance")
                 repository = MongoDBUserRepository(db_url=MONGO_URI, db_name="lexiglow")
             else:
@@ -177,17 +178,21 @@ class Container:
             from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
             if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.sqlite.repositories.language_repository_impl import (
+                from app.infrastructure.database.repositories import (
                     SQLiteLanguageRepository,
                 )
+
                 logger.debug("Creating SQLiteLanguageRepository instance")
                 repository = SQLiteLanguageRepository()
             elif ACTIVE_DATABASE_TYPE == "mongodb":
-                from app.infrastructure.database.mongodb.repositories.language_repository_impl import (
+                from app.infrastructure.database.repositories import (
                     MongoDBLanguageRepository,
                 )
+
                 logger.debug("Creating MongoDBLanguageRepository instance")
-                repository = MongoDBLanguageRepository(db_url=MONGO_URI, db_name="lexiglow")
+                repository = MongoDBLanguageRepository(
+                    db_url=MONGO_URI, db_name="lexiglow"
+                )
             else:
                 raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
 
@@ -226,15 +231,17 @@ class Container:
             from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
             if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.sqlite.repositories.text_repository_impl import (
+                from app.infrastructure.database.repositories import (
                     SQLiteTextRepository,
                 )
+
                 logger.debug("Creating SQLiteTextRepository instance")
                 repository = SQLiteTextRepository()
             elif ACTIVE_DATABASE_TYPE == "mongodb":
-                from app.infrastructure.database.mongodb.repositories.text_repository_impl import (
+                from app.infrastructure.database.repositories import (
                     MongoDBTextRepository,
                 )
+
                 logger.debug("Creating MongoDBTextRepository instance")
                 repository = MongoDBTextRepository(db_url=MONGO_URI, db_name="lexiglow")
             else:
@@ -255,4 +262,3 @@ class Container:
             f"services={list(self._services.keys())}, "
             f"overrides={len(self._overrides)})"
         )
-

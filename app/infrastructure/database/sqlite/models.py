@@ -6,10 +6,8 @@ providing an object-oriented interface for database operations.
 """
 
 from datetime import datetime
-from typing import List
 
 from sqlalchemy import (
-    Boolean,
     CheckConstraint,
     Column,
     DateTime,
@@ -119,7 +117,10 @@ class UserLanguage(Base):
     language = relationship("Language", back_populates="user_languages")
 
     def __repr__(self):
-        return f"<UserLanguage(userId='{self.userId}', languageId='{self.languageId}', level='{self.proficiencyLevel}')>"
+        return (
+            f"<UserLanguage(userId='{self.userId}', languageId='{self.languageId}', "
+            f"level='{self.proficiencyLevel}')>"
+        )
 
 
 class TextModel(Base):
@@ -155,7 +156,10 @@ class TextModel(Base):
     )
 
     def __repr__(self):
-        return f"<Text(id='{self.id}', title='{self.title}', level='{self.proficiencyLevel}')>"
+        return (
+            f"<Text(id='{self.id}', title='{self.title}', "
+            f"level='{self.proficiencyLevel}')>"
+        )
 
 
 class UserVocabulary(Base):
@@ -183,7 +187,10 @@ class UserVocabulary(Base):
     )
 
     def __repr__(self):
-        return f"<UserVocabulary(id='{self.id}', userId='{self.userId}', name='{self.name}')>"
+        return (
+            f"<UserVocabulary(id='{self.id}', userId='{self.userId}', "
+            f"name='{self.name}')>"
+        )
 
 
 class UserVocabularyItem(Base):
@@ -229,7 +236,10 @@ class UserVocabularyItem(Base):
     vocabulary = relationship("UserVocabulary", back_populates="items")
 
     def __repr__(self):
-        return f"<UserVocabularyItem(id='{self.id}', term='{self.term}', status='{self.status}')>"
+        return (
+            f"<UserVocabularyItem(id='{self.id}', term='{self.term}', "
+            f"status='{self.status}')>"
+        )
 
 
 class TextTag(Base):
@@ -271,7 +281,7 @@ class TextTagAssociation(Base):
 # Helper functions for model operations
 
 
-def get_all_models() -> List[type]:
+def get_all_models() -> list[type]:
     """
     Get all ORM model classes.
 

@@ -9,4 +9,3 @@ from app.core.container import Container
 from app.core.dependencies import get_container
 
 __all__ = ["Container", "get_container"]
-

@@ -6,7 +6,6 @@ extending the base repository with user-specific methods.
 """
 
 from abc import abstractmethod
-from typing import Optional
 from uuid import UUID
 
 from app.domain.entities.user import User
@@ -21,7 +20,7 @@ class IUserRepository(IRepository[User]):
     """
 
     @abstractmethod
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         """
         Retrieve a user by their email address.
 
@@ -37,7 +36,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def get_by_username(self, username: str) -> Optional[User]:
+    def get_by_username(self, username: str) -> User | None:
         """
         Retrieve a user by their username.
 

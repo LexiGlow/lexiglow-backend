@@ -65,6 +65,8 @@ jobs:
       # Configure GitHub Pages deployment settings
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        with:
+          enablement: true  # Automatically enable Pages if not already enabled
 
       # Upload the organized documentation as a Pages artifact
       - name: Upload artifact

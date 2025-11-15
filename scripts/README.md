@@ -166,6 +166,43 @@ This script serves as the Web Server Gateway Interface (WSGI) entry point for th
 gunicorn wsgi:app -b 0.0.0.0:5000
 ```
 
+### generate_docs.py
+
+Generates API documentation in both HTML and Markdown formats using pdoc3 for the `app/` and `tests/` modules.
+
+**Usage:**
+
+```bash
+# Generate documentation (HTML and Markdown)
+python scripts/generate_docs.py
+
+# Clean and regenerate documentation
+python scripts/generate_docs.py --clean
+
+# Specify custom output directories
+python scripts/generate_docs.py --html-dir docs/html --markdown-dir docs/markdown
+```
+
+**Options:**
+
+- `--html-dir PATH` - Directory for HTML documentation output (default: `docs/html/`)
+- `--markdown-dir PATH` - Directory for Markdown documentation output (default: `docs/markdown/`)
+- `--clean` - Clean output directories before generating documentation
+
+**What it does:**
+
+1. Generates HTML documentation for all modules in `app/` and `tests/` to `docs/html/`
+2. Generates Markdown documentation for all modules in `app/` and `tests/` to `docs/markdown/`
+3. Creates output directories if they don't exist
+4. Optionally cleans previous documentation if `--clean` flag is used
+
+**Output:**
+
+- HTML documentation: `docs/html/` - View in your browser by opening `index.html`
+- Markdown documentation: `docs/markdown/` - Plain markdown files for each module
+
+**Note:** Generated documentation is excluded from version control. Documentation should be generated on-demand or as part of your CI/CD pipeline.
+
 ## Future Scripts
 
 - **migrate_db.py** - Handle database migrations

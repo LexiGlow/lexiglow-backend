@@ -33,6 +33,7 @@ dev = [
     "pytest>=7",
     "ruff>=0.4.4", # Replaces black and flake8
     "pre-commit>=3",
+    "pdoc3>=0.10.0", # For API documentation generation
 ]
 
 [tool.ruff]

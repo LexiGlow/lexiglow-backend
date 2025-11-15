@@ -92,7 +92,7 @@ Run tests using pytest:
 pytest tests/
 ```
 
-## 📚 API Documentation
+## 📚 Project Documentation
 
 Generate project documentation using pdoc3. The documentation is generated in both HTML and Markdown formats for the `app/` and `tests/` modules.
 

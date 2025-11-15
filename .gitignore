@@ -211,3 +211,6 @@ __marimo__/
 data/
 draft/
 logs/
+
+# Generated documentation
+docs/

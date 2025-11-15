@@ -39,7 +39,7 @@ This section outlines how to set up and run the LexiGlow backend locally without
     pyenv local 3.13.7
     python -m venv .venv
     source .venv/bin/activate
-    pip install -r requirements.txt
+    pip install .[dev]
     ```
 
 3.  **Set up environment variables**
@@ -91,3 +91,30 @@ Run tests using pytest:
 ```bash
 pytest tests/
 ```
+
+## 📚 API Documentation
+
+Generate project documentation using pdoc3. The documentation is generated in both HTML and Markdown formats for the `app/` and `tests/` modules.
+
+**Usage:**
+```bash
+# Generate documentation (HTML and Markdown)
+python scripts/generate_docs.py
+
+# Clean and regenerate documentation
+python scripts/generate_docs.py --clean
+
+# Specify custom output directories
+python scripts/generate_docs.py --html-dir docs/html --markdown-dir docs/markdown
+```
+
+**Options:**
+- `--html-dir PATH` - Directory for HTML documentation output (default: `docs/html/`)
+- `--markdown-dir PATH` - Directory for Markdown documentation output (default: `docs/markdown/`)
+- `--clean` - Clean output directories before generating documentation
+
+**Output:**
+- HTML documentation: `docs/html/` - View in your browser by opening `index.html`
+- Markdown documentation: `docs/markdown/` - Plain markdown files for each module
+
+**Note:** Generated documentation is excluded from version control (see `.gitignore`). Documentation should be generated on-demand or as part of your CI/CD pipeline.

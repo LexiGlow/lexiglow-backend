@@ -7,40 +7,51 @@ name = "lexiglow-backend"
 version = "0.1.0"
 description = "Backend for the LexiGlow application."
 readme = "README.md"
-requires-python = ">=3.8"
-license = { file = "LICENSE" } # Or use the SPDX identifier: license = "MIT"
-authors = [
-  { name = "Your Name", email = "your@email.com" },
-]
+requires-python = ">=3.12"
+license = { file = "LICENSE" }                               # Or use the SPDX identifier: license = "MIT"
+authors = [{ name = "Your Name", email = "your@email.com" }]
 
 # Core dependencies for your application to run
 dependencies = [
-    "Flask>=2.2,<2.3",
-    "Werkzeug>=2.0,<2.3",
-    "connexion[swagger-ui, flask]==2.14.2",
-    "pymongo>=4.0",
-    "python-dotenv>=0.21",
-    "flask-cors>=3.0",
-    "gunicorn>=20",
-    "SQLAlchemy>=2.0",
-    "pydantic[email]>=2.0",
-    "bcrypt>=4.0",
+  "Flask>=2.2,<2.3",
+  "Werkzeug>=2.0,<2.3",
+  "connexion[swagger-ui, flask]==2.14.2",
+  "pymongo>=4.0",
+  "python-dotenv>=0.21",
+  "flask-cors>=3.0",
+  "gunicorn>=20",
+  "SQLAlchemy>=2.0",
+  "pydantic[email]>=2.0",
+  "bcrypt>=4.0",
 ]
 
 [project.optional-dependencies]
 # Dependencies for development, linting, and testing
 dev = [
-    "pytest>=7",
-    "ruff>=0.4.4", # Replaces black and flake8
-    "pre-commit>=3",
-    "pdoc3>=0.10.0", # For API documentation generation
+  "pytest>=7",
+  "ruff>=0.4.4",   # Replaces black and flake8
+  "pre-commit>=3",
+  "pdoc3>=0.10.0", # For API documentation generation
+  "mypy>=1.0",
 ]
 
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+no_implicit_optional = true
+strict_optional = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+warn_no_return = true
+explicit_package_bases = true
+
 [tool.ruff]
-# Set the maximum line length. 88 is the standard for Black.
 line-length = 88
-# Assume Python 3.10+ code. Adjust this to your project's minimum Python version.
-target-version = "py310"
+# Assume Python 3.12+ code. Adjust this to your project's minimum Python version.
+target-version = "py312"
 
 [tool.ruff.lint]
 # A good starting set of rules:
@@ -57,6 +68,7 @@ select = ["E", "F", "I", "UP", "B", "C4"]
 [tool.ruff.format]
 # Use black-compatible formatting.
 quote-style = "double"
+# indent-width = 4
 
 [tool.pytest.ini_options]
 pythonpath = "."

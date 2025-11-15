@@ -1,0 +1,79 @@
+name: Generate Documentation
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository code to the runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for branch detection
+
+      # Install Python 3.13 and configure pip caching for faster builds
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"  # Cache pip packages to speed up subsequent runs
+
+      # Install project dependencies including dev dependencies (pdoc3)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+
+      # Extract and sanitize branch name for use in documentation paths
+      - name: Get branch name
+        id: branch
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}  # Extract branch from ref
+          BRANCH_NAME=${BRANCH_NAME//\//-}  # Replace / with - for URL safety
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "Branch: $BRANCH_NAME"
+
+      # Generate HTML and Markdown documentation using pdoc3
+      - name: Generate documentation
+        run: |
+          python scripts/generate_docs.py --clean
+
+      # Organize generated docs: main branch at root, others in subdirectories
+      - name: Organize docs by branch
+        run: |
+          mkdir -p docs/deploy
+          BRANCH_NAME="${{ steps.branch.outputs.branch_name }}"
+          # If main branch, copy to root
+          if [ "$BRANCH_NAME" = "main" ]; then
+            cp -r docs/html/* docs/deploy/
+          else
+            # For other branches, copy to branch-specific directory
+            cp -r docs/html "docs/deploy/$BRANCH_NAME"
+          fi
+
+      # Configure GitHub Pages deployment settings
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # Upload the organized documentation as a Pages artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/deploy
+
+      # Deploy the documentation artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

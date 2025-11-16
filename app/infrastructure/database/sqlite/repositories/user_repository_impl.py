@@ -7,7 +7,7 @@ using SQLAlchemy ORM and raw SQL queries.
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import create_engine
@@ -58,17 +58,17 @@ class SQLiteUserRepository(IUserRepository):
             Pydantic User entity
         """
         return UserEntity(
-            id=UUID(model.id),
-            email=model.email,
-            username=model.username,
-            password_hash=model.passwordHash,
-            first_name=model.firstName,
-            last_name=model.lastName,
-            native_language_id=UUID(model.nativeLanguageId),
-            current_language_id=UUID(model.currentLanguageId),
-            created_at=model.createdAt,
-            updated_at=model.updatedAt,
-            last_active_at=model.lastActiveAt,
+            id=UUID(str(model.id)),
+            email=str(model.email),
+            username=str(model.username),
+            passwordHash=str(model.passwordHash),
+            firstName=str(model.firstName),
+            lastName=str(model.lastName),
+            nativeLanguageId=UUID(str(model.nativeLanguageId)),
+            currentLanguageId=UUID(str(model.currentLanguageId)),
+            createdAt=model.createdAt,
+            updatedAt=model.updatedAt,
+            lastActiveAt=model.lastActiveAt,
         )
 
     def _entity_to_model(self, entity: UserEntity) -> UserModel:
@@ -108,6 +108,7 @@ class SQLiteUserRepository(IUserRepository):
         Raises:
             RepositoryError: If creation fails
         """
+        user_model: UserModel
         try:
             with self.SessionLocal() as session:
                 # Generate ID if not provided
@@ -125,7 +126,7 @@ class SQLiteUserRepository(IUserRepository):
                 logger.info(
                     f"Created user: {user_model.username} (ID: {user_model.id})"
                 )
-                return self._model_to_entity(user_model)
+            return self._model_to_entity(user_model)
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to create user: {e}")
@@ -220,7 +221,7 @@ class SQLiteUserRepository(IUserRepository):
                 user_model.lastName = entity.last_name
                 user_model.nativeLanguageId = str(entity.native_language_id)
                 user_model.currentLanguageId = str(entity.current_language_id)
-                user_model.updatedAt = datetime.now(timezone.utc)
+                user_model.updatedAt = datetime.now(UTC)
 
                 if entity.last_active_at:
                     user_model.lastActiveAt = entity.last_active_at
@@ -428,7 +429,7 @@ class SQLiteUserRepository(IUserRepository):
                     logger.warning(f"User not found for last active update: {user_id}")
                     return False
 
-                user_model.lastActiveAt = datetime.now(timezone.utc)
+                user_model.lastActiveAt = datetime.now(UTC)
                 session.commit()
 
                 logger.debug(f"Updated last active for user: {user_id}")

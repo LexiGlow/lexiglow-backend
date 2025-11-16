@@ -7,7 +7,7 @@ services and repositories in endpoint handlers.
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from flask import current_app
 
@@ -40,7 +40,7 @@ def get_container() -> "Container":
     try:
         container = current_app.config["CONTAINER"]
         logger.debug("Retrieved container from Flask application context")
-        return container
+        return cast("Container", container)
     except RuntimeError as e:
         logger.error("Attempted to access container outside Flask context")
         raise RuntimeError(

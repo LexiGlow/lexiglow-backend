@@ -18,10 +18,11 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import DeclarativeBase, relationship
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class Language(Base):
@@ -281,7 +282,7 @@ class TextTagAssociation(Base):
 # Helper functions for model operations
 
 
-def get_all_models() -> list[type]:
+def get_all_models() -> list[type[Base]]:
     """
     Get all ORM model classes.
 
@@ -300,7 +301,7 @@ def get_all_models() -> list[type]:
     ]
 
 
-def get_model_by_table_name(table_name: str) -> type:
+def get_model_by_table_name(table_name: str) -> type[Base]:
     """
     Get model class by table name.
 

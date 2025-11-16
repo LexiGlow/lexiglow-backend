@@ -57,11 +57,11 @@ class SQLiteLanguageRepository(ILanguageRepository):
             Pydantic Language entity
         """
         return LanguageEntity(
-            id=UUID(model.id),
-            name=model.name,
-            code=model.code,
-            native_name=model.nativeName,
-            created_at=model.createdAt,
+            id=UUID(str(model.id)),
+            name=str(model.name),
+            code=str(model.code),
+            nativeName=str(model.nativeName),
+            createdAt=model.createdAt,
         )
 
     def _entity_to_model(self, entity: LanguageEntity) -> LanguageModel:

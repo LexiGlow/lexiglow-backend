@@ -7,7 +7,7 @@ using SQLAlchemy ORM and raw SQL queries.
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import create_engine
@@ -62,17 +62,17 @@ class SQLiteTextRepository(ITextRepository):
             Pydantic Text entity
         """
         return TextEntity(
-            id=UUID(model.id),
-            title=model.title,
-            content=model.content,
-            language_id=UUID(model.languageId),
-            user_id=UUID(model.userId) if model.userId else None,
-            proficiency_level=ProficiencyLevel(model.proficiencyLevel),
-            word_count=model.wordCount,
-            is_public=bool(model.isPublic),
-            source=model.source,
-            created_at=model.createdAt,
-            updated_at=model.updatedAt,
+            id=UUID(str(model.id)),
+            title=str(model.title),
+            content=str(model.content),
+            languageId=UUID(str(model.languageId)),
+            userId=UUID(str(model.userId)) if model.userId else None,
+            proficiencyLevel=ProficiencyLevel(model.proficiencyLevel),
+            wordCount=int(model.wordCount),
+            isPublic=bool(model.isPublic),
+            source=str(model.source) if model.source else None,
+            createdAt=model.createdAt,
+            updatedAt=model.updatedAt,
         )
 
     def _entity_to_model(self, entity: TextEntity) -> TextModel:
@@ -112,6 +112,7 @@ class SQLiteTextRepository(ITextRepository):
         Raises:
             RepositoryError: If creation fails
         """
+        text_model: TextModel
         try:
             with self.SessionLocal() as session:
                 # Generate ID if not provided
@@ -127,7 +128,7 @@ class SQLiteTextRepository(ITextRepository):
                 session.refresh(text_model)
 
                 logger.info(f"Created text: {text_model.title} (ID: {text_model.id})")
-                return self._model_to_entity(text_model)
+            return self._model_to_entity(text_model)
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to create text: {e}")
@@ -223,7 +224,7 @@ class SQLiteTextRepository(ITextRepository):
                 text_model.wordCount = entity.word_count
                 text_model.isPublic = int(entity.is_public)
                 text_model.source = entity.source
-                text_model.updatedAt = datetime.now(timezone.utc)
+                text_model.updatedAt = datetime.now(UTC)
 
                 session.commit()
                 session.refresh(text_model)

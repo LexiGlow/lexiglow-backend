@@ -7,7 +7,7 @@ configuration and easy testing with mock dependencies.
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from app.application.services.user_service import UserService
 from app.domain.interfaces.language_repository import ILanguageRepository
@@ -81,7 +81,7 @@ class Container:
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
                 return override()
-            return override
+            return cast(IUserRepository, override)
 
         # Return cached instance if available
         if "user_repository" in self._repositories:
@@ -132,7 +132,7 @@ class Container:
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
                 return override(repository=self.get_user_repository())
-            return override
+            return cast(UserService, override)
 
         # Return cached instance if available
         if "user_service" in self._services:
@@ -167,7 +167,7 @@ class Container:
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
                 return override()
-            return override
+            return cast(ILanguageRepository, override)
 
         # Return cached instance if available
         if "language_repository" in self._repositories:
@@ -220,7 +220,7 @@ class Container:
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
                 return override()
-            return override
+            return cast(ITextRepository, override)
 
         # Return cached instance if available
         if "text_repository" in self._repositories:

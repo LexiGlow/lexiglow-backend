@@ -114,14 +114,14 @@ class UserService:
             id=uuid4(),
             email=user_data.email,
             username=user_data.username,
-            password_hash=password_hash,
-            first_name=user_data.first_name,
-            last_name=user_data.last_name,
-            native_language_id=user_data.native_language_id,
-            current_language_id=user_data.current_language_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-            last_active_at=None,
+            passwordHash=password_hash,
+            firstName=user_data.first_name,
+            lastName=user_data.last_name,
+            nativeLanguageId=user_data.native_language_id,
+            currentLanguageId=user_data.current_language_id,
+            createdAt=datetime.utcnow(),
+            updatedAt=datetime.utcnow(),
+            lastActiveAt=None,
         )
 
         # Save to repository

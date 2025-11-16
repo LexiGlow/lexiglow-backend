@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -39,13 +40,14 @@ class JsonFormatter(logging.Formatter):
     - `simple=False`: Outputs a detailed, structured log for file/aggregator ingestion.
     """
 
-    def __init__(self, *args, simple: bool = False, **kwargs):
+    def __init__(self, *args: Any, simple: bool = False, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.simple = simple
         self.app_name = APP_NAME
         self.app_env = APP_ENV
 
     def format(self, record: logging.LogRecord) -> str:
+        log_record: dict[str, Any]
         if self.simple:
             log_record = {
                 "timestamp": self.formatTime(record, datefmt="%Y-%m-%dT%H:%M:%S%z"),
@@ -79,14 +81,13 @@ class JsonFormatter(logging.Formatter):
 
         # Add any extra fields passed to the logger
         standard_keys = logging.LogRecord(
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",  # type: ignore
+            name="",
+            level=0,
+            pathname="",
+            lineno=0,
+            msg="",
+            args=(),
+            exc_info=None,
         ).__dict__.keys()
         extra_fields = {
             key: value
@@ -101,7 +102,7 @@ class JsonFormatter(logging.Formatter):
 
 # --- Logging Configuration ---
 
-LOGGING_CONFIG = {
+LOGGING_CONFIG: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -160,9 +161,9 @@ else:
 # Set levels for root, handlers, and loggers
 LOGGING_CONFIG["root"]["level"] = LOG_LEVEL
 for handler in LOGGING_CONFIG["handlers"].values():
-    if "level" not in handler:
+    if isinstance(handler, dict) and "level" not in handler:
         handler["level"] = LOG_LEVEL
 
 for logger in LOGGING_CONFIG["loggers"].values():
-    if "level" not in logger:
+    if isinstance(logger, dict) and "level" not in logger:
         logger["level"] = LOG_LEVEL

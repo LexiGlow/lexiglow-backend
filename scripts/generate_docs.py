@@ -10,7 +10,8 @@ Usage:
 
 Options:
     --html-dir PATH      Directory for HTML documentation output (default: docs/html/)
-    --markdown-dir PATH  Directory for Markdown documentation output (default: docs/markdown/)
+    --markdown-dir PATH  Directory for Markdown documentation output
+                            (default: docs/markdown/)
     --clean              Clean output directories before generating documentation
 """
 
@@ -76,7 +77,8 @@ def generate_html_documentation(
 
         # Use pdoc CLI to generate HTML documentation
         # Change to base directory to ensure module imports work correctly
-        # --skip-errors allows documentation generation even if some modules fail to import
+        # --skip-errors allows documentation generation even if
+        # some modules fail to import
         cmd = [
             sys.executable,
             "-m",
@@ -138,7 +140,8 @@ def generate_markdown_documentation(
 
         # Use pdoc CLI to generate Markdown documentation
         # Change to base directory to ensure module imports work correctly
-        # --skip-errors allows documentation generation even if some modules fail to import
+        # --skip-errors allows documentation generation even if
+        # some modules fail to import
         cmd = [
             sys.executable,
             "-m",
@@ -189,7 +192,10 @@ def main() -> None:
         "--markdown-dir",
         type=str,
         default=str(DEFAULT_MARKDOWN_DIR),
-        help=f"Directory for Markdown documentation output (default: {DEFAULT_MARKDOWN_DIR})",
+        help=(
+            "Directory for Markdown documentation output (default: "
+            f"{DEFAULT_MARKDOWN_DIR})"
+        ),
     )
     parser.add_argument(
         "--clean",

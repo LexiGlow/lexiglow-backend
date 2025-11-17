@@ -3,7 +3,7 @@ name: Generate Documentation
 on:
   push:
     branches:
-      - "**"
+      - docs-source
   workflow_dispatch:
 
 permissions:
@@ -35,32 +35,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install .[dev]
 
-      # Extract and sanitize branch name for use in documentation paths
-      - name: Get branch name
-        id: branch
-        run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}  # Extract branch from ref
-          BRANCH_NAME=${BRANCH_NAME//\//-}  # Replace / with - for URL safety
-          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          echo "Branch: $BRANCH_NAME"
-
       # Generate HTML and Markdown documentation using pdoc3
       - name: Generate documentation
         run: |
           python scripts/generate_docs.py --clean
 
-      # Organize generated docs: main branch at root, others in subdirectories
-      - name: Organize docs by branch
+      # Prepare deployment directory
+      - name: Prepare deployment directory
         run: |
           mkdir -p docs/deploy
-          BRANCH_NAME="${{ steps.branch.outputs.branch_name }}"
-          # If main branch, copy to root
-          if [ "$BRANCH_NAME" = "main" ]; then
-            cp -r docs/html/* docs/deploy/
-          else
-            # For other branches, copy to branch-specific directory
-            cp -r docs/html "docs/deploy/$BRANCH_NAME"
-          fi
+          cp -r docs/html/* docs/deploy/
 
       # Configure GitHub Pages deployment settings
       - name: Setup Pages
@@ -78,4 +62,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-

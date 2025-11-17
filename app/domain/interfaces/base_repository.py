@@ -6,14 +6,10 @@ to provide type-safe repository operations for domain entities.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
 from uuid import UUID
 
-# Generic type variable for entities
-T = TypeVar("T")
 
-
-class IRepository(ABC, Generic[T]):
+class IRepository[T](ABC):
     """
     Abstract base repository interface using generics.
 

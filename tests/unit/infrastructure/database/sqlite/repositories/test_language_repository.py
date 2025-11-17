@@ -7,7 +7,7 @@ CRUD operations, queries, existence checks, and entity conversions.
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -56,7 +56,7 @@ def sample_language_entity() -> Callable:
             name=name,
             code=code,
             native_name=native_name,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
     return _create_language
@@ -258,7 +258,7 @@ class TestEntityConversion:
             name="Test Language",
             code="tl",
             nativeName="Test",
-            createdAt=datetime.now(timezone.utc),
+            createdAt=datetime.now(UTC),
         )
         entity = repository._model_to_entity(lang_model)
         assert isinstance(entity, LanguageEntity)

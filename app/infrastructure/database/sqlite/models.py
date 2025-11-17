@@ -9,7 +9,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     CheckConstraint,
-    Column,
     DateTime,
     Float,
     ForeignKey,
@@ -18,7 +17,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -30,11 +29,13 @@ class Language(Base):
 
     __tablename__ = "Language"
 
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    code = Column(String, nullable=False, unique=True)
-    nativeName = Column(String, nullable=False)
-    createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    code: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    nativeName: Mapped[str] = mapped_column(String, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
 
     # Relationships
     users_native = relationship(
@@ -56,19 +57,28 @@ class User(Base):
 
     __tablename__ = "User"
 
-    id = Column(String, primary_key=True)
-    email = Column(String, nullable=False, unique=True)
-    username = Column(String, nullable=False, unique=True)
-    passwordHash = Column(String, nullable=False)
-    firstName = Column(String, nullable=False)
-    lastName = Column(String, nullable=False)
-    nativeLanguageId = Column(String, ForeignKey("Language.id"), nullable=False)
-    currentLanguageId = Column(String, ForeignKey("Language.id"), nullable=False)
-    createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    username: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    passwordHash: Mapped[str] = mapped_column(String, nullable=False)
+    firstName: Mapped[str] = mapped_column(String, nullable=False)
+    lastName: Mapped[str] = mapped_column(String, nullable=False)
+    nativeLanguageId: Mapped[str] = mapped_column(
+        String, ForeignKey("Language.id"), nullable=False
     )
-    lastActiveAt = Column(DateTime)
+    currentLanguageId: Mapped[str] = mapped_column(
+        String, ForeignKey("Language.id"), nullable=False
+    )
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    updatedAt: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+    lastActiveAt: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
     native_language = relationship(
@@ -102,15 +112,22 @@ class UserLanguage(Base):
         ),
     )
 
-    userId = Column(String, ForeignKey("User.id", ondelete="CASCADE"), primary_key=True)
-    languageId = Column(
+    userId: Mapped[str] = mapped_column(
+        String, ForeignKey("User.id", ondelete="CASCADE"), primary_key=True
+    )
+    languageId: Mapped[str] = mapped_column(
         String, ForeignKey("Language.id", ondelete="CASCADE"), primary_key=True
     )
-    proficiencyLevel = Column(String, nullable=False)
-    startedAt = Column(DateTime, nullable=False)
-    createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    proficiencyLevel: Mapped[str] = mapped_column(String, nullable=False)
+    startedAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    updatedAt: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
     # Relationships
@@ -135,18 +152,27 @@ class TextModel(Base):
         ),
     )
 
-    id = Column(String, primary_key=True)
-    title = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    languageId = Column(String, ForeignKey("Language.id"), nullable=False)
-    userId = Column(String, ForeignKey("User.id", ondelete="SET NULL"))
-    proficiencyLevel = Column(String, nullable=False)
-    wordCount = Column(Integer, nullable=False)
-    isPublic = Column(Integer, nullable=False, default=1)
-    source = Column(String)
-    createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    languageId: Mapped[str] = mapped_column(
+        String, ForeignKey("Language.id"), nullable=False
+    )
+    userId: Mapped[str | None] = mapped_column(
+        String, ForeignKey("User.id", ondelete="SET NULL"), nullable=True
+    )
+    proficiencyLevel: Mapped[str] = mapped_column(String, nullable=False)
+    wordCount: Mapped[int] = mapped_column(Integer, nullable=False)
+    isPublic: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    source: Mapped[str | None] = mapped_column(String, nullable=True)
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    updatedAt: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
     # Relationships
@@ -171,13 +197,22 @@ class UserVocabulary(Base):
         UniqueConstraint("userId", "languageId", name="unique_user_language_vocab"),
     )
 
-    id = Column(String, primary_key=True)
-    userId = Column(String, ForeignKey("User.id", ondelete="CASCADE"), nullable=False)
-    languageId = Column(String, ForeignKey("Language.id"), nullable=False)
-    name = Column(String, nullable=False)
-    createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    userId: Mapped[str] = mapped_column(
+        String, ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+    )
+    languageId: Mapped[str] = mapped_column(
+        String, ForeignKey("Language.id"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    updatedAt: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
     # Relationships
@@ -215,22 +250,27 @@ class UserVocabularyItem(Base):
         ),
     )
 
-    id = Column(String, primary_key=True)
-    userVocabularyId = Column(
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    userVocabularyId: Mapped[str] = mapped_column(
         String, ForeignKey("UserVocabulary.id", ondelete="CASCADE"), nullable=False
     )
-    term = Column(String, nullable=False)
-    lemma = Column(String)
-    stemma = Column(String)
-    partOfSpeech = Column(String)
-    frequency = Column(Float)
-    status = Column(String, nullable=False, default="NEW")
-    timesReviewed = Column(Integer, nullable=False, default=0)
-    confidenceLevel = Column(String, nullable=False, default="A1")
-    notes = Column(Text)
-    createdAt = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updatedAt = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    term: Mapped[str] = mapped_column(String, nullable=False)
+    lemma: Mapped[str | None] = mapped_column(String, nullable=True)
+    stemma: Mapped[str | None] = mapped_column(String, nullable=True)
+    partOfSpeech: Mapped[str | None] = mapped_column(String, nullable=True)
+    frequency: Mapped[float | None] = mapped_column(Float, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="NEW")
+    timesReviewed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    confidenceLevel: Mapped[str] = mapped_column(String, nullable=False, default="A1")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    createdAt: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+    updatedAt: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
     # Relationships
@@ -248,9 +288,9 @@ class TextTag(Base):
 
     __tablename__ = "TextTag"
 
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False, unique=True)
-    description = Column(Text)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     text_associations = relationship(
@@ -266,8 +306,10 @@ class TextTagAssociation(Base):
 
     __tablename__ = "TextTagAssociation"
 
-    textId = Column(String, ForeignKey("Text.id", ondelete="CASCADE"), primary_key=True)
-    tagId = Column(
+    textId: Mapped[str] = mapped_column(
+        String, ForeignKey("Text.id", ondelete="CASCADE"), primary_key=True
+    )
+    tagId: Mapped[str] = mapped_column(
         String, ForeignKey("TextTag.id", ondelete="CASCADE"), primary_key=True
     )
 

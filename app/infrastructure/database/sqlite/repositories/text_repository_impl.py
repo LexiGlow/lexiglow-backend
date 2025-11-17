@@ -117,7 +117,7 @@ class SQLiteTextRepository(ITextRepository):
             with self.SessionLocal() as session:
                 # Generate ID if not provided
                 if entity.id is None:
-                    entity.id = UUID(str(uuid.uuid4()))
+                    entity.id = uuid.uuid4()
 
                 # Convert entity to model
                 text_model = self._entity_to_model(entity)

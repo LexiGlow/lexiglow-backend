@@ -15,7 +15,7 @@ from app.domain.entities.enums import ProficiencyLevel
 class User(BaseModel):
     """Represents a user of the application."""
 
-    id: UUID
+    id: UUID | None = None
     email: EmailStr = Field(..., description="User's email address (unique)")
     username: str = Field(..., description="User's username (unique)")
     password_hash: str = Field(..., alias="passwordHash", description="Hashed password")

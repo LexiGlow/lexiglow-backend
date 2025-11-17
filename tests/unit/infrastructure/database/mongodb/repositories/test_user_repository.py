@@ -7,7 +7,7 @@ CRUD operations, queries, existence checks, and entity conversions.
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -445,9 +445,9 @@ class TestUpdateLastActive:
         created_user = repository.create(sample_user_entity())
 
         # Capture timestamp before update
-        before_update = datetime.now(timezone.utc)
+        before_update = datetime.now(UTC)
         repository.update_last_active(created_user.id)
-        after_update = datetime.now(timezone.utc)
+        after_update = datetime.now(UTC)
 
         updated_user = repository.get_by_id(created_user.id)
 
@@ -455,7 +455,7 @@ class TestUpdateLastActive:
         # Make naive for comparison if needed
         last_active = updated_user.last_active_at
         if last_active.tzinfo is None:
-            last_active = last_active.replace(tzinfo=timezone.utc)
+            last_active = last_active.replace(tzinfo=UTC)
         # MongoDB stores timestamps with millisecond precision,
         # so we need to account for rounding
         # Subtract 1ms from before_update to account for rounding down

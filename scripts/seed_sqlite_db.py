@@ -22,7 +22,7 @@ import random
 import sqlite3
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +60,7 @@ def generate_uuid() -> str:
 
 def generate_timestamp(days_ago: int = 0) -> str:
     """Generate a timestamp string."""
-    dt = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    dt = datetime.now(UTC) - timedelta(days=days_ago)
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 

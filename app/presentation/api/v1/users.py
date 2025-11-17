@@ -17,7 +17,7 @@ from app.core.dependencies import get_container
 logger = logging.getLogger(__name__)
 
 
-def get_users(skip: int = 0, limit: int = 100) -> tuple[list[dict[str, Any]], int]:
+def get_users(skip: int = 0, limit: int = 100) -> tuple[list[dict[str, Any]] | dict[str, Any], int]:
     """
     Get all users with pagination.
 
@@ -26,7 +26,7 @@ def get_users(skip: int = 0, limit: int = 100) -> tuple[list[dict[str, Any]], in
         limit: Maximum number of users to return
 
     Returns:
-        Tuple of (list of user dictionaries, HTTP status code)
+        Tuple of (list of user dictionaries for success, or error dict for errors, HTTP status code)
     """
     try:
         logger.info(f"GET /users called with skip={skip}, limit={limit}")

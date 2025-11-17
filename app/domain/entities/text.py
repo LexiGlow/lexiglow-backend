@@ -15,7 +15,7 @@ from app.domain.entities.enums import ProficiencyLevel
 class Text(BaseModel):
     """Represents reading materials and content for language learners."""
 
-    id: UUID
+    id: UUID | None = None
     title: str = Field(..., description="Title of the text")
     content: str = Field(..., description="The actual text content")
     language_id: UUID = Field(..., alias="languageId", description="FK to Language")

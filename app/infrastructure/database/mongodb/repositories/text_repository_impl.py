@@ -26,7 +26,7 @@ class MongoDBTextRepository(ITextRepository):
         """
         Initialize the MongoDB Text repository.
         """
-        self.client = MongoClient(db_url, uuidRepresentation="standard")
+        self.client: MongoClient = MongoClient(db_url, uuidRepresentation="standard")
         self.db = self.client[db_name]
         self.collection = self.db.texts
         logger.info(f"MongoDBTextRepository initialized with database: {db_name}")
@@ -55,8 +55,9 @@ class MongoDBTextRepository(ITextRepository):
         Create a new text in the repository.
         """
         try:
+            # Generate ID if not provided
             if entity.id is None:
-                entity.id = UUID(str(uuid.uuid4()))
+                entity.id = uuid.uuid4()
 
             text_model = self._entity_to_model(entity)
             self.collection.insert_one(text_model)

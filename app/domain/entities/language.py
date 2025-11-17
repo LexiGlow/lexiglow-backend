@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class Language(BaseModel):
     """Represents a language supported by the application."""
 
-    id: UUID
+    id: UUID | None = None
     name: str = Field(
         ..., description="English name of the language (e.g., 'English', 'Spanish')"
     )

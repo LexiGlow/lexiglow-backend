@@ -7,7 +7,7 @@ CRUD operations, queries, existence checks, and entity conversions.
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -311,8 +311,8 @@ class TestEntityConversionText:
             "wordCount": 3,
             "isPublic": True,
             "source": "Model Source",
-            "createdAt": datetime.now(timezone.utc),
-            "updatedAt": datetime.now(timezone.utc),
+            "createdAt": datetime.now(UTC),
+            "updatedAt": datetime.now(UTC),
         }
         entity = repository._model_to_entity(text_model_dict)
         assert isinstance(entity, TextEntity)

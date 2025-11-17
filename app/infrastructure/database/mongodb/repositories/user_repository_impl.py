@@ -4,7 +4,7 @@ MongoDB implementation of User repository.
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from pymongo import MongoClient
@@ -25,7 +25,7 @@ class MongoDBUserRepository(IUserRepository):
         """
         Initialize the MongoDB User repository.
         """
-        self.client = MongoClient(db_url, uuidRepresentation="standard")
+        self.client: MongoClient = MongoClient(db_url, uuidRepresentation="standard")
         self.db = self.client[db_name]
         self.collection = self.db.User
         logger.info(f"MongoDBUserRepository initialized with database: {db_name}")
@@ -54,8 +54,9 @@ class MongoDBUserRepository(IUserRepository):
         Create a new user in the repository.
         """
         try:
+            # Generate ID if not provided
             if entity.id is None:
-                entity.id = UUID(str(uuid.uuid4()))
+                entity.id = uuid.uuid4()
 
             # Check for duplicate email
             if self.email_exists(entity.email):
@@ -121,7 +122,7 @@ class MongoDBUserRepository(IUserRepository):
         """
         try:
             # Update the updated_at timestamp
-            entity.updated_at = datetime.now(timezone.utc)
+            entity.updated_at = datetime.now(UTC)
             user_model = self._entity_to_model(entity)
             result = self.collection.update_one(
                 {"_id": entity_id}, {"$set": user_model}
@@ -239,7 +240,7 @@ class MongoDBUserRepository(IUserRepository):
         """
         try:
             result = self.collection.update_one(
-                {"_id": user_id}, {"$set": {"lastActiveAt": datetime.now(timezone.utc)}}
+                {"_id": user_id}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
             )
 
             if result.matched_count:

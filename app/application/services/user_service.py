@@ -66,7 +66,13 @@ class UserService:
 
         Returns:
             UserResponse schema (excludes password hash)
+
+        Raises:
+            ValueError: If entity ID is None (should not happen for persisted entities)
         """
+        if entity.id is None:
+            raise ValueError("Cannot create UserResponse from entity without ID")
+
         return UserResponse(
             id=entity.id,
             email=entity.email,
@@ -223,24 +229,24 @@ class UserService:
                 else existing_entity.username
             ),
             # Don't allow password updates via this method
-            password_hash=existing_entity.password_hash,
-            first_name=(
+            passwordHash=existing_entity.password_hash,
+            firstName=(
                 user_data.first_name
                 if user_data.first_name is not None
                 else existing_entity.first_name
             ),
-            last_name=user_data.last_name or existing_entity.last_name,
-            native_language_id=(
+            lastName=user_data.last_name or existing_entity.last_name,
+            nativeLanguageId=(
                 user_data.native_language_id or existing_entity.native_language_id
             ),
-            current_language_id=(
+            currentLanguageId=(
                 user_data.current_language_id
                 if user_data.current_language_id is not None
                 else existing_entity.current_language_id
             ),
-            created_at=existing_entity.created_at,
-            updated_at=datetime.utcnow(),
-            last_active_at=existing_entity.last_active_at,
+            createdAt=existing_entity.created_at,
+            updatedAt=datetime.utcnow(),
+            lastActiveAt=existing_entity.last_active_at,
         )
 
         # Update in repository

@@ -24,7 +24,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         """
         Initialize the MongoDB Language repository.
         """
-        self.client = MongoClient(db_url, uuidRepresentation="standard")
+        self.client: MongoClient = MongoClient(db_url, uuidRepresentation="standard")
         self.db = self.client[db_name]
         self.collection = self.db.languages
         logger.info(f"MongoDBLanguageRepository initialized with database: {db_name}")
@@ -53,8 +53,9 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Create a new language in the repository.
         """
         try:
+            # Generate ID if not provided
             if entity.id is None:
-                entity.id = UUID(str(uuid.uuid4()))
+                entity.id = uuid.uuid4()
 
             language_model = self._entity_to_model(entity)
             self.collection.insert_one(language_model)

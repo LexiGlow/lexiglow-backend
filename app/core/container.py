@@ -80,17 +80,18 @@ class Container:
             override = self._overrides[IUserRepository]
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
-                return override()
+                return cast(IUserRepository, override())
             return cast(IUserRepository, override)
 
         # Return cached instance if available
         if "user_repository" in self._repositories:
-            return self._repositories["user_repository"]
+            return cast(IUserRepository, self._repositories["user_repository"])
 
         # Create new instance (lazy initialization)
         try:
             from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
+            repository: IUserRepository
             if ACTIVE_DATABASE_TYPE == "sqlite":
                 from app.infrastructure.database.repositories import (
                     SQLiteUserRepository,
@@ -104,6 +105,8 @@ class Container:
                 )
 
                 logger.debug("Creating MongoDBUserRepository instance")
+                if MONGO_URI is None:
+                    raise ValueError("MONGO_URI must be set for MongoDB database")
                 repository = MongoDBUserRepository(db_url=MONGO_URI, db_name="lexiglow")
             else:
                 raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
@@ -131,12 +134,14 @@ class Container:
             override = self._overrides[UserService]
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
-                return override(repository=self.get_user_repository())
+                return cast(
+                    UserService, override(repository=self.get_user_repository())
+                )
             return cast(UserService, override)
 
         # Return cached instance if available
         if "user_service" in self._services:
-            return self._services["user_service"]
+            return cast(UserService, self._services["user_service"])
 
         # Create new instance with dependencies (lazy initialization)
         try:
@@ -166,17 +171,18 @@ class Container:
             override = self._overrides[ILanguageRepository]
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
-                return override()
+                return cast(ILanguageRepository, override())
             return cast(ILanguageRepository, override)
 
         # Return cached instance if available
         if "language_repository" in self._repositories:
-            return self._repositories["language_repository"]
+            return cast(ILanguageRepository, self._repositories["language_repository"])
 
         # Create new instance (lazy initialization)
         try:
             from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
+            repository: ILanguageRepository
             if ACTIVE_DATABASE_TYPE == "sqlite":
                 from app.infrastructure.database.repositories import (
                     SQLiteLanguageRepository,
@@ -190,6 +196,8 @@ class Container:
                 )
 
                 logger.debug("Creating MongoDBLanguageRepository instance")
+                if MONGO_URI is None:
+                    raise ValueError("MONGO_URI must be set for MongoDB database")
                 repository = MongoDBLanguageRepository(
                     db_url=MONGO_URI, db_name="lexiglow"
                 )
@@ -219,17 +227,18 @@ class Container:
             override = self._overrides[ITextRepository]
             # If override is a class, instantiate it; if it's an instance, return it
             if isinstance(override, type):
-                return override()
+                return cast(ITextRepository, override())
             return cast(ITextRepository, override)
 
         # Return cached instance if available
         if "text_repository" in self._repositories:
-            return self._repositories["text_repository"]
+            return cast(ITextRepository, self._repositories["text_repository"])
 
         # Create new instance (lazy initialization)
         try:
             from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
 
+            repository: ITextRepository
             if ACTIVE_DATABASE_TYPE == "sqlite":
                 from app.infrastructure.database.repositories import (
                     SQLiteTextRepository,
@@ -243,6 +252,8 @@ class Container:
                 )
 
                 logger.debug("Creating MongoDBTextRepository instance")
+                if MONGO_URI is None:
+                    raise ValueError("MONGO_URI must be set for MongoDB database")
                 repository = MongoDBTextRepository(db_url=MONGO_URI, db_name="lexiglow")
             else:
                 raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")

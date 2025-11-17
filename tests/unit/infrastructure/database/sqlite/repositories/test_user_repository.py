@@ -7,7 +7,7 @@ CRUD operations, queries, existence checks, and entity conversions.
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -543,18 +543,18 @@ class TestUpdateLastActive:
     def test_update_last_active_timestamp(self, repository, sample_user_entity):
         """Test that last_active_at is set to current time."""
         created_user = repository.create(sample_user_entity())
-        before_update = datetime.now(timezone.utc)
+        before_update = datetime.now(UTC)
 
         repository.update_last_active(created_user.id)
 
-        after_update = datetime.now(timezone.utc)
+        after_update = datetime.now(UTC)
         updated_user = repository.get_by_id(created_user.id)
 
         assert updated_user.last_active_at is not None
         # Make naive for comparison if needed
         last_active = updated_user.last_active_at
         if last_active.tzinfo is None:
-            last_active = last_active.replace(tzinfo=timezone.utc)
+            last_active = last_active.replace(tzinfo=UTC)
         assert before_update <= last_active <= after_update
 
 
@@ -574,8 +574,8 @@ class TestEntityConversion:
             lastName="User",
             nativeLanguageId=str(english_language_id),
             currentLanguageId=str(russian_language_id),
-            createdAt=datetime.now(timezone.utc),
-            updatedAt=datetime.now(timezone.utc),
+            createdAt=datetime.now(UTC),
+            updatedAt=datetime.now(UTC),
             lastActiveAt=None,
         )
 

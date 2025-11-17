@@ -251,8 +251,7 @@ class TestUserModel:
     def test_user_repr(self, test_user):
         """Test user string representation."""
         expected = (
-            f"<User(id='{test_user.id}', username='johndoe', "
-            f"email='john@example.com')>"
+            f"<User(id='{test_user.id}', username='johndoe', email='john@example.com')>"
         )
         assert repr(test_user) == expected
 

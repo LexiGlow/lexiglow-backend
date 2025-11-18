@@ -106,26 +106,29 @@ def tag_ids():
 
 
 @pytest.fixture
-def sample_text_entity(language_id, user_id) -> Callable:
+def sample_text_entity(language_id: UUID, user_id: UUID) -> Callable[..., TextEntity]:
     """Factory fixture for creating Text entities."""
 
     def _create_text(
-        text_id: UUID = None,
+        text_id: UUID | None = None,
         title: str = "Sample Text",
         content: str = "This is the content.",
         level: ProficiencyLevel = ProficiencyLevel.B1,
         is_public: bool = True,
     ) -> TextEntity:
+        now = datetime.now(UTC)
         return TextEntity(
             id=text_id or uuid.uuid4(),
             title=title,
             content=content,
-            language_id=language_id,
-            user_id=user_id,
-            proficiency_level=level,
-            word_count=len(content.split()),
-            is_public=is_public,
+            languageId=language_id,
+            userId=user_id,
+            proficiencyLevel=level,
+            wordCount=len(content.split()),
+            isPublic=is_public,
             source="Test Source",
+            createdAt=now,
+            updatedAt=now,
         )
 
     return _create_text

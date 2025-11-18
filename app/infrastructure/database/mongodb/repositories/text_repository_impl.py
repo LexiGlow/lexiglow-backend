@@ -5,6 +5,7 @@ MongoDB implementation of Text repository.
 import logging
 import re
 import uuid
+from datetime import UTC, datetime
 from uuid import UUID
 
 from pymongo import MongoClient
@@ -110,6 +111,8 @@ class MongoDBTextRepository(ITextRepository):
         Update an existing text.
         """
         try:
+            # Update the updated_at timestamp
+            entity.updated_at = datetime.now(UTC)
             text_model = self._entity_to_model(entity)
             result = self.collection.update_one(
                 {"_id": entity_id}, {"$set": text_model}
@@ -117,7 +120,9 @@ class MongoDBTextRepository(ITextRepository):
 
             if result.matched_count:
                 logger.info(f"Updated text: {entity.title} (ID: {entity_id})")
-                return entity
+                # Retrieve the updated entity from database to get
+                # MongoDB-rounded timestamps
+                return self.get_by_id(entity_id)
 
             logger.warning(f"Text not found for update: {entity_id}")
             return None

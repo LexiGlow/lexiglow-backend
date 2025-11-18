@@ -7,6 +7,7 @@ with the UserService dependency mocked.
 
 import logging
 from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def mock_user_service():
+def mock_user_service() -> MagicMock:
     """Fixture for a mocked user service."""
     return MagicMock()
 
@@ -72,7 +73,7 @@ def sample_user_response(sample_user_id: UUID) -> UserResponse:
 
 
 @pytest.fixture
-def sample_user_create_data() -> dict:
+def sample_user_create_data() -> dict[str, Any]:
     """Fixture for sample user creation request body."""
     return {
         "email": "newuser@example.com",
@@ -86,7 +87,7 @@ def sample_user_create_data() -> dict:
 
 
 @pytest.fixture
-def sample_user_update_data() -> dict:
+def sample_user_update_data() -> dict[str, Any]:
     """Fixture for sample user update request body."""
     return {
         "email": "updated@example.com",
@@ -100,8 +101,10 @@ class TestGetUsers:
     """Tests for the get_users handler."""
 
     def test_get_users_success(
-        self, mock_user_service, sample_user_response: UserResponse
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_response: UserResponse,
+    ) -> None:
         """
         Test get_users returns 200 and a list of users on success.
         """
@@ -121,7 +124,7 @@ class TestGetUsers:
         mock_user_service.get_all_users.assert_called_once_with(skip=0, limit=100)
         logger.info("get_users success test passed")
 
-    def test_get_users_with_pagination(self, mock_user_service):
+    def test_get_users_with_pagination(self, mock_user_service: MagicMock) -> None:
         """
         Test get_users correctly passes pagination parameters to the service.
         """
@@ -136,7 +139,7 @@ class TestGetUsers:
         mock_user_service.get_all_users.assert_called_once_with(skip=10, limit=50)
         logger.info("get_users pagination test passed")
 
-    def test_get_users_empty(self, mock_user_service):
+    def test_get_users_empty(self, mock_user_service: MagicMock) -> None:
         """
         Test get_users returns 200 and an empty list when no users exist.
         """
@@ -153,7 +156,7 @@ class TestGetUsers:
         assert len(response) == 0
         logger.info("get_users empty list test passed")
 
-    def test_get_users_handles_exception(self, mock_user_service):
+    def test_get_users_handles_exception(self, mock_user_service: MagicMock) -> None:
         """
         Test get_users returns 500 when the service raises an exception.
         """
@@ -167,6 +170,8 @@ class TestGetUsers:
 
         # Assert
         assert status_code == 500
+        # When there's an error, response is a dict, not a list
+        assert isinstance(response, dict)
         assert response["error"] == "Internal server error"
         assert response["message"] == error_message
         logger.info("get_users exception handling test passed")
@@ -177,10 +182,10 @@ class TestGetUserById:
 
     def test_get_user_by_id_success(
         self,
-        mock_user_service,
+        mock_user_service: MagicMock,
         sample_user_response: UserResponse,
         sample_user_id: UUID,
-    ):
+    ) -> None:
         """
         Test get_user_by_id returns 200 and a user on success.
         """
@@ -198,7 +203,9 @@ class TestGetUserById:
         mock_user_service.get_user.assert_called_once_with(sample_user_id)
         logger.info("get_user_by_id success test passed")
 
-    def test_get_user_by_id_not_found(self, mock_user_service, sample_user_id: UUID):
+    def test_get_user_by_id_not_found(
+        self, mock_user_service: MagicMock, sample_user_id: UUID
+    ) -> None:
         """
         Test get_user_by_id returns 404 when the user does not exist.
         """
@@ -215,7 +222,7 @@ class TestGetUserById:
         mock_user_service.get_user.assert_called_once_with(sample_user_id)
         logger.info("get_user_by_id not found test passed")
 
-    def test_get_user_by_id_invalid_uuid(self, mock_user_service):
+    def test_get_user_by_id_invalid_uuid(self, mock_user_service: MagicMock) -> None:
         """
         Test get_user_by_id returns 400 for a malformed UUID.
         """
@@ -233,8 +240,8 @@ class TestGetUserById:
         logger.info("get_user_by_id invalid UUID test passed")
 
     def test_get_user_by_id_handles_exception(
-        self, mock_user_service, sample_user_id: UUID
-    ):
+        self, mock_user_service: MagicMock, sample_user_id: UUID
+    ) -> None:
         """
         Test get_user_by_id returns 500 when the service raises an exception.
         """
@@ -260,10 +267,10 @@ class TestCreateUser:
 
     def test_create_user_success(
         self,
-        mock_user_service,
+        mock_user_service: MagicMock,
         sample_user_response: UserResponse,
-        sample_user_create_data: dict,
-    ):
+        sample_user_create_data: dict[str, Any],
+    ) -> None:
         """
         Test create_user returns 201 and the created user on success.
         """
@@ -289,8 +296,10 @@ class TestCreateUser:
         logger.info("create_user success test passed")
 
     def test_create_user_invalid_body(
-        self, mock_user_service, sample_user_create_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_create_data: dict[str, Any],
+    ) -> None:
         """
         Test create_user returns 400 for an invalid request body.
         """
@@ -309,8 +318,10 @@ class TestCreateUser:
         logger.info("create_user invalid body test passed")
 
     def test_create_user_conflict(
-        self, mock_user_service, sample_user_create_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_create_data: dict[str, Any],
+    ) -> None:
         """
         Test create_user returns 409 when the service reports a conflict.
         """
@@ -329,8 +340,10 @@ class TestCreateUser:
         logger.info("create_user conflict test passed")
 
     def test_create_user_handles_exception(
-        self, mock_user_service, sample_user_create_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_create_data: dict[str, Any],
+    ) -> None:
         """
         Test create_user returns 500 when the service raises an unexpected exception.
         """
@@ -354,11 +367,11 @@ class TestUpdateUser:
 
     def test_update_user_success(
         self,
-        mock_user_service,
+        mock_user_service: MagicMock,
         sample_user_response: UserResponse,
         sample_user_id: UUID,
-        sample_user_update_data: dict,
-    ):
+        sample_user_update_data: dict[str, Any],
+    ) -> None:
         """
         Test update_user returns 200 and the updated user on success.
         """
@@ -384,8 +397,11 @@ class TestUpdateUser:
         logger.info("update_user success test passed")
 
     def test_update_user_not_found(
-        self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_id: UUID,
+        sample_user_update_data: dict[str, Any],
+    ) -> None:
         """
         Test update_user returns 404 when the user does not exist.
         """
@@ -405,8 +421,10 @@ class TestUpdateUser:
         logger.info("update_user not found test passed")
 
     def test_update_user_invalid_uuid(
-        self, mock_user_service, sample_user_update_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_update_data: dict[str, Any],
+    ) -> None:
         """
         Test update_user returns 400 for a malformed UUID.
         """
@@ -423,7 +441,9 @@ class TestUpdateUser:
         mock_user_service.update_user.assert_not_called()
         logger.info("update_user invalid UUID test passed")
 
-    def test_update_user_invalid_body(self, mock_user_service, sample_user_id: UUID):
+    def test_update_user_invalid_body(
+        self, mock_user_service: MagicMock, sample_user_id: UUID
+    ) -> None:
         """
         Test update_user returns 400 for an invalid request body.
         """
@@ -441,8 +461,11 @@ class TestUpdateUser:
         logger.info("update_user invalid body test passed")
 
     def test_update_user_conflict(
-        self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_id: UUID,
+        sample_user_update_data: dict[str, Any],
+    ) -> None:
         """
         Test update_user returns 409 when the service reports a conflict.
         """
@@ -463,8 +486,11 @@ class TestUpdateUser:
         logger.info("update_user conflict test passed")
 
     def test_update_user_handles_exception(
-        self, mock_user_service, sample_user_id: UUID, sample_user_update_data: dict
-    ):
+        self,
+        mock_user_service: MagicMock,
+        sample_user_id: UUID,
+        sample_user_update_data: dict[str, Any],
+    ) -> None:
         """
         Test update_user returns 500 for an unexpected service exception.
         """
@@ -488,7 +514,9 @@ class TestUpdateUser:
 class TestDeleteUser:
     """Tests for the delete_user handler."""
 
-    def test_delete_user_success(self, mock_user_service, sample_user_id: UUID):
+    def test_delete_user_success(
+        self, mock_user_service: MagicMock, sample_user_id: UUID
+    ) -> None:
         """
         Test delete_user returns 204 on successful deletion.
         """
@@ -505,7 +533,9 @@ class TestDeleteUser:
         mock_user_service.delete_user.assert_called_once_with(sample_user_id)
         logger.info("delete_user success test passed")
 
-    def test_delete_user_not_found(self, mock_user_service, sample_user_id: UUID):
+    def test_delete_user_not_found(
+        self, mock_user_service: MagicMock, sample_user_id: UUID
+    ) -> None:
         """
         Test delete_user returns 404 when the user does not exist.
         """
@@ -522,7 +552,7 @@ class TestDeleteUser:
         mock_user_service.delete_user.assert_called_once_with(sample_user_id)
         logger.info("delete_user not found test passed")
 
-    def test_delete_user_invalid_uuid(self, mock_user_service):
+    def test_delete_user_invalid_uuid(self, mock_user_service: MagicMock) -> None:
         """
         Test delete_user returns 400 for a malformed UUID.
         """
@@ -540,8 +570,8 @@ class TestDeleteUser:
         logger.info("delete_user invalid UUID test passed")
 
     def test_delete_user_handles_exception(
-        self, mock_user_service, sample_user_id: UUID
-    ):
+        self, mock_user_service: MagicMock, sample_user_id: UUID
+    ) -> None:
         """
         Test delete_user returns 500 for an unexpected service exception.
         """

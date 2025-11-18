@@ -42,11 +42,11 @@ def repository(setup_database):
 
 
 @pytest.fixture
-def sample_language_entity() -> Callable:
+def sample_language_entity() -> Callable[..., LanguageEntity]:
     """Factory fixture for creating Language entities."""
 
     def _create_language(
-        lang_id: UUID = None,
+        lang_id: UUID | None = None,
         name: str = "English",
         code: str = "en",
         native_name: str = "English",
@@ -55,8 +55,8 @@ def sample_language_entity() -> Callable:
             id=lang_id or uuid.uuid4(),
             name=name,
             code=code,
-            native_name=native_name,
-            created_at=datetime.now(UTC),
+            nativeName=native_name,
+            createdAt=datetime.now(UTC),
         )
 
     return _create_language

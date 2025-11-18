@@ -88,28 +88,34 @@ def russian_language_id():
 
 
 @pytest.fixture
-def sample_user_entity(english_language_id, russian_language_id) -> Callable:
+def sample_user_entity(
+    english_language_id: UUID, russian_language_id: UUID
+) -> Callable[..., UserEntity]:
     """Factory fixture for creating User entities."""
 
     def _create_user(
-        user_id: UUID = None,
+        user_id: UUID | None = None,
         email: str = "test@example.com",
         username: str = "testuser",
         password_hash: str = "$2b$12$hashedpassword",
         first_name: str = "Test",
         last_name: str = "User",
-        native_language_id: UUID = None,
-        current_language_id: UUID = None,
+        native_language_id: UUID | None = None,
+        current_language_id: UUID | None = None,
     ) -> UserEntity:
+        now = datetime.now(UTC)
         return UserEntity(
             id=user_id or uuid.uuid4(),
             email=email,
             username=username,
-            password_hash=password_hash,
-            first_name=first_name,
-            last_name=last_name,
-            native_language_id=native_language_id or english_language_id,
-            current_language_id=current_language_id or russian_language_id,
+            passwordHash=password_hash,
+            firstName=first_name,
+            lastName=last_name,
+            nativeLanguageId=native_language_id or english_language_id,
+            currentLanguageId=current_language_id or russian_language_id,
+            createdAt=now,
+            updatedAt=now,
+            lastActiveAt=None,
         )
 
     return _create_user

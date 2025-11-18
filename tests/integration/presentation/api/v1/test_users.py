@@ -134,10 +134,10 @@ def create_user_data(
 
 
 def create_update_data(
-    email: str = None,
-    username: str = None,
-    first_name: str = None,
-    last_name: str = None,
+    email: str | None = None,
+    username: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None,
 ) -> dict[str, Any]:
     """Helper function to create user update data."""
     data = {}

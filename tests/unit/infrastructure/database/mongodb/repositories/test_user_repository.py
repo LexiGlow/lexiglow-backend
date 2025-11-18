@@ -42,28 +42,34 @@ def russian_language_id():
 
 
 @pytest.fixture
-def sample_user_entity(english_language_id, russian_language_id) -> Callable:
+def sample_user_entity(
+    english_language_id: UUID, russian_language_id: UUID
+) -> Callable[..., UserEntity]:
     """Factory fixture for creating User entities."""
 
     def _create_user(
-        user_id: UUID = None,
+        user_id: UUID | None = None,
         email: str = "test@example.com",
         username: str = "testuser",
         password_hash: str = "$2b$12$hashedpassword",
         first_name: str = "Test",
         last_name: str = "User",
-        native_language_id: UUID = None,
-        current_language_id: UUID = None,
+        native_language_id: UUID | None = None,
+        current_language_id: UUID | None = None,
     ) -> UserEntity:
+        now = datetime.utcnow()
         return UserEntity(
             id=user_id or uuid.uuid4(),
             email=email,
             username=username,
-            password_hash=password_hash,
-            first_name=first_name,
-            last_name=last_name,
-            native_language_id=native_language_id or english_language_id,
-            current_language_id=current_language_id or russian_language_id,
+            passwordHash=password_hash,
+            firstName=first_name,
+            lastName=last_name,
+            nativeLanguageId=native_language_id or english_language_id,
+            currentLanguageId=current_language_id or russian_language_id,
+            createdAt=now,
+            updatedAt=now,
+            lastActiveAt=None,
         )
 
     return _create_user
@@ -267,7 +273,12 @@ class TestUpdateUser:
     def test_update_sets_updated_at(self, repository, sample_user_entity):
         """Test that updated_at timestamp changes on update."""
         created_user = repository.create(sample_user_entity())
-        original_updated_at = created_user.updated_at
+        # Normalize timezone-aware datetime to timezone-naive for comparison
+        original_updated_at = (
+            created_user.updated_at.replace(tzinfo=None)
+            if created_user.updated_at.tzinfo
+            else created_user.updated_at
+        )
 
         # Small delay to ensure timestamp difference (MongoDB has millisecond precision)
         import time
@@ -277,10 +288,17 @@ class TestUpdateUser:
         created_user.first_name = "Modified"
         updated_user = repository.update(created_user.id, created_user)
 
+        # Normalize timezone-aware datetime to timezone-naive for comparison
+        updated_updated_at = (
+            updated_user.updated_at.replace(tzinfo=None)
+            if updated_user.updated_at.tzinfo
+            else updated_user.updated_at
+        )
+
         # MongoDB stores timestamps with millisecond precision, so >= is acceptable
-        assert updated_user.updated_at >= original_updated_at
+        assert updated_updated_at >= original_updated_at
         # But we should have a difference due to the sleep
-        assert (updated_user.updated_at - original_updated_at).total_seconds() >= 0.01
+        assert (updated_updated_at - original_updated_at).total_seconds() >= 0.01
 
 
 class TestDeleteUser:

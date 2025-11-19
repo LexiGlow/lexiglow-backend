@@ -1,5 +1,4 @@
-"""
-User API endpoints.
+"""User API endpoints.
 
 This module provides REST API handlers for user CRUD operations.
 Handlers are called by Connexion based on operationId in openapi.yaml.
@@ -20,16 +19,16 @@ logger = logging.getLogger(__name__)
 def get_users(
     skip: int = 0, limit: int = 100
 ) -> tuple[list[dict[str, Any]] | dict[str, Any], int]:
-    """
-    Get all users with pagination.
+    """Get all users with pagination.
 
     Args:
-        skip: Number of users to skip (for pagination)
-        limit: Maximum number of users to return
+        skip (int): Number of users to skip (for pagination).
+        limit (int): Maximum number of users to return.
 
     Returns:
-        Tuple of (list of user dictionaries for success, or error dict
-        for errors, HTTP status code)
+        tuple[list[dict[str, Any]] | dict[str, Any], int]: A tuple containing
+            a list of user dictionaries on success, or an error dictionary
+            on failure, along with the HTTP status code.
     """
     try:
         logger.info(f"GET /users called with skip={skip}, limit={limit}")
@@ -49,14 +48,14 @@ def get_users(
 
 
 def get_user_by_id(userId: str) -> tuple[dict[str, Any], int]:
-    """
-    Get a user by ID.
+    """Get a user by ID.
 
     Args:
-        userId: User UUID as string
+        userId (str): User UUID as string.
 
     Returns:
-        Tuple of (user dictionary or error, HTTP status code)
+        tuple[dict[str, Any], int]: A tuple containing the user dictionary
+            or an error dictionary, along with the HTTP status code.
     """
     try:
         logger.info(f"GET /users/{userId} called")
@@ -91,14 +90,14 @@ def get_user_by_id(userId: str) -> tuple[dict[str, Any], int]:
 
 
 def create_user(body: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """
-    Create a new user.
+    """Create a new user.
 
     Args:
-        body: User creation data from request body
+        body (dict[str, Any]): User creation data from request body.
 
     Returns:
-        Tuple of (created user dictionary or error, HTTP status code)
+        tuple[dict[str, Any], int]: A tuple containing the created user
+            dictionary or an error dictionary, along with the HTTP status code.
     """
     try:
         logger.info(f"POST /users called with email: {body.get('email')}")
@@ -129,15 +128,15 @@ def create_user(body: dict[str, Any]) -> tuple[dict[str, Any], int]:
 
 
 def update_user(userId: str, body: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """
-    Update a user.
+    """Update a user.
 
     Args:
-        userId: User UUID as string
-        body: User update data from request body
+        userId (str): User UUID as string.
+        body (dict[str, Any]): User update data from request body.
 
     Returns:
-        Tuple of (updated user dictionary or error, HTTP status code)
+        tuple[dict[str, Any], int]: A tuple containing the updated user
+            dictionary or an error dictionary, along with the HTTP status code.
     """
     try:
         logger.info(f"PUT /users/{userId} called")
@@ -186,14 +185,15 @@ def update_user(userId: str, body: dict[str, Any]) -> tuple[dict[str, Any], int]
 
 
 def delete_user(userId: str) -> tuple[dict[str, Any], int]:
-    """
-    Delete a user.
+    """Delete a user.
 
     Args:
-        userId: User UUID as string
+        userId (str): User UUID as string.
 
     Returns:
-        Tuple of (empty dict or error, HTTP status code)
+        tuple[dict[str, Any], int]: A tuple containing an empty dictionary
+            on successful deletion or an error dictionary, along with the
+            HTTP status code.
     """
     try:
         logger.info(f"DELETE /users/{userId} called")

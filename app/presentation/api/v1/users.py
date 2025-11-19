@@ -33,7 +33,7 @@ def get_users(
     limit: Annotated[
         int, Query(ge=1, le=1000, description="Maximum number of users to return")
     ] = 100,
-    service: UserService = Depends(get_user_service),
+    service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> list[UserResponse]:
     """
     Get all users with pagination.
@@ -72,7 +72,7 @@ def get_users(
 )
 def get_user_by_id(
     userId: UUID,
-    service: UserService = Depends(get_user_service),
+    service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
     """
     Get a user by ID.
@@ -123,7 +123,7 @@ def get_user_by_id(
 )
 def create_user(
     user_data: UserCreate,
-    service: UserService = Depends(get_user_service),
+    service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
     """
     Create a new user.
@@ -175,7 +175,7 @@ def create_user(
 def update_user(
     userId: UUID,
     user_data: UserUpdate,
-    service: UserService = Depends(get_user_service),
+    service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
     """
     Update a user.

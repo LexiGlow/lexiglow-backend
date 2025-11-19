@@ -1,6 +1,6 @@
 import logging
 
-from scripts.wsgi import app
+from app.main import app
 
 # Configure logging for test
 logging.basicConfig(

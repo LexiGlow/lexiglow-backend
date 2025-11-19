@@ -1,10 +1,22 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Find the latest tag here: https://github.com/astral-sh/ruff-pre-commit/releases
-    rev: v0.4.4
+  - repo: local
     hooks:
-      # Run the linter and automatically fix issues.
-      - id: ruff
-        args: [--fix]
-      # Run the formatter.
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        language: system
+        types: [python]
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff-check
+        entry: python -m ruff check --fix
+        language: system
+        types: [python]
+        files: \.(py)$
       - id: ruff-format
+        name: ruff-format
+        entry: python -m ruff format
+        language: system
+        types: [python]
+        files: \.(py)$

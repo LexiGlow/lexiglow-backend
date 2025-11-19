@@ -24,7 +24,7 @@ from app.infrastructure.database.sqlite.models import (
 from app.infrastructure.database.sqlite.repositories.user_repository_impl import (
     SQLiteUserRepository,
 )
-from scripts.wsgi import app
+from app.main import app
 
 # Configure logging for tests
 logging.basicConfig(

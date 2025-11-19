@@ -44,6 +44,60 @@ The project follows a Clean Architecture pattern to ensure separation of concern
 *   Employ meaningful and descriptive variable, function, and class names.
 *   Keep functions and methods small, focused, and single-purpose.
 
+### Docstring Standards (Google Style)
+All Python modules, classes, and functions/methods **must** include docstrings following the Google Style. This ensures clarity, maintainability, and proper generation of API documentation.
+
+#### General Guidelines:
+*   Use triple double quotes (`"""Docstring content"""`).
+*   The first line should be a concise, imperative summary of what the code does, preferably on the same line as the opening quotes.
+*   Follow the summary with a blank line, then a more detailed explanation if necessary.
+*   Use specific sections (e.g., `Args:`, `Returns:`, `Raises:`, `Examples:`) with consistent indentation.
+
+#### Examples:
+
+##### Module Docstring
+```python
+"""Module for user management utilities.
+
+This module provides functions for creating, retrieving, updating, and deleting
+user accounts, as well as user authentication and authorization helpers.
+"""
+```
+
+##### Class Docstring
+```python
+class UserService:
+    """Manages user-related business logic and interactions.
+
+    This service orchestrates operations between the application layer
+    and the user repository, handling data transfer objects (DTOs) and
+    applying business rules.
+
+    Attributes:
+        _user_repository (UserRepository): The repository for user data access.
+    """
+    def __init__(self, user_repository: UserRepository):
+        self._user_repository = user_repository
+```
+
+##### Function/Method Docstring
+```python
+    def get_user_by_id(self, user_id: str) -> Optional[UserDTO]:
+        """Retrieves a user by their unique identifier.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+
+        Returns:
+            Optional[UserDTO]: The user data transfer object if found,
+                otherwise None.
+
+        Raises:
+            RepositoryError: If an error occurs during database access.
+        """
+        # ... implementation ...
+```
+
 ### API Design (FastAPI-focused)
 *   Design APIs following RESTful principles.
 *   Use appropriate HTTP status codes for responses (e.g., 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 500 Internal Server Error).

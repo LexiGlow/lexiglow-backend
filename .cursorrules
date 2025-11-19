@@ -1,60 +1,70 @@
 # LexiGlow Backend - Cursor Rules
 
 ## Project Context
-This is a Flask-based REST API backend for LexiGlow with OpenAPI/Connexion integration and MongoDB support.
+This is a FastAPI-based REST API backend for LexiGlow with auto-generated OpenAPI documentation and MongoDB support.
 
 ## Technology Stack
-- **Framework**: Flask with Connexion for OpenAPI integration
-- **Database**: MongoDB with PyMongo
-- **API Documentation**: OpenAPI 3.0 (Swagger UI)
+- **Framework**: FastAPI with Uvicorn ASGI server
+- **Database**: MongoDB with PyMongo, SQLite with SQLAlchemy
+- **API Documentation**: Auto-generated OpenAPI 3.0 (Swagger UI & ReDoc)
 - **Authentication**: TBD (likely JWT-based)
-- **CORS**: Flask-CORS enabled
-- **Environment**: Python 3.13.7 with pyenv
-- **Testing**: pytest
-- **Code Quality**: Black (formatter), Flake8 (linter)
+- **CORS**: FastAPI CORSMiddleware
+- **Environment**: Python 3.12+ with pyenv
+- **Testing**: pytest with FastAPI TestClient
+- **Code Quality**: Ruff (formatter & linter), mypy (type checking)
 
 ## Project Structure
 ```
 lexiglow-backend/
 ├── app/
-│   ├── controllers/     # Business logic and API handlers
-│   ├── routes/         # Additional Flask routes/blueprints
-│   └── __init__.py     # App factory and configuration
-├── openapi/            # OpenAPI specification files
-├── tests/              # Test files
-├── logs/               # Application logs
-├── requirements.txt    # Python dependencies
-├── wsgi.py            # WSGI entry point
-└── .env               # Environment variables
+│   ├── application/         # Application layer (services, DTOs)
+│   ├── core/               # Core utilities (DI, config, logging)
+│   ├── domain/             # Domain layer (entities, interfaces)
+│   ├── infrastructure/     # Infrastructure (database, external APIs)
+│   ├── presentation/       # Presentation layer (API endpoints, schemas)
+│   │   ├── api/v1/        # API version 1 endpoints
+│   │   └── schemas/       # Response models
+│   ├── __init__.py        # FastAPI app factory
+│   └── main.py            # Application entry point
+├── tests/                  # Test files
+├── logs/                   # Application logs
+├── pyproject.toml         # Project metadata and dependencies
+└── .env                   # Environment variables
 ```
 
 ## Coding Standards
 
 ### Python Style
-- Use **Black** for code formatting (line length: 88 characters)
+- Use **Ruff** for code formatting and linting (line length: 88 characters)
 - Follow **PEP 8** conventions
-- Use **type hints** where appropriate
+- Use **type hints** consistently (enforced by mypy)
 - Use **f-strings** for string formatting
 - Use **pathlib.Path** for file operations
 
-### Flask/Connexion Patterns
-- Use **Connexion** for API route definitions (defined in OpenAPI spec)
-- Keep business logic in `app/controllers/`
-- Use **Flask blueprints** for additional routes in `app/routes/`
+### FastAPI Patterns
+- Use **APIRouter** for modular route organization
+- Define routes with **decorators** (`@router.get()`, `@router.post()`, etc.)
+- Use **Pydantic models** for request/response schemas
+- Leverage **FastAPI's Depends()** for dependency injection
 - Follow **RESTful** API conventions
-- Use proper **HTTP status codes**
+- Use proper **HTTP status codes** (via `status` module)
+- Utilize **type hints** for automatic validation and documentation
 
 ### Database Patterns
 - Use **PyMongo** for MongoDB operations
-- Access database via `flask_app.config["MONGO_CLIENT"]`
-- Use **Marshmallow** for data serialization/validation
+- Use **SQLAlchemy** for SQLite operations
+- Access database via **dependency injection container**
+- Use **Pydantic** for data serialization/validation
 - Implement proper **error handling** for database operations
+- Follow **repository pattern** for data access
 
 ### Error Handling
-- Use **proper HTTP status codes** (400, 401, 404, 500, etc.)
+- Use **HTTPException** for API errors with proper status codes
+- Use **status** module constants (e.g., `status.HTTP_404_NOT_FOUND`)
 - Log errors using the configured **logging system**
-- Return **consistent error response format**
-- Handle **MongoDB connection errors** gracefully
+- Return **consistent error response format** (detail dict)
+- Handle **database connection errors** gracefully
+- Re-raise **HTTPException** to avoid double-catching
 
 ### Environment & Configuration
 - Use **python-dotenv** for environment variables
@@ -65,68 +75,105 @@ lexiglow-backend/
 ## API Development Guidelines
 
 ### OpenAPI Integration
-- Define API endpoints in `openapi/openapi.yaml`
-- Use **Connexion** to automatically generate Flask routes
-- Enable **response validation** (`validate_responses=True`)
-- Use **Swagger UI** for API documentation (`/ui` endpoint)
+- FastAPI **auto-generates** OpenAPI spec from code
+- Use **decorator parameters** for endpoint documentation
+- Add `response_model` for automatic serialization
+- Access Swagger UI at `/docs` endpoint
+- Access ReDoc at `/redoc` endpoint
+- Download OpenAPI JSON at `/openapi.json`
 
-### Controller Structure
-- Place business logic in `app/controllers/`
-- Keep controllers **thin** - delegate to service classes if needed
-- Use **dependency injection** for database connections
-- Return **serialized data** using Marshmallow schemas
+### Endpoint Structure
+- Place endpoint handlers in `app/presentation/api/v1/`
+- Keep handlers **thin** - delegate to service classes
+- Use **FastAPI Depends()** for dependency injection
+- Return **Pydantic models** directly (auto-serialized)
+- Use **APIRouter** with appropriate prefixes
+- Group related endpoints in the same router file
 
 ### Testing
 - Write **unit tests** in `tests/` directory
 - Use **pytest** for test execution
+- Use **FastAPI TestClient** for endpoint testing
 - Mock **external dependencies** (MongoDB, APIs)
 - Test both **success and error** scenarios
+- Override dependencies using `app.dependency_overrides`
 
 ## Code Quality
-- Run **Black** before committing: `black .`
-- Run **Flake8** for linting: `flake8`
+- Run **Ruff** for formatting and linting: `ruff format .` and `ruff check .`
+- Run **mypy** for type checking: `mypy .`
 - Write **comprehensive docstrings** for functions/classes
 - Use **meaningful variable and function names**
 - Keep functions **small and focused**
+- Leverage **type hints** for better IDE support and validation
 
 ## Security Considerations
-- Validate **all input data** using Marshmallow schemas
+- Validate **all input data** using Pydantic models (automatic)
 - Use **environment variables** for sensitive configuration
-- Implement **proper CORS** configuration for production
-- Add **authentication/authorization** as needed
+- Implement **proper CORS** configuration for production (restrict origins)
+- Add **authentication/authorization** as needed (FastAPI security utilities)
 - Sanitize **database queries** to prevent injection
+- Use **HTTPException** with appropriate status codes for auth failures
 
 ## Development Workflow
-1. Define API endpoints in `openapi/openapi.yaml`
-2. Implement controllers in `app/controllers/`
-3. Add any additional routes in `app/routes/`
-4. Write tests in `tests/`
-5. Run `black` and `flake8` before committing
-6. Test API using Swagger UI at `http://localhost:5000/ui`
+1. Define Pydantic models for request/response in `app/presentation/schemas/`
+2. Implement service logic in `app/application/services/`
+3. Create API endpoints in `app/presentation/api/v1/` using APIRouter
+4. Register routers in `app/__init__.py`
+5. Write tests in `tests/` using FastAPI TestClient
+6. Run `ruff format .` and `ruff check .` before committing
+7. Run `mypy .` for type checking
+8. Test API using Swagger UI at `http://localhost:8000/docs`
 
 ## Common Patterns
 
-### Database Operations
+### Dependency Injection
 ```python
-# Access MongoDB
-db = flask_app.config["MONGO_DB"]
-collection = db["collection_name"]
+from fastapi import APIRouter, Depends, status
+from app.core.dependencies import get_user_service
+from app.application.services.user_service import UserService
 
-# Query with error handling
-try:
-    result = collection.find_one({"field": "value"})
-except Exception as e:
-    logger.error(f"Database error: {e}")
-    return {"error": "Database operation failed"}, 500
+router = APIRouter()
+
+@router.get("/users/")
+def get_users(service: UserService = Depends(get_user_service)):
+    return service.get_all_users()
 ```
 
-### API Response Format
+### Error Handling
 ```python
-# Success response
-return {"data": result, "message": "Success"}, 200
+from fastapi import HTTPException, status
 
-# Error response
-return {"error": "Error message", "code": "ERROR_CODE"}, 400
+# Raise HTTP error
+if not user:
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={"error": "User not found", "message": "User does not exist"}
+    )
+
+# Re-raise HTTPException to avoid double-catching
+except HTTPException:
+    raise
+except Exception as e:
+    logger.error(f"Error: {e}")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail={"error": "Internal server error", "message": str(e)}
+    )
+```
+
+### Response Models
+```python
+from pydantic import BaseModel
+from fastapi import APIRouter
+
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
+    username: str
+
+@router.get("/users/{user_id}", response_model=UserResponse)
+def get_user(user_id: UUID, service: UserService = Depends(get_user_service)):
+    return service.get_user(user_id)  # Returns Pydantic model directly
 ```
 
 ### Logging
@@ -138,8 +185,33 @@ logger.error(f"Error occurred: {error}")
 ```
 
 ## Notes
-- The app uses **Connexion** for automatic route generation from OpenAPI spec
-- MongoDB connection is configured in the app factory
-- CORS is enabled for cross-origin requests
-- Logging is configured to write to both console and file
-- Use the existing project structure and patterns
+- The app uses **FastAPI** with auto-generated OpenAPI documentation
+- Database connections managed via **dependency injection container**
+- CORS configured via **CORSMiddleware** (restrict origins for production)
+- Logging configured to write to both console and file
+- Server runs on **port 8000** (use uvicorn for development)
+- Use **Clean Architecture** with layers: domain → application → infrastructure → presentation
+- Follow the existing project structure and patterns
+
+## Running the Application
+
+### Development
+```bash
+# Install dependencies
+pip install -e ".[dev]"
+
+# Run with auto-reload
+python -m app.main
+
+# Or with uvicorn directly
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Production
+```bash
+# Multiple workers with uvicorn
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# Or with gunicorn + uvicorn workers
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+```

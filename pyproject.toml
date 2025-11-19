@@ -32,6 +32,7 @@ dev = [
   "pdoc3>=0.10.0", # For API documentation generation
   "mypy>=1.0",
   "types-flask-cors>=3.0",  # Type stubs for flask-cors
+  "types-Markdown>=0.1.0",  # Type stubs for markdown
 ]
 
 [tool.mypy]

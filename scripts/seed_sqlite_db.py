@@ -24,7 +24,7 @@ import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from dotenv import load_dotenv
 
@@ -50,7 +50,7 @@ def load_sample_data() -> dict[str, Any]:
     """Load sample data from JSON file."""
     logger.info(f"Loading sample data from {SAMPLE_DATA_PATH}")
     with open(SAMPLE_DATA_PATH, encoding="utf-8") as f:
-        return json.load(f)
+        return cast(dict[str, Any], json.load(f))
 
 
 def generate_uuid() -> str:
@@ -266,7 +266,7 @@ def seed_texts(
         for text_data in texts:
             text_id = generate_uuid()
             # Some texts have users, some are system content (userId = NULL)
-            user_id = random.choice([None] + user_ids[:2])
+            user_id = random.choice([None, *user_ids[:2]])
             word_count = len(text_data["content"].split())
 
             cursor.execute(

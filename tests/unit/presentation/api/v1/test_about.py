@@ -5,7 +5,7 @@ Tests both /about and /about/version endpoints using Flask test client.
 
 import logging
 
-from scripts.wsgi import app
+from app.main import app
 
 # Configure logging for test
 logging.basicConfig(

@@ -1,9 +1,8 @@
 import logging
 import logging.config
-import os
 
-import connexion
-from flask_cors import CORS
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.container import Container
 from app.core.logging_config import LOGGING_CONFIG
@@ -15,35 +14,49 @@ logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 
-def create_app():
+def create_app() -> FastAPI:
     """
-    Creates and configures the Connexion application.
+    Creates and configures the FastAPI application.
+
+    Returns:
+        FastAPI application instance with configured middleware and routes
     """
-    # Determine the base directory of the project
-    basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-    # Define the path to the API specification directory
-    spec_dir = os.path.join(basedir, "app/presentation/api/v1/spec/")
-
-    # Connexion 2.x options to enable Swagger UI at /docs
-    options = {"swagger_ui": True, "swagger_url": "/docs"}
-
-    # Create the Connexion application instance
-    connexion_app = connexion.App(__name__, specification_dir=spec_dir, options=options)
-
-    # Add the API from the openapi.yaml file
-    connexion_app.add_api(
-        "openapi.yaml",
-        strict_validation=True,
-        validate_responses=True,
+    # Create the FastAPI application instance
+    app = FastAPI(
+        title="LexiGlow API",
+        description="The official API for LexiGlow, a language learning application.",
+        version="0.1.0",
+        contact={
+            "name": "API Support",
+            "email": "support@lexiglow.com",
+        },
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
     )
 
-    # Apply CORS to the underlying Flask app
-    CORS(connexion_app.app)
+    # Configure CORS middleware
+    # TODO: Review and restrict origins for production deployment
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins in development
+        allow_credentials=True,
+        allow_methods=["*"],  # Allow all HTTP methods
+        allow_headers=["*"],  # Allow all headers
+    )
+    logger.info("CORS middleware configured")
 
     # Initialize dependency injection container
     container = Container()
-    connexion_app.app.config["CONTAINER"] = container
+    app.state.container = container
     logger.info("Dependency injection container initialized and configured")
 
-    return connexion_app
+    # Import and include routers
+    from app.presentation.api.v1 import about, health, users
+
+    app.include_router(health.router, tags=["Health"])
+    app.include_router(about.router, tags=["About"])
+    app.include_router(users.router, tags=["Users"])
+    logger.info("API routers registered")
+
+    return app

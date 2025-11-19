@@ -142,9 +142,10 @@ LOGGING_CONFIG: dict[str, Any] = {
         "null": {"class": "logging.NullHandler"},
     },
     "loggers": {
-        "connexion": {"propagate": True},
+        "fastapi": {"propagate": True},
         "uvicorn": {"propagate": True},
-        "gunicorn": {"propagate": True},
+        "uvicorn.access": {"propagate": True},
+        "uvicorn.error": {"propagate": True},
     },
     "root": {},
 }

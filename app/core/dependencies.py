@@ -1,55 +1,111 @@
 """
-Dependency injection helper functions.
+Dependency injection helper functions for FastAPI.
 
-This module provides helper functions to access the dependency injection
-container from Flask application context, making it easy to retrieve
-services and repositories in endpoint handlers.
+This module provides dependency functions to access the dependency injection
+container and services using FastAPI's Depends() pattern.
 """
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Annotated
 
-from flask import current_app
+from fastapi import Depends, Request
 
 if TYPE_CHECKING:
+    from app.application.services.user_service import UserService
     from app.core.container import Container
+    from app.domain.interfaces.language_repository import ILanguageRepository
+    from app.domain.interfaces.text_repository import ITextRepository
+    from app.domain.interfaces.user_repository import IUserRepository
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_container() -> "Container":
+def get_container(request: Request) -> "Container":
     """
-    Get the DI container from Flask application context.
+    Get the DI container from FastAPI application state.
 
     This function retrieves the dependency injection container that was
-    initialized during application startup and stored in Flask's config.
+    initialized during application startup and stored in app.state.
+
+    Args:
+        request: FastAPI Request object (injected automatically)
 
     Returns:
         Container instance with configured dependencies
 
-    Raises:
-        RuntimeError: If called outside Flask application context
-        KeyError: If container is not initialized in app config
+    Example:
+        >>> from fastapi import Depends
+        >>> from app.core.dependencies import get_container
+        >>> def endpoint(container: Container = Depends(get_container)):
+        >>>     service = container.get_user_service()
+    """
+    container = request.app.state.container
+    logger.debug("Retrieved container from FastAPI application state")
+    return container
+
+
+def get_user_service(
+    container: Annotated["Container", Depends(get_container)],
+) -> "UserService":
+    """
+    Get the UserService instance via dependency injection.
+
+    Args:
+        container: DI container (injected automatically)
+
+    Returns:
+        UserService instance
 
     Example:
-        >>> from app.core.dependencies import get_container
-        >>> container = get_container()
-        >>> user_service = container.get_user_service()
+        >>> from fastapi import Depends
+        >>> from app.core.dependencies import get_user_service
+        >>> def endpoint(service: UserService = Depends(get_user_service)):
+        >>>     users = service.get_all_users()
     """
-    try:
-        container = current_app.config["CONTAINER"]
-        logger.debug("Retrieved container from Flask application context")
-        return cast("Container", container)
-    except RuntimeError as e:
-        logger.error("Attempted to access container outside Flask context")
-        raise RuntimeError(
-            "Cannot access container outside Flask application context. "
-            "This function must be called within a request context."
-        ) from e
-    except KeyError as e:
-        logger.error("Container not found in Flask app config")
-        raise KeyError(
-            "DI Container not initialized in Flask application. "
-            "Ensure create_app() properly initializes the container."
-        ) from e
+    return container.get_user_service()
+
+
+def get_user_repository(
+    container: Annotated["Container", Depends(get_container)],
+) -> "IUserRepository":
+    """
+    Get the UserRepository instance via dependency injection.
+
+    Args:
+        container: DI container (injected automatically)
+
+    Returns:
+        IUserRepository implementation instance
+    """
+    return container.get_user_repository()
+
+
+def get_language_repository(
+    container: Annotated["Container", Depends(get_container)],
+) -> "ILanguageRepository":
+    """
+    Get the LanguageRepository instance via dependency injection.
+
+    Args:
+        container: DI container (injected automatically)
+
+    Returns:
+        ILanguageRepository implementation instance
+    """
+    return container.get_language_repository()
+
+
+def get_text_repository(
+    container: Annotated["Container", Depends(get_container)],
+) -> "ITextRepository":
+    """
+    Get the TextRepository instance via dependency injection.
+
+    Args:
+        container: DI container (injected automatically)
+
+    Returns:
+        ITextRepository implementation instance
+    """
+    return container.get_text_repository()

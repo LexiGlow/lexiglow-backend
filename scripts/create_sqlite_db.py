@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""
-SQLite Database Creation Script for LexiGlow.
+"""SQLite Database Creation Script for LexiGlow.
 
 This script creates the SQLite database with all tables, indexes, and triggers
-as defined in the schema file.
+as defined in the schema file. It can parse SQL from both raw .sql files
+and markdown files containing SQL code blocks.
 
 Usage:
-    python scripts/create_sqlite_db.py [--db-path PATH] [--force]
-
-Options:
-    --db-path PATH    Path to the SQLite database
-                        file (default: from SQLITE_DB_PATH env var)
-    --force           Force recreate database even if it exists
+    python scripts/create_sqlite_db.py [--db-path PATH] [--force] [--verbose]
 """
 
 import argparse
@@ -44,20 +39,20 @@ SQLITE_DB_PATH = BASE_DIR / os.getenv("SQLITE_DB_PATH", "data/lexiglow.db")
 
 
 def extract_sql_from_file(file_path: Path) -> str:
-    """
-    Extract SQL code from file.
+    """Extracts SQL code from a file.
 
-    Supports both pure .sql files and markdown files with SQL code blocks.
+    This function supports both pure .sql files and markdown files with
+    fenced SQL code blocks (```sql).
 
     Args:
-        file_path: Path to the SQL or markdown file
+        file_path (Path): The path to the SQL or markdown file.
 
     Returns:
-        Extracted SQL code as a string
+        str: The extracted SQL code as a single string.
 
     Raises:
-        FileNotFoundError: If schema file doesn't exist
-        ValueError: If no SQL code found in file
+        FileNotFoundError: If the specified schema file does not exist.
+        ValueError: If no SQL code can be found in the file.
     """
     if not file_path.exists():
         raise FileNotFoundError(f"Schema file not found: {file_path}")
@@ -107,16 +102,16 @@ def extract_sql_from_file(file_path: Path) -> str:
 
 
 def split_sql_statements(sql_code: str) -> list[str]:
-    """
-    Split SQL code into individual statements.
+    """Splits a string of SQL code into individual statements.
 
-    Handles multi-line statements and preserves triggers correctly.
+    This function correctly handles multi-line statements and complex
+    constructs like triggers, which end with `END;`.
 
     Args:
-        sql_code: Complete SQL code as string
+        sql_code (str): The complete SQL code as a single string.
 
     Returns:
-        List of individual SQL statements
+        list[str]: A list of individual, stripped SQL statements.
     """
     # Remove comments
     sql_code = re.sub(r"--.*?$", "", sql_code, flags=re.MULTILINE)
@@ -155,16 +150,21 @@ def split_sql_statements(sql_code: str) -> list[str]:
 
 
 def create_database(db_path: Path, sql_code: str, force: bool = False) -> None:
-    """
-    Create SQLite database with the provided schema.
+    """Creates an SQLite database from a SQL schema.
+
+    This function establishes a connection to the database file, executes
+    all provided SQL statements to build the schema, and verifies the
+    creation of tables, indexes, and triggers.
 
     Args:
-        db_path: Path where the database should be created
-        sql_code: Complete SQL schema code
-        force: If True, drop and recreate existing database
+        db_path (Path): The path where the database file should be created.
+        sql_code (str): A string containing the complete SQL schema.
+        force (bool): If True, deletes the existing database file before
+            creation. Defaults to False.
 
     Raises:
-        FileExistsError: If database exists and force is False
+        FileExistsError: If the database file already exists and `force` is False.
+        sqlite3.Error: If an error occurs during SQL execution.
     """
     # Check if database already exists
     if db_path.exists():
@@ -240,7 +240,12 @@ def create_database(db_path: Path, sql_code: str, force: bool = False) -> None:
 
 
 def main():
-    """Main entry point for the script."""
+    """Parses command-line arguments and orchestrates database creation.
+
+    This function serves as the main entry point for the script. It handles
+    argument parsing, sets the logging level, and calls the core functions
+    to extract the SQL schema and create the database.
+    """
     parser = argparse.ArgumentParser(
         description="Create SQLite database for LexiGlow",
         formatter_class=argparse.RawDescriptionHelpFormatter,

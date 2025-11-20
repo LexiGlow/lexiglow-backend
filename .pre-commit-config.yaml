@@ -3,20 +3,16 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: python -m mypy
-        language: system
+        entry: .venv/bin/mypy
+        language: python
         types: [python]
-  - repo: local
-    hooks:
-      - id: ruff-check
+      - id: ruff-check 
         name: ruff-check
-        entry: python -m ruff check --fix
-        language: system
+        entry: .venv/bin/ruff check --force-exclude
+        language: python
         types: [python]
-        files: \.(py)$
       - id: ruff-format
         name: ruff-format
-        entry: python -m ruff format
-        language: system
+        entry: .venv/bin/ruff format --force-exclude
+        language: python
         types: [python]
-        files: \.(py)$

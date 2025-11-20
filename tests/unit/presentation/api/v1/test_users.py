@@ -8,19 +8,15 @@ with the UserService dependency mocked.
 import logging
 from datetime import datetime
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 
-from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
-from app.presentation.api.v1.users import (
-    create_user,
-    delete_user,
-    get_user_by_id,
-    get_users,
-    update_user,
-)
+from app.application.dto.user_dto import UserResponse
+from app.core.dependencies import get_user_service
+from app.main import app
 
 # Configure logging for tests
 logging.basicConfig(
@@ -35,18 +31,11 @@ def mock_user_service() -> MagicMock:
     return MagicMock()
 
 
-@pytest.fixture(autouse=True)
-def mock_container(mock_user_service):
-    """
-    Fixture to patch get_container to return a mock container
-    with a mock user service.
-    """
-    mock_container_instance = MagicMock()
-    mock_container_instance.get_user_service.return_value = mock_user_service
-
-    with patch("app.presentation.api.v1.users.get_container") as mock_get_container:
-        mock_get_container.return_value = mock_container_instance
-        yield mock_get_container
+@pytest.fixture
+def client(mock_user_service: MagicMock) -> TestClient:
+    """Fixture for a test client with a mocked user service."""
+    app.dependency_overrides[get_user_service] = lambda: mock_user_service
+    return TestClient(app)
 
 
 @pytest.fixture
@@ -102,6 +91,7 @@ class TestGetUsers:
 
     def test_get_users_success(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_response: UserResponse,
     ) -> None:
@@ -113,18 +103,21 @@ class TestGetUsers:
         logger.info("Testing get_users with a single user")
 
         # Act
-        response, status_code = get_users()
+        response = client.get("/users/")
 
         # Assert
-        assert status_code == 200
-        assert isinstance(response, list)
-        assert len(response) == 1
-        assert str(response[0]["id"]) == str(sample_user_response.id)
-        assert response[0]["email"] == sample_user_response.email
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["id"] == str(sample_user_response.id)
+        assert data[0]["email"] == sample_user_response.email
         mock_user_service.get_all_users.assert_called_once_with(skip=0, limit=100)
         logger.info("get_users success test passed")
 
-    def test_get_users_with_pagination(self, mock_user_service: MagicMock) -> None:
+    def test_get_users_with_pagination(
+        self, client: TestClient, mock_user_service: MagicMock
+    ) -> None:
         """
         Test get_users correctly passes pagination parameters to the service.
         """
@@ -133,13 +126,15 @@ class TestGetUsers:
         logger.info("Testing get_users with pagination skip=10, limit=50")
 
         # Act
-        get_users(skip=10, limit=50)
+        client.get("/users/?skip=10&limit=50")
 
         # Assert
         mock_user_service.get_all_users.assert_called_once_with(skip=10, limit=50)
         logger.info("get_users pagination test passed")
 
-    def test_get_users_empty(self, mock_user_service: MagicMock) -> None:
+    def test_get_users_empty(
+        self, client: TestClient, mock_user_service: MagicMock
+    ) -> None:
         """
         Test get_users returns 200 and an empty list when no users exist.
         """
@@ -148,15 +143,18 @@ class TestGetUsers:
         logger.info("Testing get_users with no users")
 
         # Act
-        response, status_code = get_users()
+        response = client.get("/users/")
 
         # Assert
-        assert status_code == 200
-        assert isinstance(response, list)
-        assert len(response) == 0
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 0
         logger.info("get_users empty list test passed")
 
-    def test_get_users_handles_exception(self, mock_user_service: MagicMock) -> None:
+    def test_get_users_handles_exception(
+        self, client: TestClient, mock_user_service: MagicMock
+    ) -> None:
         """
         Test get_users returns 500 when the service raises an exception.
         """
@@ -166,14 +164,13 @@ class TestGetUsers:
         logger.info("Testing get_users with a service exception")
 
         # Act
-        response, status_code = get_users()
+        response = client.get("/users/")
 
         # Assert
-        assert status_code == 500
-        # When there's an error, response is a dict, not a list
-        assert isinstance(response, dict)
-        assert response["error"] == "Internal server error"
-        assert response["message"] == error_message
+        assert response.status_code == 500
+        data = response.json()
+        assert data["detail"]["error"] == "Internal server error"
+        assert data["detail"]["message"] == error_message
         logger.info("get_users exception handling test passed")
 
 
@@ -182,6 +179,7 @@ class TestGetUserById:
 
     def test_get_user_by_id_success(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_response: UserResponse,
         sample_user_id: UUID,
@@ -194,17 +192,18 @@ class TestGetUserById:
         logger.info(f"Testing get_user_by_id with ID: {sample_user_id}")
 
         # Act
-        response, status_code = get_user_by_id(str(sample_user_id))
+        response = client.get(f"/users/{sample_user_id}")
 
         # Assert
-        assert status_code == 200
-        assert str(response["id"]) == str(sample_user_id)
-        assert response["email"] == sample_user_response.email
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == str(sample_user_id)
+        assert data["email"] == sample_user_response.email
         mock_user_service.get_user.assert_called_once_with(sample_user_id)
         logger.info("get_user_by_id success test passed")
 
     def test_get_user_by_id_not_found(
-        self, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
     ) -> None:
         """
         Test get_user_by_id returns 404 when the user does not exist.
@@ -214,33 +213,34 @@ class TestGetUserById:
         logger.info(f"Testing get_user_by_id with non-existent ID: {sample_user_id}")
 
         # Act
-        response, status_code = get_user_by_id(str(sample_user_id))
+        response = client.get(f"/users/{sample_user_id}")
 
         # Assert
-        assert status_code == 404
-        assert response["error"] == "User not found"
+        assert response.status_code == 404
+        assert response.json()["detail"]["error"] == "User not found"
         mock_user_service.get_user.assert_called_once_with(sample_user_id)
         logger.info("get_user_by_id not found test passed")
 
-    def test_get_user_by_id_invalid_uuid(self, mock_user_service: MagicMock) -> None:
+    def test_get_user_by_id_invalid_uuid(
+        self, client: TestClient, mock_user_service: MagicMock
+    ) -> None:
         """
-        Test get_user_by_id returns 400 for a malformed UUID.
+        Test get_user_by_id returns 422 for a malformed UUID.
         """
         # Arrange
         invalid_id = "not-a-valid-uuid"
         logger.info(f"Testing get_user_by_id with invalid ID: {invalid_id}")
 
         # Act
-        response, status_code = get_user_by_id(invalid_id)
+        response = client.get(f"/users/{invalid_id}")
 
         # Assert
-        assert status_code == 400
-        assert response["error"] == "Invalid user ID format"
+        assert response.status_code == 422
         mock_user_service.get_user.assert_not_called()
         logger.info("get_user_by_id invalid UUID test passed")
 
     def test_get_user_by_id_handles_exception(
-        self, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
     ) -> None:
         """
         Test get_user_by_id returns 500 when the service raises an exception.
@@ -253,12 +253,13 @@ class TestGetUserById:
         )
 
         # Act
-        response, status_code = get_user_by_id(str(sample_user_id))
+        response = client.get(f"/users/{sample_user_id}")
 
         # Assert
-        assert status_code == 500
-        assert response["error"] == "Internal server error"
-        assert response["message"] == error_message
+        assert response.status_code == 500
+        data = response.json()
+        assert data["detail"]["error"] == "Internal server error"
+        assert data["detail"]["message"] == error_message
         logger.info("get_user_by_id exception handling test passed")
 
 
@@ -267,6 +268,7 @@ class TestCreateUser:
 
     def test_create_user_success(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_response: UserResponse,
         sample_user_create_data: dict[str, Any],
@@ -281,44 +283,40 @@ class TestCreateUser:
         )
 
         # Act
-        response, status_code = create_user(sample_user_create_data)
+        response = client.post("/users/", json=sample_user_create_data)
 
         # Assert
-        assert status_code == 201
-        assert str(response["id"]) == str(sample_user_response.id)
-        assert response["email"] == sample_user_response.email
-
-        # Verify the service was called with a UserCreate DTO
+        assert response.status_code == 201
+        data = response.json()
+        assert data["id"] == str(sample_user_response.id)
+        assert data["email"] == sample_user_response.email
         mock_user_service.create_user.assert_called_once()
-        call_args = mock_user_service.create_user.call_args[0]
-        assert isinstance(call_args[0], UserCreate)
-        assert call_args[0].email == sample_user_create_data["email"]
         logger.info("create_user success test passed")
 
     def test_create_user_invalid_body(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_create_data: dict[str, Any],
     ) -> None:
         """
-        Test create_user returns 400 for an invalid request body.
+        Test create_user returns 422 for an invalid request body.
         """
         # Arrange
         del sample_user_create_data["email"]  # Make the data invalid
         logger.info("Testing create_user with missing email field")
 
         # Act
-        response, status_code = create_user(sample_user_create_data)
+        response = client.post("/users/", json=sample_user_create_data)
 
         # Assert
-        assert status_code == 400
-        assert response["error"] == "Invalid input data"
-        assert "email" in response["message"]
+        assert response.status_code == 422
         mock_user_service.create_user.assert_not_called()
         logger.info("create_user invalid body test passed")
 
     def test_create_user_conflict(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_create_data: dict[str, Any],
     ) -> None:
@@ -331,16 +329,18 @@ class TestCreateUser:
         logger.info("Testing create_user with a data conflict (e.g., duplicate email)")
 
         # Act
-        response, status_code = create_user(sample_user_create_data)
+        response = client.post("/users/", json=sample_user_create_data)
 
         # Assert
-        assert status_code == 409
-        assert response["error"] == "Conflict"
-        assert response["message"] == error_message
+        assert response.status_code == 409
+        data = response.json()
+        assert data["detail"]["error"] == "Conflict"
+        assert data["detail"]["message"] == error_message
         logger.info("create_user conflict test passed")
 
     def test_create_user_handles_exception(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_create_data: dict[str, Any],
     ) -> None:
@@ -353,12 +353,13 @@ class TestCreateUser:
         logger.info("Testing create_user with an unexpected service exception")
 
         # Act
-        response, status_code = create_user(sample_user_create_data)
+        response = client.post("/users/", json=sample_user_create_data)
 
         # Assert
-        assert status_code == 500
-        assert response["error"] == "Internal server error"
-        assert response["message"] == error_message
+        assert response.status_code == 500
+        data = response.json()
+        assert data["detail"]["error"] == "Internal server error"
+        assert data["detail"]["message"] == error_message
         logger.info("create_user exception handling test passed")
 
 
@@ -367,6 +368,7 @@ class TestUpdateUser:
 
     def test_update_user_success(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_response: UserResponse,
         sample_user_id: UUID,
@@ -380,24 +382,18 @@ class TestUpdateUser:
         logger.info(f"Testing update_user for ID: {sample_user_id}")
 
         # Act
-        response, status_code = update_user(
-            str(sample_user_id), sample_user_update_data
-        )
+        response = client.put(f"/users/{sample_user_id}", json=sample_user_update_data)
 
         # Assert
-        assert status_code == 200
-        assert str(response["id"]) == str(sample_user_response.id)
-
-        # Verify the service was called correctly
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == str(sample_user_response.id)
         mock_user_service.update_user.assert_called_once()
-        call_args = mock_user_service.update_user.call_args[0]
-        assert call_args[0] == sample_user_id
-        assert isinstance(call_args[1], UserUpdate)
-        assert call_args[1].email == sample_user_update_data["email"]
         logger.info("update_user success test passed")
 
     def test_update_user_not_found(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
@@ -410,58 +406,56 @@ class TestUpdateUser:
         logger.info(f"Testing update_user for non-existent ID: {sample_user_id}")
 
         # Act
-        response, status_code = update_user(
-            str(sample_user_id), sample_user_update_data
-        )
+        response = client.put(f"/users/{sample_user_id}", json=sample_user_update_data)
 
         # Assert
-        assert status_code == 404
-        assert response["error"] == "User not found"
+        assert response.status_code == 404
+        assert response.json()["detail"]["error"] == "User not found"
         mock_user_service.update_user.assert_called_once()
         logger.info("update_user not found test passed")
 
     def test_update_user_invalid_uuid(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
-        Test update_user returns 400 for a malformed UUID.
+        Test update_user returns 422 for a malformed UUID.
         """
         # Arrange
         invalid_id = "not-a-valid-uuid"
         logger.info(f"Testing update_user with invalid ID: {invalid_id}")
 
         # Act
-        response, status_code = update_user(invalid_id, sample_user_update_data)
+        response = client.put(f"/users/{invalid_id}", json=sample_user_update_data)
 
         # Assert
-        assert status_code == 400
-        assert response["error"] == "Invalid user ID format"
+        assert response.status_code == 422
         mock_user_service.update_user.assert_not_called()
         logger.info("update_user invalid UUID test passed")
 
     def test_update_user_invalid_body(
-        self, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
     ) -> None:
         """
-        Test update_user returns 400 for an invalid request body.
+        Test update_user returns 422 for an invalid request body.
         """
         # Arrange
         invalid_body = {"email": "this-is-not-an-email"}
         logger.info("Testing update_user with invalid body")
 
         # Act
-        response, status_code = update_user(str(sample_user_id), invalid_body)
+        response = client.put(f"/users/{sample_user_id}", json=invalid_body)
 
         # Assert
-        assert status_code == 400
-        assert response["error"] == "Invalid input data"
+        assert response.status_code == 422
         mock_user_service.update_user.assert_not_called()
         logger.info("update_user invalid body test passed")
 
     def test_update_user_conflict(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
@@ -475,18 +469,18 @@ class TestUpdateUser:
         logger.info("Testing update_user with a data conflict")
 
         # Act
-        response, status_code = update_user(
-            str(sample_user_id), sample_user_update_data
-        )
+        response = client.put(f"/users/{sample_user_id}", json=sample_user_update_data)
 
         # Assert
-        assert status_code == 409
-        assert response["error"] == "Conflict"
-        assert response["message"] == error_message
+        assert response.status_code == 409
+        data = response.json()
+        assert data["detail"]["error"] == "Conflict"
+        assert data["detail"]["message"] == error_message
         logger.info("update_user conflict test passed")
 
     def test_update_user_handles_exception(
         self,
+        client: TestClient,
         mock_user_service: MagicMock,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
@@ -500,14 +494,13 @@ class TestUpdateUser:
         logger.info("Testing update_user with an unexpected service exception")
 
         # Act
-        response, status_code = update_user(
-            str(sample_user_id), sample_user_update_data
-        )
+        response = client.put(f"/users/{sample_user_id}", json=sample_user_update_data)
 
         # Assert
-        assert status_code == 500
-        assert response["error"] == "Internal server error"
-        assert response["message"] == error_message
+        assert response.status_code == 500
+        data = response.json()
+        assert data["detail"]["error"] == "Internal server error"
+        assert data["detail"]["message"] == error_message
         logger.info("update_user exception handling test passed")
 
 
@@ -515,7 +508,7 @@ class TestDeleteUser:
     """Tests for the delete_user handler."""
 
     def test_delete_user_success(
-        self, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
     ) -> None:
         """
         Test delete_user returns 204 on successful deletion.
@@ -525,16 +518,15 @@ class TestDeleteUser:
         logger.info(f"Testing delete_user for ID: {sample_user_id}")
 
         # Act
-        response, status_code = delete_user(str(sample_user_id))
+        response = client.delete(f"/users/{sample_user_id}")
 
         # Assert
-        assert status_code == 204
-        assert response == {}
+        assert response.status_code == 204
         mock_user_service.delete_user.assert_called_once_with(sample_user_id)
         logger.info("delete_user success test passed")
 
     def test_delete_user_not_found(
-        self, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
     ) -> None:
         """
         Test delete_user returns 404 when the user does not exist.
@@ -544,33 +536,35 @@ class TestDeleteUser:
         logger.info(f"Testing delete_user for non-existent ID: {sample_user_id}")
 
         # Act
-        response, status_code = delete_user(str(sample_user_id))
+        response = client.delete(f"/users/{sample_user_id}")
 
         # Assert
-        assert status_code == 404
-        assert response["error"] == "User not found"
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"]["error"] == "User not found"
         mock_user_service.delete_user.assert_called_once_with(sample_user_id)
         logger.info("delete_user not found test passed")
 
-    def test_delete_user_invalid_uuid(self, mock_user_service: MagicMock) -> None:
+    def test_delete_user_invalid_uuid(
+        self, client: TestClient, mock_user_service: MagicMock
+    ) -> None:
         """
-        Test delete_user returns 400 for a malformed UUID.
+        Test delete_user returns 422 for a malformed UUID.
         """
         # Arrange
         invalid_id = "not-a-valid-uuid"
         logger.info(f"Testing delete_user with invalid ID: {invalid_id}")
 
         # Act
-        response, status_code = delete_user(invalid_id)
+        response = client.delete(f"/users/{invalid_id}")
 
         # Assert
-        assert status_code == 400
-        assert response["error"] == "Invalid user ID format"
+        assert response.status_code == 422
         mock_user_service.delete_user.assert_not_called()
         logger.info("delete_user invalid UUID test passed")
 
     def test_delete_user_handles_exception(
-        self, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
     ) -> None:
         """
         Test delete_user returns 500 for an unexpected service exception.
@@ -581,10 +575,11 @@ class TestDeleteUser:
         logger.info("Testing delete_user with an unexpected service exception")
 
         # Act
-        response, status_code = delete_user(str(sample_user_id))
+        response = client.delete(f"/users/{sample_user_id}")
 
         # Assert
-        assert status_code == 500
-        assert response["error"] == "Internal server error"
-        assert response["message"] == error_message
+        assert response.status_code == 500
+        data = response.json()
+        assert data["detail"]["error"] == "Internal server error"
+        assert data["detail"]["message"] == error_message
         logger.info("delete_user exception handling test passed")

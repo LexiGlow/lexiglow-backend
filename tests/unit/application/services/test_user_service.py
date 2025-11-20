@@ -4,7 +4,7 @@ Unit tests for the UserService.
 These tests mock the IUserRepository to test the service's business logic in isolation.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import Mock
 from uuid import UUID, uuid4
 
@@ -51,8 +51,7 @@ def sample_user_create() -> UserCreate:
 
 @pytest.fixture
 def sample_user_entity(sample_user_id: UUID) -> UserEntity:
-    """Provides a sample UserEntity object."""
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     return UserEntity(
         id=sample_user_id,
         email="test@example.com",
@@ -161,7 +160,7 @@ class TestUserService:
         mock_user_repo.username_exists.return_value = False
 
         # Create a return entity with proper password hash
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         mock_user_repo.create.return_value = UserEntity(
             id=uuid4(),
             email=user_create.email,
@@ -312,11 +311,16 @@ class TestUserService:
         )
 
         mock_user_repo.get_by_id.return_value = sample_user_entity
-        # The updated entity will have a new `updated_at` time
-        updated_entity = sample_user_entity.model_copy()
-        updated_entity.first_name = "UpdatedName"
-        updated_entity.updated_at = datetime.utcnow()
-        mock_user_repo.update.return_value = updated_entity
+
+        # Create an expected updated entity to be returned by the mock repository
+        expected_updated_entity = sample_user_entity.model_copy()
+        if update_data.first_name is not None:
+            expected_updated_entity.first_name = update_data.first_name
+        expected_updated_entity.updated_at = datetime.now(
+            UTC
+        )  # This will be set by the service
+
+        mock_user_repo.update.return_value = expected_updated_entity
 
         # Act
         result = user_service.update_user(user_id, update_data)
@@ -332,6 +336,7 @@ class TestUserService:
         )  # Ensure password not changed
         assert update_arg.updated_at > sample_user_entity.updated_at
 
+        assert result is not None
         assert result is not None
         assert result.first_name == "UpdatedName"
 
@@ -425,7 +430,7 @@ class TestUserService:
         mock_user_repo.get_by_id.return_value = sample_user_entity
 
         updated_entity = sample_user_entity.model_copy()
-        updated_entity.updated_at = datetime.utcnow()
+        updated_entity.updated_at = datetime.now(UTC)
         mock_user_repo.update.return_value = updated_entity
 
         # Act

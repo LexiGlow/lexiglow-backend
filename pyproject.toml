@@ -27,12 +27,12 @@ dependencies = [
 # Dependencies for development, linting, and testing
 dev = [
   "pytest>=7",
-  "ruff>=0.4.4",   # Replaces black and flake8
+  "ruff>=0.4.4",           # Replaces black and flake8
   "pre-commit>=3",
-  "pdoc3>=0.10.0", # For API documentation generation
+  "pdoc3>=0.10.0",         # For API documentation generation
   "mypy>=1.0",
-  "types-flask-cors>=3.0",  # Type stubs for flask-cors
-  "types-Markdown>=0.1.0",  # Type stubs for markdown
+  "types-flask-cors>=3.0", # Type stubs for flask-cors
+  "types-Markdown>=0.1.0", # Type stubs for markdown
 ]
 
 [tool.mypy]
@@ -79,6 +79,7 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 pythonpath = "."
+norecursedirs = "data"
 
 [tool.setuptools.packages.find]
 where = ["."]

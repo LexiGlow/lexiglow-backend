@@ -57,7 +57,7 @@ def sample_user_entity(
         native_language_id: UUID | None = None,
         current_language_id: UUID | None = None,
     ) -> UserEntity:
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         return UserEntity(
             id=user_id or uuid.uuid4(),
             email=email,

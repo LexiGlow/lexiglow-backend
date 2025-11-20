@@ -4,7 +4,7 @@ User domain entities.
 This module defines entities related to users and their language learning.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -27,8 +27,12 @@ class User(BaseModel):
     current_language_id: UUID = Field(
         ..., alias="currentLanguageId", description="FK to Language"
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, alias="updatedAt")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), alias="createdAt"
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), alias="updatedAt"
+    )
     last_active_at: datetime | None = Field(
         None, alias="lastActiveAt", description="Last activity timestamp"
     )
@@ -64,8 +68,12 @@ class UserLanguage(BaseModel):
     started_at: datetime = Field(
         ..., alias="startedAt", description="When user started learning this language"
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow, alias="createdAt")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, alias="updatedAt")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), alias="createdAt"
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC), alias="updatedAt"
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,

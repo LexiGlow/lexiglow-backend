@@ -59,7 +59,7 @@ def sample_text_entity(language_id: UUID, user_id: UUID) -> Callable[..., TextEn
         level: ProficiencyLevel = ProficiencyLevel.B1,
         is_public: bool = True,
     ) -> TextEntity:
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         return TextEntity(
             id=text_id or uuid.uuid4(),
             title=title,

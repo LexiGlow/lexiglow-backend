@@ -6,7 +6,7 @@ handling business logic, validation, and password hashing.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import bcrypt
@@ -125,8 +125,8 @@ class UserService:
             lastName=user_data.last_name,
             nativeLanguageId=user_data.native_language_id,
             currentLanguageId=user_data.current_language_id,
-            createdAt=datetime.utcnow(),
-            updatedAt=datetime.utcnow(),
+            createdAt=datetime.now(UTC),
+            updatedAt=datetime.now(UTC),
             lastActiveAt=None,
         )
 
@@ -245,7 +245,7 @@ class UserService:
                 else existing_entity.current_language_id
             ),
             createdAt=existing_entity.created_at,
-            updatedAt=datetime.utcnow(),
+            updatedAt=datetime.now(UTC),
             lastActiveAt=existing_entity.last_active_at,
         )
 

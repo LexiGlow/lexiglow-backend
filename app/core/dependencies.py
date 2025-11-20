@@ -35,7 +35,7 @@ def get_container(request: Request) -> "Container":
         >>> from fastapi import Depends
         >>> from app.core.dependencies import get_container
         >>> def endpoint(container: Container = Depends(get_container)):
-        >>>     service = container.get_user_service()
+        >>>     service = container.get_service(UserService)
     """
     container = cast("Container", request.app.state.container)
     logger.debug("Retrieved container from FastAPI application state")
@@ -60,4 +60,6 @@ def get_user_service(
         >>> def endpoint(service: UserService = Depends(get_user_service)):
         >>>     users = service.get_all_users()
     """
-    return container.get_user_service()
+    from app.application.services.user_service import UserService
+
+    return container.get_service(UserService)

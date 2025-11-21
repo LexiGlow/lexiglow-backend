@@ -26,7 +26,7 @@ router = APIRouter(prefix="/users")
     summary="Get all users",
     description="Retrieve a paginated list of users",
 )
-def get_users(
+async def get_users(
     skip: Annotated[
         int, Query(ge=0, description="Number of users to skip (pagination)")
     ] = 0,
@@ -51,7 +51,7 @@ def get_users(
     """
     try:
         logger.info(f"GET /users called with skip={skip}, limit={limit}")
-        users = service.get_all_users(skip=skip, limit=limit)
+        users = await service.get_all_users(skip=skip, limit=limit)
         logger.info(f"Retrieved {len(users)} users")
         return users
 
@@ -70,7 +70,7 @@ def get_users(
     summary="Get user by ID",
     description="Retrieve a specific user by their UUID",
 )
-def get_user_by_id(
+async def get_user_by_id(
     userId: UUID,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
@@ -89,7 +89,7 @@ def get_user_by_id(
     """
     try:
         logger.info(f"GET /users/{userId} called")
-        user = service.get_user(userId)
+        user = await service.get_user(userId)
 
         if user is None:
             logger.warning(f"User not found: {userId}")
@@ -121,7 +121,7 @@ def get_user_by_id(
     summary="Create a new user",
     description="Create a new user account with the provided information",
 )
-def create_user(
+async def create_user(
     user_data: UserCreate,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
@@ -143,7 +143,7 @@ def create_user(
         logger.info(f"POST /users called with email: {user_data.email}")
 
         try:
-            created_user = service.create_user(user_data)
+            created_user = await service.create_user(user_data)
             logger.info(f"User created successfully: {created_user.id}")
             return created_user
 
@@ -172,7 +172,7 @@ def create_user(
     summary="Update user",
     description="Update an existing user's information",
 )
-def update_user(
+async def update_user(
     userId: UUID,
     user_data: UserUpdate,
     service: UserService = Depends(get_user_service),  # noqa: B008
@@ -196,7 +196,7 @@ def update_user(
         logger.info(f"PUT /users/{userId} called")
 
         try:
-            updated_user = service.update_user(userId, user_data)
+            updated_user = await service.update_user(userId, user_data)
 
             if updated_user is None:
                 logger.warning(f"User not found: {userId}")
@@ -235,7 +235,7 @@ def update_user(
     summary="Delete user",
     description="Delete an existing user by their UUID",
 )
-def delete_user(
+async def delete_user(
     userId: UUID,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> None:
@@ -254,7 +254,7 @@ def delete_user(
     """
     try:
         logger.info(f"DELETE /users/{userId} called")
-        deleted = service.delete_user(userId)
+        deleted = await service.delete_user(userId)
 
         if not deleted:
             logger.warning(f"User not found for deletion: {userId}")

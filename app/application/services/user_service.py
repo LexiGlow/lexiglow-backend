@@ -86,7 +86,7 @@ class UserService:
             lastActiveAt=entity.last_active_at,
         )
 
-    def create_user(self, user_data: UserCreate) -> UserResponse:
+    async def create_user(self, user_data: UserCreate) -> UserResponse:
         """
         Create a new user with validation and password hashing.
 
@@ -136,7 +136,7 @@ class UserService:
 
         return self._entity_to_response(created_entity)
 
-    def get_user(self, user_id: UUID) -> UserResponse | None:
+    async def get_user(self, user_id: UUID) -> UserResponse | None:
         """
         Retrieve a user by ID.
 
@@ -158,7 +158,9 @@ class UserService:
 
         return self._entity_to_response(entity)
 
-    def get_all_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
+    async def get_all_users(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[UserResponse]:
         """
         Retrieve all users with pagination.
 
@@ -177,7 +179,9 @@ class UserService:
         entities = self.repository.get_all(skip=skip, limit=limit)
         return [self._entity_to_response(entity) for entity in entities]
 
-    def update_user(self, user_id: UUID, user_data: UserUpdate) -> UserResponse | None:
+    async def update_user(
+        self, user_id: UUID, user_data: UserUpdate
+    ) -> UserResponse | None:
         """
         Update a user with validation.
 
@@ -259,7 +263,7 @@ class UserService:
         logger.info(f"User updated successfully: {user_id}")
         return self._entity_to_response(updated)
 
-    def delete_user(self, user_id: UUID) -> bool:
+    async def delete_user(self, user_id: UUID) -> bool:
         """
         Delete a user by ID.
 

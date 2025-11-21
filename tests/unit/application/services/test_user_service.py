@@ -5,7 +5,7 @@ These tests mock the IUserRepository to test the service's business logic in iso
 """
 
 from datetime import UTC, datetime
-from unittest.mock import Mock
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -17,13 +17,13 @@ from app.domain.interfaces.user_repository import IUserRepository
 
 
 @pytest.fixture
-def mock_user_repo() -> Mock:
+def mock_user_repo() -> AsyncMock:
     """Provides a mock user repository."""
-    return Mock(spec=IUserRepository)
+    return AsyncMock(spec=IUserRepository)
 
 
 @pytest.fixture
-def user_service(mock_user_repo: Mock) -> UserService:
+def user_service(mock_user_repo: AsyncMock) -> UserService:
     """Provides a UserService instance with a mocked repository."""
     # Instantiate the service and then replace its repository with our mock
     return UserService(repository=mock_user_repo)
@@ -70,10 +70,11 @@ def sample_user_entity(sample_user_id: UUID) -> UserEntity:
 class TestUserService:
     """Test suite for the UserService class."""
 
-    def test_create_user_success(
+    @pytest.mark.asyncio
+    async def test_create_user_success(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_create: UserCreate,
     ) -> None:
         """Test Case 2.1: Successful user creation."""
@@ -87,7 +88,7 @@ class TestUserService:
         )
 
         # Act
-        result = user_service.create_user(sample_user_create)
+        result = await user_service.create_user(sample_user_create)
 
         # Assert
         mock_user_repo.email_exists.assert_called_once_with(sample_user_create.email)
@@ -104,10 +105,11 @@ class TestUserService:
         assert isinstance(result, UserResponse)
         assert result.email == sample_user_create.email
 
-    def test_create_user_email_exists(
+    @pytest.mark.asyncio
+    async def test_create_user_email_exists(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_create: UserCreate,
     ) -> None:
         """Test Case 2.2: Fail on existing email."""
@@ -116,16 +118,17 @@ class TestUserService:
 
         # Act & Assert
         with pytest.raises(ValueError, match="Email .* is already registered"):
-            user_service.create_user(sample_user_create)
+            await user_service.create_user(sample_user_create)
 
         mock_user_repo.email_exists.assert_called_once_with(sample_user_create.email)
         mock_user_repo.username_exists.assert_not_called()
         mock_user_repo.create.assert_not_called()
 
-    def test_create_user_username_exists(
+    @pytest.mark.asyncio
+    async def test_create_user_username_exists(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_create: UserCreate,
     ) -> None:
         """Test Case 2.3: Fail on existing username."""
@@ -135,15 +138,16 @@ class TestUserService:
 
         # Act & Assert
         with pytest.raises(ValueError, match="Username .* is already taken"):
-            user_service.create_user(sample_user_create)
+            await user_service.create_user(sample_user_create)
 
         mock_user_repo.username_exists.assert_called_once_with(
             sample_user_create.username
         )
         mock_user_repo.create.assert_not_called()
 
-    def test_password_hashing_bcrypt_format(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_password_hashing_bcrypt_format(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 2.4: Verify bcrypt password hashing format."""
         # Arrange
@@ -176,7 +180,7 @@ class TestUserService:
         )
 
         # Act
-        user_service.create_user(user_create)
+        await user_service.create_user(user_create)
 
         # Assert
         entity = mock_user_repo.create.call_args[0][0]
@@ -184,10 +188,11 @@ class TestUserService:
         assert len(entity.password_hash) == 60  # bcrypt fixed length
         assert entity.password_hash != user_create.password
 
-    def test_create_user_repository_error(
+    @pytest.mark.asyncio
+    async def test_create_user_repository_error(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_create: UserCreate,
     ) -> None:
         """Test Case 2.5: Handle repository exceptions during creation."""
@@ -198,16 +203,17 @@ class TestUserService:
 
         # Act & Assert
         with pytest.raises(Exception, match="Database connection failed"):
-            user_service.create_user(sample_user_create)
+            await user_service.create_user(sample_user_create)
 
         # Verify validation was performed before error
         mock_user_repo.email_exists.assert_called_once()
         mock_user_repo.username_exists.assert_called_once()
 
-    def test_get_user_success(
+    @pytest.mark.asyncio
+    async def test_get_user_success(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_entity: UserEntity,
     ) -> None:
         """Test Case 3.1: Get existing user."""
@@ -216,15 +222,16 @@ class TestUserService:
 
         # Act
         assert sample_user_entity.id is not None
-        result = user_service.get_user(sample_user_entity.id)
+        result = await user_service.get_user(sample_user_entity.id)
 
         # Assert
         mock_user_repo.get_by_id.assert_called_once_with(sample_user_entity.id)
         assert isinstance(result, UserResponse)
         assert result.id == sample_user_entity.id
 
-    def test_get_user_not_found(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_get_user_not_found(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 3.2: Get non-existent user."""
         # Arrange
@@ -232,16 +239,17 @@ class TestUserService:
         mock_user_repo.get_by_id.return_value = None
 
         # Act
-        result = user_service.get_user(user_id)
+        result = await user_service.get_user(user_id)
 
         # Assert
         mock_user_repo.get_by_id.assert_called_once_with(user_id)
         assert result is None
 
-    def test_get_all_users(
+    @pytest.mark.asyncio
+    async def test_get_all_users(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_entity: UserEntity,
     ) -> None:
         """Test Case 4.1: Get all users."""
@@ -249,7 +257,7 @@ class TestUserService:
         mock_user_repo.get_all.return_value = [sample_user_entity]
 
         # Act
-        results = user_service.get_all_users(skip=5, limit=50)
+        results = await user_service.get_all_users(skip=5, limit=50)
 
         # Assert
         mock_user_repo.get_all.assert_called_once_with(skip=5, limit=50)
@@ -257,46 +265,49 @@ class TestUserService:
         assert len(results) == 1
         assert results[0].id == sample_user_entity.id
 
-    def test_get_all_users_empty(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_get_all_users_empty(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 4.2: Get all users when none exist."""
         # Arrange
         mock_user_repo.get_all.return_value = []
 
         # Act
-        results = user_service.get_all_users()
+        results = await user_service.get_all_users()
 
         # Assert
         mock_user_repo.get_all.assert_called_once()
         assert results == []
 
-    def test_get_all_users_pagination_params(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_get_all_users_pagination_params(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 4.3: Verify pagination parameters are passed correctly."""
         # Arrange
         mock_user_repo.get_all.return_value = []
 
         # Act - Test with explicit parameters
-        user_service.get_all_users(skip=10, limit=25)
+        await user_service.get_all_users(skip=10, limit=25)
 
         # Assert
         mock_user_repo.get_all.assert_called_with(skip=10, limit=25)
 
         # Act - Test with defaults
         mock_user_repo.get_all.reset_mock()
-        user_service.get_all_users()
+        await user_service.get_all_users()
 
         # Assert defaults are used
         call_kwargs = mock_user_repo.get_all.call_args[1]
         assert call_kwargs["skip"] == 0
         assert call_kwargs["limit"] == 100
 
-    def test_update_user_success(
+    @pytest.mark.asyncio
+    async def test_update_user_success(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_entity: UserEntity,
     ) -> None:
         """Test Case 5.1: Successful update."""
@@ -323,7 +334,7 @@ class TestUserService:
         mock_user_repo.update.return_value = expected_updated_entity
 
         # Act
-        result = user_service.update_user(user_id, update_data)
+        result = await user_service.update_user(user_id, update_data)
 
         # Assert
         mock_user_repo.get_by_id.assert_called_once_with(user_id)
@@ -340,8 +351,9 @@ class TestUserService:
         assert result is not None
         assert result.first_name == "UpdatedName"
 
-    def test_update_user_not_found(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_update_user_not_found(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 5.2: Attempt to update a non-existent user."""
         # Arrange
@@ -355,16 +367,17 @@ class TestUserService:
         mock_user_repo.get_by_id.return_value = None
 
         # Act
-        result = user_service.update_user(user_id, update_data)
+        result = await user_service.update_user(user_id, update_data)
 
         # Assert
         assert result is None
         mock_user_repo.update.assert_not_called()
 
-    def test_update_user_email_conflict(
+    @pytest.mark.asyncio
+    async def test_update_user_email_conflict(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_entity: UserEntity,
     ) -> None:
         """Test Case 5.3: Fail on email conflict."""
@@ -382,15 +395,16 @@ class TestUserService:
         # Act & Assert
         assert sample_user_entity.id is not None
         with pytest.raises(ValueError, match="Email .* is already registered"):
-            user_service.update_user(sample_user_entity.id, update_data)
+            await user_service.update_user(sample_user_entity.id, update_data)
 
         mock_user_repo.email_exists.assert_called_once_with("conflict@example.com")
         mock_user_repo.update.assert_not_called()
 
-    def test_update_user_username_conflict(
+    @pytest.mark.asyncio
+    async def test_update_user_username_conflict(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_entity: UserEntity,
     ) -> None:
         """Test Case 5.4: Fail on username conflict during update."""
@@ -408,15 +422,16 @@ class TestUserService:
         # Act & Assert
         assert sample_user_entity.id is not None
         with pytest.raises(ValueError, match="Username .* is already taken"):
-            user_service.update_user(sample_user_entity.id, update_data)
+            await user_service.update_user(sample_user_entity.id, update_data)
 
         mock_user_repo.username_exists.assert_called_once_with("existinguser")
         mock_user_repo.update.assert_not_called()
 
-    def test_update_user_no_changes(
+    @pytest.mark.asyncio
+    async def test_update_user_no_changes(
         self,
         user_service: UserService,
-        mock_user_repo: Mock,
+        mock_user_repo: AsyncMock,
         sample_user_entity: UserEntity,
     ) -> None:
         """Test Case 5.5: Update user with no field changes."""
@@ -435,7 +450,7 @@ class TestUserService:
 
         # Act
         assert sample_user_entity.id is not None
-        result = user_service.update_user(sample_user_entity.id, update_data)
+        result = await user_service.update_user(sample_user_entity.id, update_data)
 
         # Assert
         mock_user_repo.get_by_id.assert_called_once()
@@ -445,8 +460,9 @@ class TestUserService:
         assert result.email == sample_user_entity.email
         assert result.username == sample_user_entity.username
 
-    def test_delete_user_success(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_delete_user_success(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 6.1: Successful deletion."""
         # Arrange
@@ -454,14 +470,15 @@ class TestUserService:
         mock_user_repo.delete.return_value = True
 
         # Act
-        result = user_service.delete_user(user_id)
+        result = await user_service.delete_user(user_id)
 
         # Assert
         mock_user_repo.delete.assert_called_once_with(user_id)
         assert result is True
 
-    def test_delete_user_not_found(
-        self, user_service: UserService, mock_user_repo: Mock
+    @pytest.mark.asyncio
+    async def test_delete_user_not_found(
+        self, user_service: UserService, mock_user_repo: AsyncMock
     ) -> None:
         """Test Case 6.2: Attempt to delete a non-existent user."""
         # Arrange
@@ -469,7 +486,7 @@ class TestUserService:
         mock_user_repo.delete.return_value = False
 
         # Act
-        result = user_service.delete_user(user_id)
+        result = await user_service.delete_user(user_id)
 
         # Assert
         mock_user_repo.delete.assert_called_once_with(user_id)

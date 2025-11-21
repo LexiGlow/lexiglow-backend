@@ -24,7 +24,7 @@ router = APIRouter()
     summary="Get information about the service",
     description="Returns general information about the LexiGlow backend service",
 )
-def get_about() -> AboutResponse:
+async def get_about() -> AboutResponse:
     """
     Get information about the LexiGlow backend service.
 
@@ -54,7 +54,7 @@ def get_about() -> AboutResponse:
         "Returns detailed version information for the service and its dependencies"
     ),
 )
-def get_version() -> VersionResponse:
+async def get_version() -> VersionResponse:
     """
     Get version information for the service.
 

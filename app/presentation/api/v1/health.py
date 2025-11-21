@@ -19,7 +19,7 @@ router = APIRouter()
     summary="Health check",
     description="Check if the service is running and healthy",
 )
-def get_health() -> HealthResponse:
+async def get_health() -> HealthResponse:
     """
     Health check endpoint.
 

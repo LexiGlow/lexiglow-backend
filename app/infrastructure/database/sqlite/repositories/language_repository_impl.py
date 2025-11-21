@@ -261,7 +261,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
                     logger.warning(f"Language not found for deletion: {entity_id}")
                     return False
 
-                session.delete(language_model)
+                await session.delete(language_model)
                 await session.commit()
 
                 logger.info(

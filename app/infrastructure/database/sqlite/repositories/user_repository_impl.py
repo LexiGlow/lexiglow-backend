@@ -279,7 +279,7 @@ class SQLiteUserRepository(IUserRepository):
                     logger.warning(f"User not found for deletion: {entity_id}")
                     return False
 
-                session.delete(user_model)
+                await session.delete(user_model)
                 await session.commit()
 
                 logger.info(f"Deleted user: {user_model.username} (ID: {entity_id})")

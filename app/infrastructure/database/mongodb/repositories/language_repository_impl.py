@@ -154,7 +154,8 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Check if a language exists by its ID.
         """
         try:
-            exists = await self.collection.count_documents({"_id": entity_id}) > 0
+            count: int = await self.collection.count_documents({"_id": entity_id})
+            exists = count > 0
             logger.debug(f"Language exists check for {entity_id}: {exists}")
             return exists
 
@@ -203,7 +204,8 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Check if a language code is already registered.
         """
         try:
-            exists = await self.collection.count_documents({"code": code}) > 0
+            count: int = await self.collection.count_documents({"code": code})
+            exists = count > 0
             logger.debug(f"Language code exists check for {code}: {exists}")
             return exists
 

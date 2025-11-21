@@ -103,12 +103,12 @@ class UserService:
         logger.info(f"Creating user with email: {user_data.email}")
 
         # Validate email uniqueness
-        if self.repository.email_exists(user_data.email):
+        if await self.repository.email_exists(user_data.email):
             logger.warning(f"Email already exists: {user_data.email}")
             raise ValueError(f"Email {user_data.email} is already registered")
 
         # Validate username uniqueness
-        if self.repository.username_exists(user_data.username):
+        if await self.repository.username_exists(user_data.username):
             logger.warning(f"Username already exists: {user_data.username}")
             raise ValueError(f"Username {user_data.username} is already taken")
 
@@ -131,7 +131,7 @@ class UserService:
         )
 
         # Save to repository
-        created_entity = self.repository.create(user_entity)
+        created_entity = await self.repository.create(user_entity)
         logger.info(f"User created successfully: {created_entity.id}")
 
         return self._entity_to_response(created_entity)
@@ -151,7 +151,7 @@ class UserService:
         """
         logger.debug(f"Retrieving user: {user_id}")
 
-        entity = self.repository.get_by_id(user_id)
+        entity = await self.repository.get_by_id(user_id)
         if entity is None:
             logger.debug(f"User not found: {user_id}")
             return None
@@ -176,7 +176,7 @@ class UserService:
         """
         logger.debug(f"Retrieving all users (skip={skip}, limit={limit})")
 
-        entities = self.repository.get_all(skip=skip, limit=limit)
+        entities = await self.repository.get_all(skip=skip, limit=limit)
         return [self._entity_to_response(entity) for entity in entities]
 
     async def update_user(
@@ -199,14 +199,14 @@ class UserService:
         logger.info(f"Updating user: {user_id}")
 
         # Check if user exists
-        existing_entity = self.repository.get_by_id(user_id)
+        existing_entity = await self.repository.get_by_id(user_id)
         if existing_entity is None:
             logger.warning(f"User not found for update: {user_id}")
             return None
 
         # Validate email uniqueness if changed
         if user_data.email is not None and user_data.email != existing_entity.email:
-            if self.repository.email_exists(user_data.email):
+            if await self.repository.email_exists(user_data.email):
                 logger.warning(f"Email already exists: {user_data.email}")
                 raise ValueError(f"Email {user_data.email} is already registered")
 
@@ -215,7 +215,7 @@ class UserService:
             user_data.username is not None
             and user_data.username != existing_entity.username
         ):
-            if self.repository.username_exists(user_data.username):
+            if await self.repository.username_exists(user_data.username):
                 logger.warning(f"Username already exists: {user_data.username}")
                 raise ValueError(f"Username {user_data.username} is already taken")
 
@@ -254,7 +254,7 @@ class UserService:
         )
 
         # Update in repository
-        updated = self.repository.update(user_id, updated_entity)
+        updated = await self.repository.update(user_id, updated_entity)
 
         if updated is None:
             logger.error(f"Failed to update user: {user_id}")
@@ -278,7 +278,7 @@ class UserService:
         """
         logger.info(f"Deleting user: {user_id}")
 
-        deleted = self.repository.delete(user_id)
+        deleted = await self.repository.delete(user_id)
         if deleted:
             logger.info(f"User deleted successfully: {user_id}")
         else:

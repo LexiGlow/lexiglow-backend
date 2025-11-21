@@ -21,7 +21,7 @@ class IRepository[T](ABC):
     """
 
     @abstractmethod
-    def create(self, entity: T) -> T:
+    async def create(self, entity: T) -> T:
         """
         Create a new entity in the repository.
 
@@ -37,7 +37,7 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, entity_id: UUID) -> T | None:
+    async def get_by_id(self, entity_id: UUID) -> T | None:
         """
         Retrieve an entity by its ID.
 
@@ -53,7 +53,7 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
         """
         Retrieve all entities with pagination.
 
@@ -70,7 +70,7 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def update(self, entity_id: UUID, entity: T) -> T | None:
+    async def update(self, entity_id: UUID, entity: T) -> T | None:
         """
         Update an existing entity.
 
@@ -87,7 +87,7 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: UUID) -> bool:
         """
         Delete an entity by its ID.
 
@@ -103,7 +103,7 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: UUID) -> bool:
         """
         Check if an entity exists by its ID.
 

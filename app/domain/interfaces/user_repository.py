@@ -20,7 +20,7 @@ class IUserRepository(IRepository[User]):
     """
 
     @abstractmethod
-    def get_by_email(self, email: str) -> User | None:
+    async def get_by_email(self, email: str) -> User | None:
         """
         Retrieve a user by their email address.
 
@@ -36,7 +36,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def get_by_username(self, username: str) -> User | None:
+    async def get_by_username(self, username: str) -> User | None:
         """
         Retrieve a user by their username.
 
@@ -52,7 +52,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def email_exists(self, email: str) -> bool:
+    async def email_exists(self, email: str) -> bool:
         """
         Check if an email is already registered.
 
@@ -68,7 +68,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def username_exists(self, username: str) -> bool:
+    async def username_exists(self, username: str) -> bool:
         """
         Check if a username is already taken.
 
@@ -84,7 +84,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def update_last_active(self, user_id: UUID) -> bool:
+    async def update_last_active(self, user_id: UUID) -> bool:
         """
         Update the last active timestamp for a user.
 

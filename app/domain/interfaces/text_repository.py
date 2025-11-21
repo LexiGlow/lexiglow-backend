@@ -21,7 +21,7 @@ class ITextRepository(IRepository[Text]):
     """
 
     @abstractmethod
-    def get_by_language(
+    async def get_by_language(
         self, language_id: UUID, skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """
@@ -41,7 +41,9 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_by_user(self, user_id: UUID, skip: int = 0, limit: int = 100) -> list[Text]:
+    async def get_by_user(
+        self, user_id: UUID, skip: int = 0, limit: int = 100
+    ) -> list[Text]:
         """
         Retrieve texts by user.
 
@@ -59,7 +61,7 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_by_proficiency_level(
+    async def get_by_proficiency_level(
         self, proficiency_level: ProficiencyLevel, skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """
@@ -79,7 +81,7 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_public_texts(self, skip: int = 0, limit: int = 100) -> list[Text]:
+    async def get_public_texts(self, skip: int = 0, limit: int = 100) -> list[Text]:
         """
         Retrieve all public texts.
 
@@ -96,7 +98,7 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def search_by_title(
+    async def search_by_title(
         self, title_query: str, skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """
@@ -116,7 +118,7 @@ class ITextRepository(IRepository[Text]):
         pass
 
     @abstractmethod
-    def get_by_tags(
+    async def get_by_tags(
         self, tag_ids: list[UUID], skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """

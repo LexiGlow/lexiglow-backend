@@ -279,7 +279,7 @@ class SQLiteTextRepository(ITextRepository):
                     logger.warning(f"Text not found for deletion: {entity_id}")
                     return False
 
-                session.delete(text_model)
+                await session.delete(text_model)
                 await session.commit()
 
                 logger.info(f"Deleted text: {text_model.title} (ID: {entity_id})")

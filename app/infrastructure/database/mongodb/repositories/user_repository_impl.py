@@ -191,7 +191,8 @@ class MongoDBUserRepository(IUserRepository):
         Check if a user exists by their ID.
         """
         try:
-            exists = await self.collection.count_documents({"_id": entity_id}) > 0
+            count: int = await self.collection.count_documents({"_id": entity_id})
+            exists = count > 0
             logger.debug(f"User exists check for {entity_id}: {exists}")
             return exists
 
@@ -240,7 +241,8 @@ class MongoDBUserRepository(IUserRepository):
         Check if an email is already registered.
         """
         try:
-            exists = await self.collection.count_documents({"email": email}) > 0
+            count: int = await self.collection.count_documents({"email": email})
+            exists = count > 0
             logger.debug(f"Email exists check for {email}: {exists}")
             return exists
 
@@ -253,7 +255,8 @@ class MongoDBUserRepository(IUserRepository):
         Check if a username is already taken.
         """
         try:
-            exists = await self.collection.count_documents({"username": username}) > 0
+            count: int = await self.collection.count_documents({"username": username})
+            exists = count > 0
             logger.debug(f"Username exists check for {username}: {exists}")
             return exists
 

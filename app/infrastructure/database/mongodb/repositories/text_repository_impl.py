@@ -157,7 +157,8 @@ class MongoDBTextRepository(ITextRepository):
         Check if a text exists by its ID.
         """
         try:
-            exists = await self.collection.count_documents({"_id": entity_id}) > 0
+            count: int = await self.collection.count_documents({"_id": entity_id})
+            exists = count > 0
             logger.debug(f"Text exists check for {entity_id}: {exists}")
             return exists
 

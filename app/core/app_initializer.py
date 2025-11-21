@@ -76,6 +76,19 @@ class AppInitializer:
         AppInitializer.__register_routers(app)
         logger.info("API routers registered")
 
+        # Add shutdown event handler for async engine cleanup
+        @app.on_event("shutdown")
+        async def shutdown_event():
+            """Clean up database connections on shutdown."""
+            from app.core.config import ACTIVE_DATABASE_TYPE
+
+            if ACTIVE_DATABASE_TYPE == "sqlite":
+                from app.infrastructure.database.sqlite import SQLiteRepositoryFactory
+
+                if SQLiteRepositoryFactory._shared_async_engine is not None:
+                    await SQLiteRepositoryFactory._shared_async_engine.dispose()
+                    logger.info("SQLite async engine disposed")
+
         return app
 
     @staticmethod

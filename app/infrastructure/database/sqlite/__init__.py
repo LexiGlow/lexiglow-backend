@@ -8,6 +8,8 @@ for the LexiGlow application.
 import logging
 from typing import Any, cast
 
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
 from app.domain.interfaces.language_repository import ILanguageRepository
 from app.domain.interfaces.repository_factory import IRepositoryFactory
 from app.domain.interfaces.text_repository import ITextRepository
@@ -39,11 +41,12 @@ class SQLiteRepositoryFactory(IRepositoryFactory):
     only one factory instance exists per configuration.
 
     This factory also caches repository instances to ensure singleton behavior
-    for repositories.
+    for repositories. Uses a shared async engine for connection pooling.
     """
 
     _instance: "SQLiteRepositoryFactory | None" = None
     _initialized: bool = False
+    _shared_async_engine: AsyncEngine | None = None
 
     def __new__(cls, db_path: str | None = None) -> "SQLiteRepositoryFactory":
         """
@@ -72,12 +75,29 @@ class SQLiteRepositoryFactory(IRepositoryFactory):
         if self.__class__._initialized:
             return
 
+        import os
+
+        from app.core.config import BASE_DIR
+
         # Lazy imports - only load SQLite classes when this factory is used
         from .repositories.language_repository_impl import SQLiteLanguageRepository
         from .repositories.text_repository_impl import SQLiteTextRepository
         from .repositories.user_repository_impl import SQLiteUserRepository
 
+        if db_path is None:
+            db_path = str(BASE_DIR / os.getenv("SQLITE_DB_PATH", "data/lexiglow.db"))
+
         self.db_path = db_path
+
+        # Create shared async engine if not already created
+        if SQLiteRepositoryFactory._shared_async_engine is None:
+            SQLiteRepositoryFactory._shared_async_engine = create_async_engine(
+                f"sqlite+aiosqlite:///{db_path}",
+                echo=False,
+                pool_pre_ping=True,
+            )
+            logger.info(f"Created shared async engine for database: {db_path}")
+
         # Map interface types to their SQLite implementations
         self._repository_classes: dict[type, type] = {
             IUserRepository: SQLiteUserRepository,
@@ -87,6 +107,18 @@ class SQLiteRepositoryFactory(IRepositoryFactory):
         # Cache for repository instances (singleton pattern)
         self._repository_cache: dict[type, Any] = {}
         self.__class__._initialized = True
+
+    async def dispose_engine(self) -> None:
+        """
+        Dispose the shared async engine.
+
+        This should be called during application shutdown to properly
+        close all database connections.
+        """
+        if SQLiteRepositoryFactory._shared_async_engine is not None:
+            await SQLiteRepositoryFactory._shared_async_engine.dispose()
+            SQLiteRepositoryFactory._shared_async_engine = None
+            logger.info("Disposed shared async engine")
 
     def get_repository[T](self, repository_type: type[T]) -> T:
         """
@@ -138,7 +170,13 @@ class SQLiteRepositoryFactory(IRepositoryFactory):
         logger.debug(
             f"Creating {repository_class.__name__} instance with db_path={self.db_path}"
         )
-        return cast(T, repository_class(db_path=self.db_path))
+        return cast(
+            T,
+            repository_class(
+                db_path=self.db_path,
+                engine=SQLiteRepositoryFactory._shared_async_engine,
+            ),
+        )
 
 
 __all__ = [

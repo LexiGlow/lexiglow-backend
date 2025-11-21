@@ -9,6 +9,7 @@ from uuid import UUID
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
+from bson import ObjectId
 
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
@@ -35,10 +36,33 @@ class MongoDBUserRepository(IUserRepository):
     def _model_to_entity(self, model: dict) -> UserEntity:
         """
         Convert MongoDB document to domain entity.
+        Handles ObjectId conversion to UUID for compatibility.
         """
-        # Convert MongoDB _id to entity id
+        # Convert MongoDB _id to entity id, handling ObjectId conversion
         if "_id" in model:
-            model["id"] = model.pop("_id")
+            _id_value = model.pop("_id")
+            if isinstance(_id_value, ObjectId):
+                # Convert ObjectId to a padded hex string to form a UUID
+                model["id"] = UUID(str(_id_value).ljust(32, "0"))
+            else:
+                model["id"] = (
+                    _id_value  # Expecting it to be a UUID object if stored correctly
+                )
+
+        if "nativeLanguageId" in model:
+            native_lang_id = model["nativeLanguageId"]
+            if isinstance(native_lang_id, ObjectId):
+                model["nativeLanguageId"] = UUID(str(native_lang_id).ljust(32, "0"))
+            else:
+                model["nativeLanguageId"] = native_lang_id
+
+        if "currentLanguageId" in model:
+            current_lang_id = model["currentLanguageId"]
+            if isinstance(current_lang_id, ObjectId):
+                model["currentLanguageId"] = UUID(str(current_lang_id).ljust(32, "0"))
+            else:
+                model["currentLanguageId"] = current_lang_id
+
         return UserEntity.model_validate(model)
 
     def _entity_to_model(self, entity: UserEntity) -> dict:

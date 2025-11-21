@@ -30,6 +30,7 @@ dependencies = [
 # Dependencies for development, linting, and testing
 dev = [
   "pytest>=7",
+  "pytest-asyncio>=0.21",
   "ruff>=0.4.4",           # Replaces black and flake8
   "pre-commit>=3",
   "pdoc3>=0.10.0",         # For API documentation generation
@@ -83,6 +84,7 @@ quote-style = "double"
 [tool.pytest.ini_options]
 pythonpath = "."
 norecursedirs = "data"
+asyncio_mode = "auto"
 
 [tool.setuptools.packages.find]
 where = ["."]

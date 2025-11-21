@@ -7,9 +7,9 @@ import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
-from bson import ObjectId
 
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository

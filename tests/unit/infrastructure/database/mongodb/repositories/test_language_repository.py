@@ -56,27 +56,34 @@ def sample_language_entity() -> Callable[..., LanguageEntity]:
 class TestCreateLanguage:
     """Test language creation."""
 
-    def test_create_language_success(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_create_language_success(self, repository, sample_language_entity):
         """Test creating a language successfully."""
         lang_entity = sample_language_entity()
-        created_lang = repository.create(lang_entity)
+        created_lang = await repository.create(lang_entity)
 
         assert created_lang is not None
         assert created_lang.id == lang_entity.id
         assert created_lang.name == "English"
         assert created_lang.code == "en"
 
-    def test_create_language_generates_id(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_create_language_generates_id(
+        self, repository, sample_language_entity
+    ):
         """Test that an ID is generated when not provided."""
         lang_entity = sample_language_entity(lang_id=None)
         lang_entity.id = None  # Explicitly set to None
 
-        created_lang = repository.create(lang_entity)
+        created_lang = await repository.create(lang_entity)
 
         assert created_lang.id is not None
         assert isinstance(created_lang.id, UUID)
 
-    def test_create_language_duplicate_code(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_create_language_duplicate_code(
+        self, repository, sample_language_entity
+    ):
         """
         Test constraint violation for duplicate language code.
         MongoDB doesn't enforce unique constraints by default, but our
@@ -84,7 +91,7 @@ class TestCreateLanguage:
         For now, we'll test that creating a duplicate code will raise an exception
         if we try to create a unique index on the 'code' field.
         """
-        repository.create(sample_language_entity(code="fr", name="French"))
+        await repository.create(sample_language_entity(code="fr", name="French"))
 
         duplicate_lang = sample_language_entity(
             lang_id=uuid.uuid4(), code="fr", name="French Variant"
@@ -100,13 +107,13 @@ class TestCreateLanguage:
         # If unique index is added, uncomment the pytest.raises line.
         # with pytest.raises(Exception, match="Failed to create language"):
         duplicate_id = duplicate_lang.id
-        created_lang = repository.create(duplicate_lang)
+        created_lang = await repository.create(duplicate_lang)
         # The created language should use the provided ID
         assert created_lang.id == duplicate_id
         # Verify both languages exist with the same code (MongoDB allows duplicates
         # without unique index)
-        assert repository.get_by_code("fr") is not None
-        all_langs = repository.get_all()
+        assert await repository.get_by_code("fr") is not None
+        all_langs = await repository.get_all()
         fr_langs = [lang for lang in all_langs if lang.code == "fr"]
         assert len(fr_langs) == 2  # Both languages with code "fr" should exist
 
@@ -114,52 +121,59 @@ class TestCreateLanguage:
 class TestGetLanguageById:
     """Test retrieving languages by ID."""
 
-    def test_get_by_id_found(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_get_by_id_found(self, repository, sample_language_entity):
         """Test retrieving an existing language by ID."""
-        created_lang = repository.create(sample_language_entity())
-        retrieved_lang = repository.get_by_id(created_lang.id)
+        created_lang = await repository.create(sample_language_entity())
+        retrieved_lang = await repository.get_by_id(created_lang.id)
 
         assert retrieved_lang is not None
         assert retrieved_lang.id == created_lang.id
         assert retrieved_lang.name == created_lang.name
 
-    def test_get_by_id_not_found(self, repository):
+    @pytest.mark.asyncio
+    async def test_get_by_id_not_found(self, repository):
         """Test retrieving a non-existent language returns None."""
         non_existent_id = uuid.uuid4()
-        result = repository.get_by_id(non_existent_id)
+        result = await repository.get_by_id(non_existent_id)
         assert result is None
 
 
 class TestGetAllLanguages:
     """Test retrieving all languages with pagination."""
 
-    def test_get_all_empty(self, repository):
+    @pytest.mark.asyncio
+    async def test_get_all_empty(self, repository):
         """Test getting all languages when the database is empty."""
-        languages = repository.get_all()
+        languages = await repository.get_all()
         assert languages == []
 
-    def test_get_all_multiple_languages(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_get_all_multiple_languages(self, repository, sample_language_entity):
         """Test retrieving all languages."""
-        repository.create(sample_language_entity(name="Spanish", code="es"))
-        repository.create(sample_language_entity(name="German", code="de"))
+        await repository.create(sample_language_entity(name="Spanish", code="es"))
+        await repository.create(sample_language_entity(name="German", code="de"))
 
-        languages = repository.get_all()
+        languages = await repository.get_all()
         assert len(languages) == 2
         codes = [lang.code for lang in languages]
         assert "es" in codes
         assert "de" in codes
 
-    def test_get_all_with_pagination(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_get_all_with_pagination(self, repository, sample_language_entity):
         """
         Test pagination with skip and limit parameters.
         """
         for i in range(5):
-            repository.create(sample_language_entity(name=f"Lang {i}", code=f"l{i}"))
+            await repository.create(
+                sample_language_entity(name=f"Lang {i}", code=f"l{i}")
+            )
 
-        page1 = repository.get_all(skip=0, limit=2)
+        page1 = await repository.get_all(skip=0, limit=2)
         assert len(page1) == 2
 
-        page2 = repository.get_all(skip=2, limit=2)
+        page2 = await repository.get_all(skip=2, limit=2)
         assert len(page2) == 2
         assert page1[0].id != page2[0].id
 
@@ -167,27 +181,29 @@ class TestGetAllLanguages:
 class TestUpdateLanguage:
     """Test language update operations."""
 
-    def test_update_language_success(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_update_language_success(self, repository, sample_language_entity):
         """
         Test updating a language successfully.
         """
-        created_lang = repository.create(sample_language_entity())
+        created_lang = await repository.create(sample_language_entity())
         created_lang.name = "British English"
         created_lang.native_name = "British English"
 
-        updated_lang = repository.update(created_lang.id, created_lang)
+        updated_lang = await repository.update(created_lang.id, created_lang)
 
         assert updated_lang is not None
         assert updated_lang.name == "British English"
         assert updated_lang.native_name == "British English"
 
-    def test_update_language_not_found(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_update_language_not_found(self, repository, sample_language_entity):
         """
         Test updating a non-existent language returns None.
         """
         non_existent_id = uuid.uuid4()
         lang_entity = sample_language_entity()
-        result = repository.update(non_existent_id, lang_entity)
+        result = await repository.update(non_existent_id, lang_entity)
         assert result is None
 
 
@@ -196,21 +212,23 @@ class TestDeleteLanguage:
     Test language deletion.
     """
 
-    def test_delete_language_success(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_delete_language_success(self, repository, sample_language_entity):
         """
         Test deleting an existing language returns True.
         """
-        created_lang = repository.create(sample_language_entity())
-        result = repository.delete(created_lang.id)
+        created_lang = await repository.create(sample_language_entity())
+        result = await repository.delete(created_lang.id)
         assert result is True
-        assert repository.get_by_id(created_lang.id) is None
+        assert await repository.get_by_id(created_lang.id) is None
 
-    def test_delete_language_not_found(self, repository):
+    @pytest.mark.asyncio
+    async def test_delete_language_not_found(self, repository):
         """
         Test deleting a non-existent language returns False.
         """
         non_existent_id = uuid.uuid4()
-        result = repository.delete(non_existent_id)
+        result = await repository.delete(non_existent_id)
         assert result is False
 
 
@@ -219,19 +237,21 @@ class TestExistsLanguage:
     Test language existence checks.
     """
 
-    def test_exists_true(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_exists_true(self, repository, sample_language_entity):
         """
         Test exists returns True for an existing language.
         """
-        created_lang = repository.create(sample_language_entity())
-        assert repository.exists(created_lang.id) is True
+        created_lang = await repository.create(sample_language_entity())
+        assert await repository.exists(created_lang.id) is True
 
-    def test_exists_false(self, repository):
+    @pytest.mark.asyncio
+    async def test_exists_false(self, repository):
         """
         Test exists returns False for a non-existent language.
         """
         non_existent_id = uuid.uuid4()
-        assert repository.exists(non_existent_id) is False
+        assert await repository.exists(non_existent_id) is False
 
 
 class TestGetLanguageByCode:
@@ -239,20 +259,22 @@ class TestGetLanguageByCode:
     Test retrieving languages by code.
     """
 
-    def test_get_by_code_found(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_get_by_code_found(self, repository, sample_language_entity):
         """
         Test retrieving a language by its code.
         """
-        repository.create(sample_language_entity(code="jp", name="Japanese"))
-        found_lang = repository.get_by_code("jp")
+        await repository.create(sample_language_entity(code="jp", name="Japanese"))
+        found_lang = await repository.get_by_code("jp")
         assert found_lang is not None
         assert found_lang.name == "Japanese"
 
-    def test_get_by_code_not_found(self, repository):
+    @pytest.mark.asyncio
+    async def test_get_by_code_not_found(self, repository):
         """
         Test retrieving a non-existent code returns None.
         """
-        assert repository.get_by_code("xx") is None
+        assert await repository.get_by_code("xx") is None
 
 
 class TestGetLanguageByName:
@@ -260,20 +282,22 @@ class TestGetLanguageByName:
     Test retrieving languages by name.
     """
 
-    def test_get_by_name_found(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_get_by_name_found(self, repository, sample_language_entity):
         """
         Test retrieving a language by its name.
         """
-        repository.create(sample_language_entity(name="Portuguese", code="pt"))
-        found_lang = repository.get_by_name("Portuguese")
+        await repository.create(sample_language_entity(name="Portuguese", code="pt"))
+        found_lang = await repository.get_by_name("Portuguese")
         assert found_lang is not None
         assert found_lang.code == "pt"
 
-    def test_get_by_name_not_found(self, repository):
+    @pytest.mark.asyncio
+    async def test_get_by_name_not_found(self, repository):
         """
         Test retrieving a non-existent name returns None.
         """
-        assert repository.get_by_name("Klingon") is None
+        assert await repository.get_by_name("Klingon") is None
 
 
 class TestCodeExists:
@@ -281,15 +305,17 @@ class TestCodeExists:
     Test language code existence checks.
     """
 
-    def test_code_exists_true(self, repository, sample_language_entity):
+    @pytest.mark.asyncio
+    async def test_code_exists_true(self, repository, sample_language_entity):
         """
         Test code_exists returns True for an existing code.
         """
-        repository.create(sample_language_entity(code="it", name="Italian"))
-        assert repository.code_exists("it") is True
+        await repository.create(sample_language_entity(code="it", name="Italian"))
+        assert await repository.code_exists("it") is True
 
-    def test_code_exists_false(self, repository):
+    @pytest.mark.asyncio
+    async def test_code_exists_false(self, repository):
         """
         Test code_exists returns False for a non-existent code.
         """
-        assert repository.code_exists("zz") is False
+        assert await repository.code_exists("zz") is False

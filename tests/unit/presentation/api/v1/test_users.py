@@ -8,7 +8,7 @@ with the UserService dependency mocked.
 import logging
 from datetime import datetime
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -26,13 +26,13 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def mock_user_service() -> MagicMock:
+def mock_user_service() -> AsyncMock:
     """Fixture for a mocked user service."""
-    return MagicMock()
+    return AsyncMock()
 
 
 @pytest.fixture
-def client(mock_user_service: MagicMock) -> TestClient:
+def client(mock_user_service: AsyncMock) -> TestClient:
     """Fixture for a test client with a mocked user service."""
     app.dependency_overrides[get_user_service] = lambda: mock_user_service
     return TestClient(app)
@@ -92,7 +92,7 @@ class TestGetUsers:
     def test_get_users_success(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_response: UserResponse,
     ) -> None:
         """
@@ -116,7 +116,7 @@ class TestGetUsers:
         logger.info("get_users success test passed")
 
     def test_get_users_with_pagination(
-        self, client: TestClient, mock_user_service: MagicMock
+        self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
         Test get_users correctly passes pagination parameters to the service.
@@ -133,7 +133,7 @@ class TestGetUsers:
         logger.info("get_users pagination test passed")
 
     def test_get_users_empty(
-        self, client: TestClient, mock_user_service: MagicMock
+        self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
         Test get_users returns 200 and an empty list when no users exist.
@@ -153,7 +153,7 @@ class TestGetUsers:
         logger.info("get_users empty list test passed")
 
     def test_get_users_handles_exception(
-        self, client: TestClient, mock_user_service: MagicMock
+        self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
         Test get_users returns 500 when the service raises an exception.
@@ -180,7 +180,7 @@ class TestGetUserById:
     def test_get_user_by_id_success(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_response: UserResponse,
         sample_user_id: UUID,
     ) -> None:
@@ -203,7 +203,7 @@ class TestGetUserById:
         logger.info("get_user_by_id success test passed")
 
     def test_get_user_by_id_not_found(
-        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
     ) -> None:
         """
         Test get_user_by_id returns 404 when the user does not exist.
@@ -222,7 +222,7 @@ class TestGetUserById:
         logger.info("get_user_by_id not found test passed")
 
     def test_get_user_by_id_invalid_uuid(
-        self, client: TestClient, mock_user_service: MagicMock
+        self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
         Test get_user_by_id returns 422 for a malformed UUID.
@@ -240,7 +240,7 @@ class TestGetUserById:
         logger.info("get_user_by_id invalid UUID test passed")
 
     def test_get_user_by_id_handles_exception(
-        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
     ) -> None:
         """
         Test get_user_by_id returns 500 when the service raises an exception.
@@ -269,7 +269,7 @@ class TestCreateUser:
     def test_create_user_success(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_response: UserResponse,
         sample_user_create_data: dict[str, Any],
     ) -> None:
@@ -296,7 +296,7 @@ class TestCreateUser:
     def test_create_user_invalid_body(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_create_data: dict[str, Any],
     ) -> None:
         """
@@ -317,7 +317,7 @@ class TestCreateUser:
     def test_create_user_conflict(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_create_data: dict[str, Any],
     ) -> None:
         """
@@ -341,7 +341,7 @@ class TestCreateUser:
     def test_create_user_handles_exception(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_create_data: dict[str, Any],
     ) -> None:
         """
@@ -369,7 +369,7 @@ class TestUpdateUser:
     def test_update_user_success(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_response: UserResponse,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
@@ -394,7 +394,7 @@ class TestUpdateUser:
     def test_update_user_not_found(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
@@ -417,7 +417,7 @@ class TestUpdateUser:
     def test_update_user_invalid_uuid(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
@@ -436,7 +436,7 @@ class TestUpdateUser:
         logger.info("update_user invalid UUID test passed")
 
     def test_update_user_invalid_body(
-        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
     ) -> None:
         """
         Test update_user returns 422 for an invalid request body.
@@ -456,7 +456,7 @@ class TestUpdateUser:
     def test_update_user_conflict(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
@@ -481,7 +481,7 @@ class TestUpdateUser:
     def test_update_user_handles_exception(
         self,
         client: TestClient,
-        mock_user_service: MagicMock,
+        mock_user_service: AsyncMock,
         sample_user_id: UUID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
@@ -508,7 +508,7 @@ class TestDeleteUser:
     """Tests for the delete_user handler."""
 
     def test_delete_user_success(
-        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
     ) -> None:
         """
         Test delete_user returns 204 on successful deletion.
@@ -526,7 +526,7 @@ class TestDeleteUser:
         logger.info("delete_user success test passed")
 
     def test_delete_user_not_found(
-        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
     ) -> None:
         """
         Test delete_user returns 404 when the user does not exist.
@@ -546,7 +546,7 @@ class TestDeleteUser:
         logger.info("delete_user not found test passed")
 
     def test_delete_user_invalid_uuid(
-        self, client: TestClient, mock_user_service: MagicMock
+        self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
         Test delete_user returns 422 for a malformed UUID.
@@ -564,7 +564,7 @@ class TestDeleteUser:
         logger.info("delete_user invalid UUID test passed")
 
     def test_delete_user_handles_exception(
-        self, client: TestClient, mock_user_service: MagicMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
     ) -> None:
         """
         Test delete_user returns 500 for an unexpected service exception.

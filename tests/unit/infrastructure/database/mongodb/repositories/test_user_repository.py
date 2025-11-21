@@ -83,6 +83,7 @@ def sample_user_entity(
 class TestCreateUser:
     """Test user creation."""
 
+    @pytest.mark.asyncio
     async def test_create_user_success(self, repository, sample_user_entity):
         """Test creating a user successfully."""
         user_entity = sample_user_entity()
@@ -98,6 +99,7 @@ class TestCreateUser:
         assert created_user.created_at is not None
         assert created_user.updated_at is not None
 
+    @pytest.mark.asyncio
     async def test_create_user_generates_id(self, repository, sample_user_entity):
         """Test that ID is generated when not provided."""
         user_entity = sample_user_entity(user_id=None)
@@ -110,6 +112,7 @@ class TestCreateUser:
         assert created_user.id is not None
         assert isinstance(created_user.id, UUID)
 
+    @pytest.mark.asyncio
     async def test_create_user_with_existing_id(self, repository, sample_user_entity):
         """Test creating user with pre-set ID."""
         preset_id = uuid.uuid4()
@@ -119,6 +122,7 @@ class TestCreateUser:
 
         assert created_user.id == preset_id
 
+    @pytest.mark.asyncio
     async def test_create_user_duplicate_email(self, repository, sample_user_entity):
         """Test constraint violation for duplicate email."""
         user1 = sample_user_entity(email="duplicate@example.com", username="user1")
@@ -133,6 +137,7 @@ class TestCreateUser:
         with pytest.raises(Exception, match="Failed to create user"):
             await repository.create(user2)
 
+    @pytest.mark.asyncio
     async def test_create_user_duplicate_username(self, repository, sample_user_entity):
         """Test constraint violation for duplicate username."""
         user1 = sample_user_entity(email="user1@example.com", username="duplicate")
@@ -151,6 +156,7 @@ class TestCreateUser:
 class TestGetUserById:
     """Test retrieving users by ID."""
 
+    @pytest.mark.asyncio
     async def test_get_by_id_found(self, repository, sample_user_entity):
         """Test retrieving an existing user by ID."""
         created_user = await repository.create(sample_user_entity())
@@ -162,6 +168,7 @@ class TestGetUserById:
         assert retrieved_user.email == created_user.email
         assert retrieved_user.username == created_user.username
 
+    @pytest.mark.asyncio
     async def test_get_by_id_not_found(self, repository):
         """Test retrieving non-existent user returns None."""
         non_existent_id = uuid.uuid4()
@@ -170,6 +177,7 @@ class TestGetUserById:
 
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_get_by_id_invalid_uuid(self, repository):
         """Test handling of invalid UUID format."""
         # This would be caught at the UUID type level, but we test repository handling
@@ -182,6 +190,7 @@ class TestGetUserById:
 class TestGetAllUsers:
     """Test retrieving all users with pagination."""
 
+    @pytest.mark.asyncio
     async def test_get_all_empty(self, repository):
         """Test getting all users when database is empty."""
         users = await repository.get_all()
@@ -189,6 +198,7 @@ class TestGetAllUsers:
         assert users == []
         assert isinstance(users, list)
 
+    @pytest.mark.asyncio
     async def test_get_all_multiple_users(self, repository, sample_user_entity):
         """Test retrieving all users."""
         user1 = sample_user_entity(email="user1@example.com", username="user1")
@@ -207,6 +217,7 @@ class TestGetAllUsers:
         assert "user2" in usernames
         assert "user3" in usernames
 
+    @pytest.mark.asyncio
     async def test_get_all_with_pagination(self, repository, sample_user_entity):
         """Test pagination with skip and limit parameters."""
         for i in range(5):
@@ -228,6 +239,7 @@ class TestGetAllUsers:
         page3 = await repository.get_all(skip=4, limit=2)
         assert len(page3) == 1
 
+    @pytest.mark.asyncio
     async def test_get_all_pagination_edge_cases(self, repository, sample_user_entity):
         """Test pagination edge cases."""
         user = sample_user_entity()
@@ -245,6 +257,7 @@ class TestGetAllUsers:
 class TestUpdateUser:
     """Test user update operations."""
 
+    @pytest.mark.asyncio
     async def test_update_user_success(self, repository, sample_user_entity):
         """Test updating all user fields successfully."""
         created_user = await repository.create(sample_user_entity())
@@ -263,6 +276,7 @@ class TestUpdateUser:
         assert updated_user.first_name == "Updated"
         assert updated_user.last_name == "Name"
 
+    @pytest.mark.asyncio
     async def test_update_user_not_found(self, repository, sample_user_entity):
         """Test updating non-existent user returns None."""
         non_existent_id = uuid.uuid4()
@@ -272,6 +286,7 @@ class TestUpdateUser:
 
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_update_sets_updated_at(self, repository, sample_user_entity):
         """Test that updated_at timestamp changes on update."""
         created_user = await repository.create(sample_user_entity())
@@ -304,6 +319,7 @@ class TestUpdateUser:
 class TestDeleteUser:
     """Test user deletion."""
 
+    @pytest.mark.asyncio
     async def test_delete_user_success(self, repository, sample_user_entity):
         """Test deleting existing user returns True."""
         created_user = await repository.create(sample_user_entity())
@@ -316,6 +332,7 @@ class TestDeleteUser:
         deleted_user = await repository.get_by_id(created_user.id)
         assert deleted_user is None
 
+    @pytest.mark.asyncio
     async def test_delete_user_not_found(self, repository):
         """Test deleting non-existent user returns False."""
         non_existent_id = uuid.uuid4()
@@ -328,6 +345,7 @@ class TestDeleteUser:
 class TestExistsUser:
     """Test user existence checks."""
 
+    @pytest.mark.asyncio
     async def test_exists_true(self, repository, sample_user_entity):
         """Test exists returns True for existing user."""
         created_user = await repository.create(sample_user_entity())
@@ -336,6 +354,7 @@ class TestExistsUser:
 
         assert result is True
 
+    @pytest.mark.asyncio
     async def test_exists_false(self, repository):
         """Test exists returns False for non-existent user."""
         non_existent_id = uuid.uuid4()
@@ -348,6 +367,7 @@ class TestExistsUser:
 class TestGetUserByEmail:
     """Test retrieving users by email."""
 
+    @pytest.mark.asyncio
     async def test_get_by_email_found(self, repository, sample_user_entity):
         """Test retrieving user by email."""
         user = sample_user_entity(email="find@example.com")
@@ -358,6 +378,7 @@ class TestGetUserByEmail:
         assert found_user is not None
         assert found_user.email == "find@example.com"
 
+    @pytest.mark.asyncio
     async def test_get_by_email_not_found(self, repository):
         """Test retrieving non-existent email returns None."""
         result = await repository.get_by_email("notfound@example.com")
@@ -368,6 +389,7 @@ class TestGetUserByEmail:
 class TestGetUserByUsername:
     """Test retrieving users by username."""
 
+    @pytest.mark.asyncio
     async def test_get_by_username_found(self, repository, sample_user_entity):
         """Test retrieving user by username."""
         user = sample_user_entity(username="findme")
@@ -378,6 +400,7 @@ class TestGetUserByUsername:
         assert found_user is not None
         assert found_user.username == "findme"
 
+    @pytest.mark.asyncio
     async def test_get_by_username_not_found(self, repository):
         """Test retrieving non-existent username returns None."""
         result = await repository.get_by_username("notfound")
@@ -388,6 +411,7 @@ class TestGetUserByUsername:
 class TestEmailExists:
     """Test email existence checks."""
 
+    @pytest.mark.asyncio
     async def test_email_exists_true(self, repository, sample_user_entity):
         """Test email_exists returns True for existing email."""
         user = sample_user_entity(email="exists@example.com")
@@ -397,6 +421,7 @@ class TestEmailExists:
 
         assert result is True
 
+    @pytest.mark.asyncio
     async def test_email_exists_false(self, repository):
         """
         Test email_exists returns False for non-existent email.
@@ -409,6 +434,7 @@ class TestEmailExists:
 class TestUsernameExists:
     """Test username existence checks."""
 
+    @pytest.mark.asyncio
     async def test_username_exists_true(self, repository, sample_user_entity):
         """
         Test username_exists returns True for existing username.
@@ -420,6 +446,7 @@ class TestUsernameExists:
 
         assert result is True
 
+    @pytest.mark.asyncio
     async def test_username_exists_false(self, repository):
         """
         Test username_exists returns False for non-existent username.
@@ -432,6 +459,7 @@ class TestUsernameExists:
 class TestUpdateLastActive:
     """Test updating last active timestamp."""
 
+    @pytest.mark.asyncio
     async def test_update_last_active_success(self, repository, sample_user_entity):
         """
         Test updating last active timestamp successfully.
@@ -446,6 +474,7 @@ class TestUpdateLastActive:
         updated_user = await repository.get_by_id(created_user.id)
         assert updated_user.last_active_at is not None
 
+    @pytest.mark.asyncio
     async def test_update_last_active_not_found(self, repository):
         """
         Test updating last active for non-existent user returns False.
@@ -456,6 +485,7 @@ class TestUpdateLastActive:
 
         assert result is False
 
+    @pytest.mark.asyncio
     async def test_update_last_active_timestamp(self, repository, sample_user_entity):
         """
         Test that last_active_at is set to current time.

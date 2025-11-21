@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Backend for the LexiGlow application."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { file = "LICENSE" }                               # Or use the SPDX identifier: license = "MIT"
+license = { file = "LICENSE" }  # Or use the SPDX identifier: license = "MIT"
 authors = [{ name = "Your Name", email = "your@email.com" }]
 
 # Core dependencies for your application to run
@@ -56,10 +56,10 @@ packages = ["app", "tests", "scripts"]
 
 # Ignore missing type stubs for libraries that don't have them
 [[tool.mypy.overrides]]
-module = "uvicorn.*"
-ignore_missing_imports = true
-[[tool.mypy.overrides]]
-module = "motor.*"
+module = [
+    "uvicorn.*",
+    "motor.*"
+]
 ignore_missing_imports = true
 
 [tool.ruff]

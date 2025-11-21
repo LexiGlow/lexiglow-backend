@@ -2,7 +2,7 @@
 SQLite implementation of User repository.
 
 This module provides a concrete implementation of IUserRepository
-using SQLAlchemy ORM and raw SQL queries.
+using SQLAlchemy async ORM and raw SQL queries.
 """
 
 import logging
@@ -10,9 +10,9 @@ import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import create_engine
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.config import BASE_DIR
 from app.domain.entities.user import User as UserEntity
@@ -30,22 +30,36 @@ class SQLiteUserRepository(IUserRepository):
     and provides all methods defined in IUserRepository interface.
     """
 
-    def __init__(self, db_path: str | None = None):
+    def __init__(self, db_path: str | None = None, engine: AsyncEngine | None = None):
         """
         Initialize the SQLite User repository.
 
         Args:
             db_path: Optional path to SQLite database file.
                      If None, uses SQLITE_DB_PATH from environment.
+            engine: Optional shared async engine. If provided, uses this engine.
+                    Otherwise, creates a new one (for backward compatibility).
         """
         import os
 
-        if db_path is None:
-            db_path = str(BASE_DIR / os.getenv("SQLITE_DB_PATH", "data/lexiglow.db"))
+        if engine is not None:
+            self.engine = engine
+        else:
+            # Fallback: create own engine (for backward compatibility)
+            from sqlalchemy.ext.asyncio import create_async_engine
 
-        self.engine = create_engine(f"sqlite:///{db_path}", echo=False)
-        self.SessionLocal = sessionmaker(bind=self.engine)
-        logger.info(f"SQLiteUserRepository initialized with database: {db_path}")
+            if db_path is None:
+                db_path = str(
+                    BASE_DIR / os.getenv("SQLITE_DB_PATH", "data/lexiglow.db")
+                )
+            self.engine = create_async_engine(
+                f"sqlite+aiosqlite:///{db_path}", echo=False, pool_pre_ping=True
+            )
+
+        self.SessionLocal = async_sessionmaker(
+            bind=self.engine, class_=AsyncSession, expire_on_commit=False
+        )
+        logger.info("SQLiteUserRepository initialized")
 
     def _model_to_entity(self, model: UserModel) -> UserEntity:
         """
@@ -95,7 +109,7 @@ class SQLiteUserRepository(IUserRepository):
             lastActiveAt=entity.last_active_at,
         )
 
-    def create(self, entity: UserEntity) -> UserEntity:
+    async def create(self, entity: UserEntity) -> UserEntity:
         """
         Create a new user in the repository.
 
@@ -110,7 +124,7 @@ class SQLiteUserRepository(IUserRepository):
         """
         user_model: UserModel
         try:
-            with self.SessionLocal() as session:
+            async with self.SessionLocal() as session:
                 # Generate ID if not provided
                 if entity.id is None:
                     entity.id = uuid.uuid4()
@@ -120,8 +134,8 @@ class SQLiteUserRepository(IUserRepository):
 
                 # Add and commit
                 session.add(user_model)
-                session.commit()
-                session.refresh(user_model)
+                await session.commit()
+                await session.refresh(user_model)
 
                 logger.info(
                     f"Created user: {user_model.username} (ID: {user_model.id})"
@@ -132,7 +146,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to create user: {e}")
             raise Exception(f"Failed to create user: {e}") from e
 
-    def get_by_id(self, entity_id: UUID) -> UserEntity | None:
+    async def get_by_id(self, entity_id: UUID) -> UserEntity | None:
         """
         Retrieve a user by their ID.
 
@@ -146,10 +160,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If retrieval fails
         """
         try:
-            with self.SessionLocal() as session:
-                user_model = (
-                    session.query(UserModel).filter_by(id=str(entity_id)).first()
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel).filter_by(id=str(entity_id))
                 )
+                user_model = result.scalar_one_or_none()
 
                 if user_model:
                     logger.debug(f"Retrieved user by ID: {entity_id}")
@@ -162,7 +177,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to get user by ID: {e}")
             raise Exception(f"Failed to get user by ID: {e}") from e
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[UserEntity]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[UserEntity]:
         """
         Retrieve all users with pagination.
 
@@ -177,8 +192,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If retrieval fails
         """
         try:
-            with self.SessionLocal() as session:
-                users = session.query(UserModel).offset(skip).limit(limit).all()
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel).offset(skip).limit(limit)
+                )
+                users = result.scalars().all()
 
                 logger.debug(
                     f"Retrieved {len(users)} users (skip={skip}, limit={limit})"
@@ -189,7 +207,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to get all users: {e}")
             raise Exception(f"Failed to get all users: {e}") from e
 
-    def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
+    async def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
         """
         Update an existing user.
 
@@ -204,10 +222,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If update fails
         """
         try:
-            with self.SessionLocal() as session:
-                user_model = (
-                    session.query(UserModel).filter_by(id=str(entity_id)).first()
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel).filter_by(id=str(entity_id))
                 )
+                user_model = result.scalar_one_or_none()
 
                 if not user_model:
                     logger.warning(f"User not found for update: {entity_id}")
@@ -226,8 +245,8 @@ class SQLiteUserRepository(IUserRepository):
                 if entity.last_active_at:
                     user_model.lastActiveAt = entity.last_active_at
 
-                session.commit()
-                session.refresh(user_model)
+                await session.commit()
+                await session.refresh(user_model)
 
                 logger.info(f"Updated user: {user_model.username} (ID: {entity_id})")
                 return self._model_to_entity(user_model)
@@ -236,7 +255,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to update user: {e}")
             raise Exception(f"Failed to update user: {e}") from e
 
-    def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: UUID) -> bool:
         """
         Delete a user by their ID.
 
@@ -250,17 +269,18 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If deletion fails
         """
         try:
-            with self.SessionLocal() as session:
-                user_model = (
-                    session.query(UserModel).filter_by(id=str(entity_id)).first()
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel).filter_by(id=str(entity_id))
                 )
+                user_model = result.scalar_one_or_none()
 
                 if not user_model:
                     logger.warning(f"User not found for deletion: {entity_id}")
                     return False
 
                 session.delete(user_model)
-                session.commit()
+                await session.commit()
 
                 logger.info(f"Deleted user: {user_model.username} (ID: {entity_id})")
                 return True
@@ -269,7 +289,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to delete user: {e}")
             raise Exception(f"Failed to delete user: {e}") from e
 
-    def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: UUID) -> bool:
         """
         Check if a user exists by their ID.
 
@@ -283,11 +303,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If check fails
         """
         try:
-            with self.SessionLocal() as session:
-                exists = (
-                    session.query(UserModel.id).filter_by(id=str(entity_id)).first()
-                    is not None
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel.id).filter_by(id=str(entity_id))
                 )
+                exists = result.scalar_one_or_none() is not None
 
                 logger.debug(f"User exists check for {entity_id}: {exists}")
                 return exists
@@ -296,7 +316,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to check user existence: {e}")
             raise Exception(f"Failed to check user existence: {e}") from e
 
-    def get_by_email(self, email: str) -> UserEntity | None:
+    async def get_by_email(self, email: str) -> UserEntity | None:
         """
         Retrieve a user by their email address.
 
@@ -310,8 +330,9 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If the retrieval fails
         """
         try:
-            with self.SessionLocal() as session:
-                user_model = session.query(UserModel).filter_by(email=email).first()
+            async with self.SessionLocal() as session:
+                result = await session.execute(select(UserModel).filter_by(email=email))
+                user_model = result.scalar_one_or_none()
 
                 if user_model:
                     logger.debug(f"Retrieved user by email: {email}")
@@ -324,7 +345,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to get user by email: {e}")
             raise Exception(f"Failed to get user by email: {e}") from e
 
-    def get_by_username(self, username: str) -> UserEntity | None:
+    async def get_by_username(self, username: str) -> UserEntity | None:
         """
         Retrieve a user by their username.
 
@@ -338,10 +359,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If the retrieval fails
         """
         try:
-            with self.SessionLocal() as session:
-                user_model = (
-                    session.query(UserModel).filter_by(username=username).first()
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel).filter_by(username=username)
                 )
+                user_model = result.scalar_one_or_none()
 
                 if user_model:
                     logger.debug(f"Retrieved user by username: {username}")
@@ -354,7 +376,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to get user by username: {e}")
             raise Exception(f"Failed to get user by username: {e}") from e
 
-    def email_exists(self, email: str) -> bool:
+    async def email_exists(self, email: str) -> bool:
         """
         Check if an email is already registered.
 
@@ -368,11 +390,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If the check fails
         """
         try:
-            with self.SessionLocal() as session:
-                exists = (
-                    session.query(UserModel.id).filter_by(email=email).first()
-                    is not None
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel.id).filter_by(email=email)
                 )
+                exists = result.scalar_one_or_none() is not None
 
                 logger.debug(f"Email exists check for {email}: {exists}")
                 return exists
@@ -381,7 +403,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to check email existence: {e}")
             raise Exception(f"Failed to check email existence: {e}") from e
 
-    def username_exists(self, username: str) -> bool:
+    async def username_exists(self, username: str) -> bool:
         """
         Check if a username is already taken.
 
@@ -395,11 +417,11 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If the check fails
         """
         try:
-            with self.SessionLocal() as session:
-                exists = (
-                    session.query(UserModel.id).filter_by(username=username).first()
-                    is not None
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel.id).filter_by(username=username)
                 )
+                exists = result.scalar_one_or_none() is not None
 
                 logger.debug(f"Username exists check for {username}: {exists}")
                 return exists
@@ -408,7 +430,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to check username existence: {e}")
             raise Exception(f"Failed to check username existence: {e}") from e
 
-    def update_last_active(self, user_id: UUID) -> bool:
+    async def update_last_active(self, user_id: UUID) -> bool:
         """
         Update the last active timestamp for a user.
 
@@ -422,15 +444,18 @@ class SQLiteUserRepository(IUserRepository):
             RepositoryError: If the update fails
         """
         try:
-            with self.SessionLocal() as session:
-                user_model = session.query(UserModel).filter_by(id=str(user_id)).first()
+            async with self.SessionLocal() as session:
+                result = await session.execute(
+                    select(UserModel).filter_by(id=str(user_id))
+                )
+                user_model = result.scalar_one_or_none()
 
                 if not user_model:
                     logger.warning(f"User not found for last active update: {user_id}")
                     return False
 
                 user_model.lastActiveAt = datetime.now(UTC)
-                session.commit()
+                await session.commit()
 
                 logger.debug(f"Updated last active for user: {user_id}")
                 return True

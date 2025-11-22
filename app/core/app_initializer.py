@@ -136,11 +136,14 @@ class AppInitializer:
         Returns:
             Dictionary mapping service types to their required repository types
         """
+        from app.application.services.language_service import LanguageService
         from app.application.services.user_service import UserService
+        from app.domain.interfaces.language_repository import ILanguageRepository
         from app.domain.interfaces.user_repository import IUserRepository
 
         service_mapping: dict[type, type] = {
             UserService: IUserRepository,
+            LanguageService: ILanguageRepository,
         }
         return service_mapping
 
@@ -152,8 +155,9 @@ class AppInitializer:
         Args:
             app: FastAPI application instance
         """
-        from app.presentation.api.v1 import about, health, users
+        from app.presentation.api.v1 import about, health, languages, users
 
         app.include_router(health.router, tags=["Health"])
         app.include_router(about.router, tags=["About"])
         app.include_router(users.router, tags=["Users"])
+        app.include_router(languages.router, tags=["Languages"])

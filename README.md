@@ -60,10 +60,31 @@ This section outlines how to set up and run the LexiGlow backend locally without
    docker compose --env-file .env -f docker/docker-compose.yml up -d
    ```
 
-6.  **Run the application**
+6.  **Running the Application**
+
+    *Development*
     ```bash
-    python app/main.py
+    # Install dependencies
+    pip install -e ".[dev]"
+
+    # Run with auto-reload
+    python -m app.main
+
+    # Or with uvicorn directly
+    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     ```
+
+    *Production*
+    ```bash
+    # Install dependencies
+    pip install -e .
+
+    # Multiple workers with uvicorn
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+    # Or with gunicorn + uvicorn workers
+    gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+    ```    
 
 7.  **Test the setup**
     ```bash

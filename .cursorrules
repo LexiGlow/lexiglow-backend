@@ -1,217 +1,152 @@
-# LexiGlow Backend - Cursor Rules
+# LexiGlow Backend - LLM Guidelines
 
-## Project Context
-This is a FastAPI-based REST API backend for LexiGlow with auto-generated OpenAPI documentation and MongoDB support.
+## Project Overview
+The LexiGlow Backend is a REST API designed with a strong emphasis on clean architecture principles.  
+It currently uses Flask but is transitioning to FastAPI, leveraging OpenAPI for API definition and documentation.  
+The primary database is SQLite, with MongoDB with the ablolutelly same structure.
+
+## Architecture & Structure
+The project follows a Clean Architecture pattern to ensure separation of concerns, maintainability, and testability.
+
+*   **`app/core/`**: Houses application-wide configurations, dependency management, logging, and security settings.
+*   **`app/domain/`**: Encapsulates core business logic, defining entities, value objects, and interfaces for repositories. This layer is independent of external concerns.
+*   **`app/infrastructure/`**: Provides concrete implementations for external services, such as database interactions (MongoDB with PyMongo, SQLite with SQLAlchemy) and other third-party integrations.
+*   **`app/application/`**: Contains application services that orchestrate domain logic, handling specific use cases and coordinating interactions between the domain and infrastructure layers.
+*   **`app/presentation/`**: Defines the API endpoints, handles HTTP requests, and manages request/response serialization (e.g., using Pydantic models for FastAPI).
+*   **`tests/`**: Comprehensive suite for unit and integration tests.
+*   **`data/`**: Stores local data, such as database files (ignored by git).
+*   **`logs/`**: Stores application logs (ignored by git).
+*   **`scripts/`**: Utility scripts for development tasks (e.g., database setup, data seeding, documentation generation).
+*   **`docker/`**: Contains Docker-related configurations for containerized deployment.
+*   **`app/presentation/api/v1/spec/openapi.yaml`**: The central OpenAPI specification document detailing all API endpoints and data models.
 
 ## Technology Stack
-- **Framework**: FastAPI with Uvicorn ASGI server
-- **Database**: MongoDB with PyMongo, SQLite with SQLAlchemy
-- **API Documentation**: Auto-generated OpenAPI 3.0 (Swagger UI & ReDoc)
-- **Authentication**: TBD (likely JWT-based)
-- **CORS**: FastAPI CORSMiddleware
-- **Environment**: Python 3.12+ with pyenv
-- **Testing**: pytest with FastAPI TestClient
-- **Code Quality**: Ruff (formatter & linter), mypy (type checking)
+*   **Language**: Python 3.13.7
+*   **Package Manager**: `pip` with `pyenv` for Python version control and `venv` for dependency management. (`uv` is also an option.)
+*   **Database**: SQLite (primary, via SQLAlchemy), MongoDB (the same structure with SQL, via PyMongo).
+*   **API Documentation**: OpenAPI 3.0 (Swagger UI).
+*   **Testing Framework**: `pytest`.
+*   **Code Quality**: `mypy` (static type checker), `ruff` (linter and formatter).
+*   **CORS**: Enabled for cross-origin requests.
 
-## Project Structure
-```
-lexiglow-backend/
-├── app/
-│   ├── application/         # Application layer (services, DTOs)
-│   ├── core/               # Core utilities (DI, config, logging)
-│   ├── domain/             # Domain layer (entities, interfaces)
-│   ├── infrastructure/     # Infrastructure (database, external APIs)
-│   ├── presentation/       # Presentation layer (API endpoints, schemas)
-│   │   ├── api/v1/        # API version 1 endpoints
-│   │   └── schemas/       # Response models
-│   ├── __init__.py        # FastAPI app factory
-│   └── main.py            # Application entry point
-├── tests/                  # Test files
-├── logs/                   # Application logs
-├── pyproject.toml         # Project metadata and dependencies
-└── .env                   # Environment variables
-```
-
-## Coding Standards
+## Coding Standards & Best Practices
 
 ### Python Style
-- Use **Ruff** for code formatting and linting (line length: 88 characters)
-- Follow **PEP 8** conventions
-- Use **type hints** consistently (enforced by mypy)
-- Use **f-strings** for string formatting
-- Use **pathlib.Path** for file operations
+*   Adhere strictly to `ruff` for linting and formatting, with a strict line length limit of 88 characters.
+*   Follow PEP 8 conventions.
+*   Avoid imports in the middle of files; place them at the top.
+*   Follow `mypy` rules strictly when writing code.
+*   Use only the custom logger configured in `app/core/logging_config.py` for all logging.
+*   Utilize type hints extensively for improved code clarity and maintainability.
+*   Prefer f-strings for string formatting.
+*   Use `pathlib.Path` for all file system operations.
+*   Write comprehensive docstrings for all modules, classes, and functions.
+*   Employ meaningful and descriptive variable, function, and class names.
+*   Keep functions and methods small, focused, and single-purpose.
 
-### FastAPI Patterns
-- Use **APIRouter** for modular route organization
-- Define routes with **decorators** (`@router.get()`, `@router.post()`, etc.)
-- Use **Pydantic models** for request/response schemas
-- Leverage **FastAPI's Depends()** for dependency injection
-- Follow **RESTful** API conventions
-- Use proper **HTTP status codes** (via `status` module)
-- Utilize **type hints** for automatic validation and documentation
+### Docstring Standards (Google Style)
+All Python modules, classes, and functions/methods **must** include docstrings following the Google Style. This ensures clarity, maintainability, and proper generation of API documentation.
 
-### Database Patterns
-- Use **PyMongo** for MongoDB operations
-- Use **SQLAlchemy** for SQLite operations
-- Access database via **dependency injection container**
-- Use **Pydantic** for data serialization/validation
-- Implement proper **error handling** for database operations
-- Follow **repository pattern** for data access
+#### General Guidelines:
+*   Use triple double quotes (`"""Docstring content"""`).
+*   The first line should be a concise, imperative summary of what the code does, preferably on the same line as the opening quotes.
+*   Follow the summary with a blank line, then a more detailed explanation if necessary.
+*   Use specific sections (e.g., `Args:`, `Returns:`, `Raises:`, `Examples:`) with consistent indentation.
+
+#### Examples:
+
+##### Module Docstring
+```python
+"""Module for user management utilities.
+
+This module provides functions for creating, retrieving, updating, and deleting
+user accounts, as well as user authentication and authorization helpers.
+"""
+```
+
+##### Class Docstring
+```python
+class UserService:
+    """Manages user-related business logic and interactions.
+
+    This service orchestrates operations between the application layer
+    and the user repository, handling data transfer objects (DTOs) and
+    applying business rules.
+
+    Attributes:
+        _user_repository (UserRepository): The repository for user data access.
+    """
+    def __init__(self, user_repository: UserRepository):
+        self._user_repository = user_repository
+```
+
+##### Function/Method Docstring
+```python
+    def get_user_by_id(self, user_id: str) -> Optional[UserDTO]:
+        """Retrieves a user by their unique identifier.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+
+        Returns:
+            Optional[UserDTO]: The user data transfer object if found,
+                otherwise None.
+
+        Raises:
+            RepositoryError: If an error occurs during database access.
+        """
+        # ... implementation ...
+```
+
+### API Design (FastAPI-focused)
+*   Design APIs following RESTful principles.
+*   Use appropriate HTTP status codes for responses (e.g., 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 500 Internal Server Error).
+*   Define all API endpoints and data models in `openapi/openapi.yaml`.
+*   Leverage FastAPI's automatic request and response validation using Pydantic models.
+*   Implement dependency injection for managing services in the `app/application/services/` and data repositories.
+*   Ensure API endpoints return serialized data using Pydantic schemas.
+
+### Database Interaction
+*   Abstract database operations behind well-defined repository interfaces in the `app/domain/interfaces/` layer.
+*   Provide concrete repository implementations in `app/infrastructure/database/`.
+*   Use the appropriate Object-Document Mapper (ODM) or Object-Relational Mapper (ORM) for each database (PyMongo for MongoDB, SQLAlchemy for SQLite).
+*   Implement robust error handling for all database operations.
 
 ### Error Handling
-- Use **HTTPException** for API errors with proper status codes
-- Use **status** module constants (e.g., `status.HTTP_404_NOT_FOUND`)
-- Log errors using the configured **logging system**
-- Return **consistent error response format** (detail dict)
-- Handle **database connection errors** gracefully
-- Re-raise **HTTPException** to avoid double-catching
-
-### Environment & Configuration
-- Use **python-dotenv** for environment variables
-- Store sensitive data in `.env` file (not committed)
-- Use **os.getenv()** with sensible defaults
-- Configure logging with both **file and console** handlers
-
-## API Development Guidelines
-
-### OpenAPI Integration
-- FastAPI **auto-generates** OpenAPI spec from code
-- Use **decorator parameters** for endpoint documentation
-- Add `response_model` for automatic serialization
-- Access Swagger UI at `/docs` endpoint
-- Access ReDoc at `/redoc` endpoint
-- Download OpenAPI JSON at `/openapi.json`
-
-### Endpoint Structure
-- Place endpoint handlers in `app/presentation/api/v1/`
-- Keep handlers **thin** - delegate to service classes
-- Use **FastAPI Depends()** for dependency injection
-- Return **Pydantic models** directly (auto-serialized)
-- Use **APIRouter** with appropriate prefixes
-- Group related endpoints in the same router file
-
-### Testing
-- Write **unit tests** in `tests/` directory
-- Use **pytest** for test execution
-- Use **FastAPI TestClient** for endpoint testing
-- Mock **external dependencies** (MongoDB, APIs)
-- Test both **success and error** scenarios
-- Override dependencies using `app.dependency_overrides`
-
-## Code Quality
-- Run **Ruff** for formatting and linting: `ruff format .` and `ruff check .`
-- Run **mypy** for type checking: `mypy .`
-- Write **comprehensive docstrings** for functions/classes
-- Use **meaningful variable and function names**
-- Keep functions **small and focused**
-- Leverage **type hints** for better IDE support and validation
-
-## Security Considerations
-- Validate **all input data** using Pydantic models (automatic)
-- Use **environment variables** for sensitive configuration
-- Implement **proper CORS** configuration for production (restrict origins)
-- Add **authentication/authorization** as needed (FastAPI security utilities)
-- Sanitize **database queries** to prevent injection
-- Use **HTTPException** with appropriate status codes for auth failures
-
-## Development Workflow
-1. Define Pydantic models for request/response in `app/presentation/schemas/`
-2. Implement service logic in `app/application/services/`
-3. Create API endpoints in `app/presentation/api/v1/` using APIRouter
-4. Register routers in `app/__init__.py`
-5. Write tests in `tests/` using FastAPI TestClient
-6. Run `ruff format .` and `ruff check .` before committing
-7. Run `mypy .` for type checking
-8. Test API using Swagger UI at `http://localhost:8000/docs`
-
-## Common Patterns
-
-### Dependency Injection
-```python
-from fastapi import APIRouter, Depends, status
-from app.core.dependencies import get_user_service
-from app.application.services.user_service import UserService
-
-router = APIRouter()
-
-@router.get("/users/")
-def get_users(service: UserService = Depends(get_user_service)):
-    return service.get_all_users()
-```
-
-### Error Handling
-```python
-from fastapi import HTTPException, status
-
-# Raise HTTP error
-if not user:
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail={"error": "User not found", "message": "User does not exist"}
-    )
-
-# Re-raise HTTPException to avoid double-catching
-except HTTPException:
-    raise
-except Exception as e:
-    logger.error(f"Error: {e}")
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail={"error": "Internal server error", "message": str(e)}
-    )
-```
-
-### Response Models
-```python
-from pydantic import BaseModel
-from fastapi import APIRouter
-
-class UserResponse(BaseModel):
-    id: UUID
-    email: str
-    username: str
-
-@router.get("/users/{user_id}", response_model=UserResponse)
-def get_user(user_id: UUID, service: UserService = Depends(get_user_service)):
-    return service.get_user(user_id)  # Returns Pydantic model directly
-```
-
-### Logging
+*   Maintain a consistent error response format across the API.
+*   Utilize the configured logging system (`app/core/logging_config.py`) for all error reporting.
 ```python
 import logging
 logger = logging.getLogger(__name__)
 logger.info("Operation completed successfully")
 logger.error(f"Error occurred: {error}")
 ```
+*   Gracefully handle exceptions from external services and database interactions.
 
-## Notes
-- The app uses **FastAPI** with auto-generated OpenAPI documentation
-- Database connections managed via **dependency injection container**
-- CORS configured via **CORSMiddleware** (restrict origins for production)
-- Logging configured to write to both console and file
-- Server runs on **port 8000** (use uvicorn for development)
-- Use **Clean Architecture** with layers: domain → application → infrastructure → presentation
-- Follow the existing project structure and patterns
+### Configuration
+*   Manage application configuration using environment variables, typically loaded from a `.env` file via `python-dotenv`.
+*   Store all sensitive information (e.g., API keys, database credentials) in environment variables and never commit them to version control.
+*   Provide sensible default values for configuration parameters.
+*   Centralize application configuration in `app/core/config.py`.
 
-## Running the Application
+## Development Workflow
+1.  **API Definition**: Start by defining or updating API endpoints and data models in `openapi/openapi.yaml`.
+2.  **Core Logic**: Implement domain logic, application services, and infrastructure components.
+3.  **API Implementation**: Develop API endpoints in `app/presentation/` that utilize the application and domain layers.
+4.  **Testing**: Write comprehensive unit and integration tests for new and modified code.
+5.  **Code Quality Checks**: During the code generation run `mypy` for type checking and`ruff` for linting and formatting.
+6.  **Local Testing**: Test API functionality using Swagger UI (available at `/docs` endpoint) or `curl`.
+7.  **Documentation**: Generate project documentation using `scripts/generate_docs.py` as needed.
 
-### Development
-```bash
-# Install dependencies
-pip install -e ".[dev]"
+## Testing
+*   All tests are executed using `pytest`.
+*   Tests are organized into `tests/unit` and `tests/integration` directories.
+*   External dependencies (e.g., databases, third-party APIs) should be mocked during unit tests.
+*   Ensure both successful execution paths and error handling scenarios are covered by tests.
 
-# Run with auto-reload
-python -m app.main
-
-# Or with uvicorn directly
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Production
-```bash
-# Multiple workers with uvicorn
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-
-# Or with gunicorn + uvicorn workers
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
-```
+## Security Considerations
+*   Validate all incoming request data rigorously using Pydantic models to prevent injection attacks and other vulnerabilities.
+*   Utilize environment variables for all sensitive configuration parameters.
+*   Properly configure CORS policies to restrict access to authorized origins.
+*   Implement robust authentication and authorization mechanisms as required.
+*   Sanitize all database queries and inputs to prevent SQL injection (for SQLite) and similar attacks.

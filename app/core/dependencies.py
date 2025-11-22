@@ -12,6 +12,7 @@ from fastapi import Depends, Request
 
 if TYPE_CHECKING:
     from app.application.services.language_service import LanguageService
+    from app.application.services.text_service import TextService
     from app.application.services.user_service import UserService
     from app.core.container import Container
 
@@ -64,6 +65,23 @@ def get_user_service(
     from app.application.services.user_service import UserService
 
     return container.get_service(UserService)
+
+
+def get_text_service(
+    container: Annotated["Container", Depends(get_container)],
+) -> "TextService":
+    """
+    Get the TextService instance via dependency injection.
+
+    Args:
+        container: DI container (injected automatically)
+
+    Returns:
+        TextService instance
+    """
+    from app.application.services.text_service import TextService
+
+    return container.get_service(TextService)
 
 
 def get_language_service(

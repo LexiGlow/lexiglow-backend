@@ -6,6 +6,7 @@ import logging
 import uuid
 from uuid import UUID
 
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
 
@@ -28,16 +29,24 @@ class MongoDBLanguageRepository(ILanguageRepository):
             db_url, uuidRepresentation="standard"
         )
         self.db = self.client[db_name]
-        self.collection = self.db.languages
+        self.collection = self.db.Language
         logger.info(f"MongoDBLanguageRepository initialized with database: {db_name}")
 
     def _model_to_entity(self, model: dict) -> LanguageEntity:
         """
         Convert MongoDB document to domain entity.
+        Handles ObjectId conversion to UUID for compatibility.
         """
-        # Convert MongoDB _id to entity id
+        # Convert MongoDB _id to entity id, handling ObjectId conversion
         if "_id" in model:
-            model["id"] = model.pop("_id")
+            _id_value = model.pop("_id")
+            if isinstance(_id_value, ObjectId):
+                # Convert ObjectId to a padded hex string to form a UUID
+                model["id"] = UUID(str(_id_value).ljust(32, "0"))
+            else:
+                model["id"] = (
+                    _id_value  # Expecting it to be a UUID object if stored correctly
+                )
         return LanguageEntity.model_validate(model)
 
     def _entity_to_model(self, entity: LanguageEntity) -> dict:
@@ -74,7 +83,14 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Retrieve a language by its ID.
         """
         try:
-            language_model = await self.collection.find_one({"_id": entity_id})
+            # Convert UUID to ObjectId for query, assuming UUIDs are derived
+            # from ObjectIds by padding. We need to reverse this to query for
+            # the original ObjectId. Extract the relevant 24 hex characters
+            # for ObjectId from the UUID string.
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
+            language_model = await self.collection.find_one({"_id": mongo_id})
 
             if language_model:
                 logger.debug(f"Retrieved language by ID: {entity_id}")
@@ -115,9 +131,13 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Update an existing language.
         """
         try:
+            # Convert UUID to ObjectId for query
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
             language_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": entity_id}, {"$set": language_model}
+                {"_id": mongo_id}, {"$set": language_model}
             )
 
             if result.matched_count:
@@ -136,7 +156,11 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Delete a language by its ID.
         """
         try:
-            result = await self.collection.delete_one({"_id": entity_id})
+            # Convert UUID to ObjectId for query
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
+            result = await self.collection.delete_one({"_id": mongo_id})
 
             if result.deleted_count:
                 logger.info(f"Deleted language: {entity_id}")
@@ -154,7 +178,10 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Check if a language exists by its ID.
         """
         try:
-            count: int = await self.collection.count_documents({"_id": entity_id})
+            # Convert UUID to ObjectId for query
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+            count: int = await self.collection.count_documents({"_id": mongo_id})
             exists = count > 0
             logger.debug(f"Language exists check for {entity_id}: {exists}")
             return exists

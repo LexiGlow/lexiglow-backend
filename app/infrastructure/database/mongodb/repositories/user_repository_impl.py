@@ -111,7 +111,14 @@ class MongoDBUserRepository(IUserRepository):
         Retrieve a user by their ID.
         """
         try:
-            user_model = await self.collection.find_one({"_id": entity_id})
+            # Convert UUID to ObjectId for query, assuming UUIDs are derived
+            # from ObjectIds by padding. We need to reverse this to query for
+            # the original ObjectId. Extract the relevant 24 hex characters
+            # for ObjectId from the UUID string.
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
+            user_model = await self.collection.find_one({"_id": mongo_id})
 
             if user_model:
                 logger.debug(f"Retrieved user by ID: {entity_id}")
@@ -148,11 +155,15 @@ class MongoDBUserRepository(IUserRepository):
         Update an existing user.
         """
         try:
+            # Convert UUID to ObjectId for query
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
             # Update the updated_at timestamp
             entity.updated_at = datetime.now(UTC)
             user_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": entity_id}, {"$set": user_model}
+                {"_id": mongo_id}, {"$set": user_model}
             )
 
             if result.matched_count:
@@ -173,7 +184,11 @@ class MongoDBUserRepository(IUserRepository):
         Delete a user by their ID.
         """
         try:
-            result = await self.collection.delete_one({"_id": entity_id})
+            # Convert UUID to ObjectId for query
+            object_id_str = str(entity_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
+            result = await self.collection.delete_one({"_id": mongo_id})
 
             if result.deleted_count:
                 logger.info(f"Deleted user: {entity_id}")
@@ -269,8 +284,12 @@ class MongoDBUserRepository(IUserRepository):
         Update the last active timestamp for a user.
         """
         try:
+            # Convert UUID to ObjectId for query
+            object_id_str = str(user_id).replace("-", "")[:24]
+            mongo_id = ObjectId(object_id_str)
+
             result = await self.collection.update_one(
-                {"_id": user_id}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
+                {"_id": mongo_id}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
             )
 
             if result.matched_count:

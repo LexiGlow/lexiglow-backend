@@ -16,12 +16,16 @@ import os
 import random
 import sqlite3
 import sys
-import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 
 from dotenv import load_dotenv
+
+# Ensure the app directory is in the Python path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.core.ids import get_ulid
 
 # Setup logging
 logging.basicConfig(
@@ -50,15 +54,6 @@ def load_sample_data() -> dict[str, Any]:
     logger.info(f"Loading sample data from {SAMPLE_DATA_PATH}")
     with open(SAMPLE_DATA_PATH, encoding="utf-8") as f:
         return cast(dict[str, Any], json.load(f))
-
-
-def generate_uuid() -> str:
-    """Generates a new UUID and returns it as a string.
-
-    Returns:
-        str: A unique identifier string.
-    """
-    return str(uuid.uuid4())
 
 
 def generate_timestamp(days_ago: int = 0) -> str:
@@ -129,7 +124,7 @@ def seed_languages(
     language_ids = []
 
     for lang in data["languages"]:
-        lang_id = generate_uuid()
+        lang_id = get_ulid()
         cursor.execute(
             """
             INSERT INTO Language (id, name, code, nativeName, createdAt)
@@ -174,7 +169,7 @@ def seed_users(
     user_ids = []
 
     for i in range(count):
-        user_id = generate_uuid()
+        user_id = get_ulid()
         first_name = random.choice(data["first_names"])
         last_name = random.choice(data["last_names"])
         username = f"{first_name.lower()}{last_name.lower()}{i}"
@@ -287,7 +282,7 @@ def seed_text_tags(conn: sqlite3.Connection, data: dict[str, Any]) -> list[str]:
     tag_ids = []
 
     for tag in data["text_tags"]:
-        tag_id = generate_uuid()
+        tag_id = get_ulid()
         cursor.execute(
             """
             INSERT INTO TextTag (id, name, description)
@@ -331,7 +326,7 @@ def seed_texts(
         texts = data["sample_texts"].get(lang_code, [])
 
         for text_data in texts:
-            text_id = generate_uuid()
+            text_id = get_ulid()
             # Some texts have users, some are system content (userId = NULL)
             user_id = random.choice([None, *user_ids[:2]])
             word_count = len(text_data["content"].split())
@@ -411,7 +406,7 @@ def seed_vocabularies(
         vocab_languages = random.sample(language_ids, num_vocabs)
 
         for lang_id, lang_code in vocab_languages:
-            vocab_id = generate_uuid()
+            vocab_id = get_ulid()
 
             # Get language name for the vocabulary name
             cursor.execute("SELECT name FROM Language WHERE id = ?", (lang_id,))
@@ -469,7 +464,7 @@ def seed_vocabulary_items(
         selected_words = random.sample(vocab_words, num_words)
 
         for word_data in selected_words:
-            item_id = generate_uuid()
+            item_id = get_ulid()
             status = random.choice(data["vocabulary_statuses"])
             times_reviewed = random.randint(0, 20)
             confidence = random.choice(

@@ -5,13 +5,13 @@ This module provides REST API handlers for user CRUD operations using FastAPI.
 
 import logging
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
 from app.application.services.user_service import UserService
 from app.core.dependencies import get_user_service
+from app.core.types import ULIDStr
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ async def get_users(
     description="Retrieve a specific user by their UUID",
 )
 async def get_user_by_id(
-    userId: UUID,
+    userId: ULIDStr,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
     """
@@ -173,7 +173,7 @@ async def create_user(
     description="Update an existing user's information",
 )
 async def update_user(
-    userId: UUID,
+    userId: ULIDStr,
     user_data: UserUpdate,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
@@ -236,7 +236,7 @@ async def update_user(
     description="Delete an existing user by their UUID",
 )
 async def delete_user(
-    userId: UUID,
+    userId: ULIDStr,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> None:
     """

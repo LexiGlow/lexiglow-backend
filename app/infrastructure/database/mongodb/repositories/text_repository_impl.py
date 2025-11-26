@@ -4,14 +4,12 @@ MongoDB implementation of Text repository.
 
 import logging
 import re
-import uuid
 from datetime import UTC, datetime
-from uuid import UUID
 
-from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
 
+from app.core.types import ULIDStr
 from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
 from app.domain.interfaces.text_repository import ITextRepository
@@ -29,7 +27,7 @@ class MongoDBTextRepository(ITextRepository):
         Initialize the MongoDB Text repository.
         """
         self.client: AsyncIOMotorClient = AsyncIOMotorClient(
-            db_url, uuidRepresentation="standard"
+            db_url, uuidRepresentation="unspecified"
         )
         self.db = self.client[db_name]
         self.collection = self.db.Text
@@ -38,33 +36,10 @@ class MongoDBTextRepository(ITextRepository):
     def _model_to_entity(self, model: dict) -> TextEntity:
         """
         Convert MongoDB document to domain entity.
-        Handles ObjectId conversion to UUID for compatibility.
+        Maps MongoDB _id to entity id.
         """
-        # Convert MongoDB _id to entity id, handling ObjectId conversion
         if "_id" in model:
-            _id_value = model.pop("_id")
-            if isinstance(_id_value, ObjectId):
-                # Convert ObjectId to a padded hex string to form a UUID
-                model["id"] = UUID(str(_id_value).ljust(32, "0"))
-            else:
-                model["id"] = (
-                    _id_value  # Expecting it to be a UUID object if stored correctly
-                )
-
-        if "languageId" in model:
-            language_id = model["languageId"]
-            if isinstance(language_id, ObjectId):
-                model["languageId"] = UUID(str(language_id).ljust(32, "0"))
-            else:
-                model["languageId"] = language_id
-
-        if "userId" in model:
-            user_id = model["userId"]
-            if isinstance(user_id, ObjectId):
-                model["userId"] = UUID(str(user_id).ljust(32, "0"))
-            else:
-                model["userId"] = user_id
-
+            model["id"] = model.pop("_id")
         return TextEntity.model_validate(model)
 
     def _entity_to_model(self, entity: TextEntity) -> dict:
@@ -82,10 +57,6 @@ class MongoDBTextRepository(ITextRepository):
         Create a new text in the repository.
         """
         try:
-            # Generate ID if not provided
-            if entity.id is None:
-                entity.id = uuid.uuid4()
-
             text_model = self._entity_to_model(entity)
             await self.collection.insert_one(text_model)
 
@@ -96,19 +67,12 @@ class MongoDBTextRepository(ITextRepository):
             logger.error(f"Failed to create text: {e}")
             raise Exception(f"Failed to create text: {e}") from e
 
-    async def get_by_id(self, entity_id: UUID) -> TextEntity | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> TextEntity | None:
         """
         Retrieve a text by its ID.
         """
         try:
-            # Convert UUID to ObjectId for query, assuming UUIDs are derived
-            # from ObjectIds by padding. We need to reverse this to query for
-            # the original ObjectId. Extract the relevant 24 hex characters
-            # for ObjectId from the UUID string.
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
-            text_model = await self.collection.find_one({"_id": mongo_id})
+            text_model = await self.collection.find_one({"_id": entity_id})
 
             if text_model:
                 logger.debug(f"Retrieved text by ID: {entity_id}")
@@ -140,20 +104,16 @@ class MongoDBTextRepository(ITextRepository):
             logger.error(f"Failed to get all texts: {e}")
             raise Exception(f"Failed to get all texts: {e}") from e
 
-    async def update(self, entity_id: UUID, entity: TextEntity) -> TextEntity | None:
+    async def update(self, entity_id: ULIDStr, entity: TextEntity) -> TextEntity | None:
         """
         Update an existing text.
         """
         try:
-            # Convert UUID to ObjectId for query
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
             # Update the updated_at timestamp
             entity.updated_at = datetime.now(UTC)
             text_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": mongo_id}, {"$set": text_model}
+                {"_id": entity_id}, {"$set": text_model}
             )
 
             if result.matched_count:
@@ -168,16 +128,12 @@ class MongoDBTextRepository(ITextRepository):
             logger.error(f"Failed to update text: {e}")
             raise Exception(f"Failed to update text: {e}") from e
 
-    async def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete a text by its ID.
         """
         try:
-            # Convert UUID to ObjectId for query
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
-            result = await self.collection.delete_one({"_id": mongo_id})
+            result = await self.collection.delete_one({"_id": entity_id})
 
             if result.deleted_count:
                 logger.info(f"Deleted text: {entity_id}")
@@ -190,15 +146,12 @@ class MongoDBTextRepository(ITextRepository):
             logger.error(f"Failed to delete text: {e}")
             raise Exception(f"Failed to delete text: {e}") from e
 
-    async def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if a text exists by its ID.
         """
         try:
-            # Convert UUID to ObjectId for query
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-            count: int = await self.collection.count_documents({"_id": mongo_id})
+            count: int = await self.collection.count_documents({"_id": entity_id})
             exists = count > 0
             logger.debug(f"Text exists check for {entity_id}: {exists}")
             return exists
@@ -208,7 +161,7 @@ class MongoDBTextRepository(ITextRepository):
             raise Exception(f"Failed to check text existence: {e}") from e
 
     async def get_by_language(
-        self, language_id: UUID, skip: int = 0, limit: int = 100
+        self, language_id: ULIDStr, skip: int = 0, limit: int = 100
     ) -> list[TextEntity]:
         """
         Retrieve texts by language.
@@ -236,7 +189,7 @@ class MongoDBTextRepository(ITextRepository):
             raise Exception(f"Failed to get texts by language: {e}") from e
 
     async def get_by_user(
-        self, user_id: UUID, skip: int = 0, limit: int = 100
+        self, user_id: ULIDStr, skip: int = 0, limit: int = 100
     ) -> list[TextEntity]:
         """
         Retrieve texts by user.
@@ -341,7 +294,7 @@ class MongoDBTextRepository(ITextRepository):
             raise Exception(f"Failed to search texts by title: {e}") from e
 
     async def get_by_tags(
-        self, tag_ids: list[UUID], skip: int = 0, limit: int = 100
+        self, tag_ids: list[ULIDStr], skip: int = 0, limit: int = 100
     ) -> list[TextEntity]:
         """
         Retrieve texts by tags.

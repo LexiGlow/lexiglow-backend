@@ -7,13 +7,14 @@ handling business logic and validation.
 
 import logging
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
 
 from app.application.dto.language_dto import (
     LanguageCreate,
     LanguageResponse,
     LanguageUpdate,
 )
+from app.core.ids import get_ulid
+from app.core.types import ULIDStr
 from app.domain.entities.language import Language as LanguageEntity
 from app.domain.interfaces.language_repository import ILanguageRepository
 
@@ -88,7 +89,7 @@ class LanguageService:
 
         # Create entity
         language_entity = LanguageEntity(
-            id=uuid4(),
+            id=get_ulid(),
             name=language_data.name,
             code=language_data.code,
             nativeName=language_data.native_name,
@@ -101,7 +102,7 @@ class LanguageService:
 
         return self._entity_to_response(created_entity)
 
-    async def get_language(self, language_id: UUID) -> LanguageResponse | None:
+    async def get_language(self, language_id: ULIDStr) -> LanguageResponse | None:
         """
         Retrieve a language by ID.
 
@@ -145,7 +146,7 @@ class LanguageService:
         return [self._entity_to_response(entity) for entity in entities]
 
     async def update_language(
-        self, language_id: UUID, language_data: LanguageUpdate
+        self, language_id: ULIDStr, language_data: LanguageUpdate
     ) -> LanguageResponse | None:
         """
         Update a language with validation.
@@ -211,7 +212,7 @@ class LanguageService:
         logger.info(f"Language updated successfully: {language_id}")
         return self._entity_to_response(updated)
 
-    async def delete_language(self, language_id: UUID) -> bool:
+    async def delete_language(self, language_id: ULIDStr) -> bool:
         """
         Delete a language by ID.
 

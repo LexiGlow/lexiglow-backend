@@ -6,8 +6,8 @@ extending the base repository with user-specific methods.
 """
 
 from abc import abstractmethod
-from uuid import UUID
 
+from app.core.types import ULIDStr
 from app.domain.entities.user import User
 from app.domain.interfaces.base_repository import IRepository
 
@@ -84,12 +84,12 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    async def update_last_active(self, user_id: UUID) -> bool:
+    async def update_last_active(self, user_id: ULIDStr) -> bool:
         """
         Update the last active timestamp for a user.
 
         Args:
-            user_id: The UUID of the user
+            user_id: The ULID of the user
 
         Returns:
             True if updated successfully, False otherwise

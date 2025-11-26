@@ -7,7 +7,6 @@ handling business logic, validation, and password hashing.
 
 import logging
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
 
 import bcrypt
 
@@ -16,6 +15,8 @@ from app.application.dto.user_dto import (
     UserResponse,
     UserUpdate,
 )
+from app.core.ids import get_ulid
+from app.core.types import ULIDStr
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
 
@@ -117,7 +118,7 @@ class UserService:
 
         # Create entity
         user_entity = UserEntity(
-            id=uuid4(),
+            id=get_ulid(),
             email=user_data.email,
             username=user_data.username,
             passwordHash=password_hash,
@@ -136,7 +137,7 @@ class UserService:
 
         return self._entity_to_response(created_entity)
 
-    async def get_user(self, user_id: UUID) -> UserResponse | None:
+    async def get_user(self, user_id: ULIDStr) -> UserResponse | None:
         """
         Retrieve a user by ID.
 
@@ -180,7 +181,7 @@ class UserService:
         return [self._entity_to_response(entity) for entity in entities]
 
     async def update_user(
-        self, user_id: UUID, user_data: UserUpdate
+        self, user_id: ULIDStr, user_data: UserUpdate
     ) -> UserResponse | None:
         """
         Update a user with validation.
@@ -263,7 +264,7 @@ class UserService:
         logger.info(f"User updated successfully: {user_id}")
         return self._entity_to_response(updated)
 
-    async def delete_user(self, user_id: UUID) -> bool:
+    async def delete_user(self, user_id: ULIDStr) -> bool:
         """
         Delete a user by ID.
 

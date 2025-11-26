@@ -5,15 +5,16 @@ This module defines entities related to languages supported by the application.
 """
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.ids import get_ulid
 
 
 class Language(BaseModel):
     """Represents a language supported by the application."""
 
-    id: UUID | None = None
+    id: str = Field(default_factory=get_ulid)
     name: str = Field(
         ..., description="English name of the language (e.g., 'English', 'Spanish')"
     )
@@ -27,7 +28,7 @@ class Language(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
                 "name": "Spanish",
                 "code": "es",
                 "nativeName": "Español",

@@ -6,13 +6,14 @@ This module implements the application service layer for Text operations.
 
 import logging
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
 
 from app.application.dto.text_dto import (
     TextCreate,
     TextResponse,
     TextUpdate,
 )
+from app.core.ids import get_ulid
+from app.core.types import ULIDStr
 from app.domain.entities.text import Text as TextEntity
 from app.domain.interfaces.text_repository import ITextRepository
 
@@ -83,7 +84,7 @@ class TextService:
         # Construct TextEntity using camelCase aliases for fields that have them
         # model_dump(by_alias=True) provides camelCase keys where aliases are defined
         text_entity = TextEntity(
-            id=uuid4(),
+            id=get_ulid(),
             createdAt=datetime.now(UTC),
             updatedAt=datetime.now(UTC),
             **text_data.model_dump(by_alias=True, exclude_unset=True),
@@ -94,7 +95,7 @@ class TextService:
 
         return self._entity_to_response(created_entity)
 
-    async def get_text(self, text_id: UUID) -> TextResponse | None:
+    async def get_text(self, text_id: ULIDStr) -> TextResponse | None:
         """
         Retrieve a text by ID.
 
@@ -138,7 +139,7 @@ class TextService:
         return [self._entity_to_response(entity) for entity in entities]
 
     async def update_text(
-        self, text_id: UUID, text_data: TextUpdate
+        self, text_id: ULIDStr, text_data: TextUpdate
     ) -> TextResponse | None:
         """
         Update a text.
@@ -190,7 +191,7 @@ class TextService:
         logger.info(f"Text updated successfully: {text_id}")
         return self._entity_to_response(updated)
 
-    async def delete_text(self, text_id: UUID) -> bool:
+    async def delete_text(self, text_id: ULIDStr) -> bool:
         """
         Delete a text by ID.
 

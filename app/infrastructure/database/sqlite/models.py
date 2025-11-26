@@ -29,7 +29,7 @@ class Language(Base):
 
     __tablename__ = "Language"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     code: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     nativeName: Mapped[str] = mapped_column(String, nullable=False)
@@ -57,17 +57,17 @@ class User(Base):
 
     __tablename__ = "User"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     username: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     passwordHash: Mapped[str] = mapped_column(String, nullable=False)
     firstName: Mapped[str] = mapped_column(String, nullable=False)
     lastName: Mapped[str] = mapped_column(String, nullable=False)
     nativeLanguageId: Mapped[str] = mapped_column(
-        String, ForeignKey("Language.id"), nullable=False
+        String(26), ForeignKey("Language.id"), nullable=False
     )
     currentLanguageId: Mapped[str] = mapped_column(
-        String, ForeignKey("Language.id"), nullable=False
+        String(26), ForeignKey("Language.id"), nullable=False
     )
     createdAt: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=lambda: datetime.now(UTC)
@@ -113,12 +113,12 @@ class UserLanguage(Base):
     )
 
     userId: Mapped[str] = mapped_column(
-        String, ForeignKey("User.id", ondelete="CASCADE"), primary_key=True
+        String(26), ForeignKey("User.id", ondelete="CASCADE"), primary_key=True
     )
     languageId: Mapped[str] = mapped_column(
-        String, ForeignKey("Language.id", ondelete="CASCADE"), primary_key=True
+        String(26), ForeignKey("Language.id", ondelete="CASCADE"), primary_key=True
     )
-    proficiencyLevel: Mapped[str] = mapped_column(String, nullable=False)
+    proficiencyLevel: Mapped[str] = mapped_column(String(2), nullable=False)
     startedAt: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=lambda: datetime.now(UTC)
@@ -152,14 +152,14 @@ class TextModel(Base):
         ),
     )
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     languageId: Mapped[str] = mapped_column(
-        String, ForeignKey("Language.id"), nullable=False
+        String(26), ForeignKey("Language.id"), nullable=False
     )
     userId: Mapped[str | None] = mapped_column(
-        String, ForeignKey("User.id", ondelete="SET NULL"), nullable=True
+        String(26), ForeignKey("User.id", ondelete="SET NULL"), nullable=True
     )
     proficiencyLevel: Mapped[str] = mapped_column(String, nullable=False)
     wordCount: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -197,12 +197,12 @@ class UserVocabulary(Base):
         UniqueConstraint("userId", "languageId", name="unique_user_language_vocab"),
     )
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
     userId: Mapped[str] = mapped_column(
-        String, ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+        String(26), ForeignKey("User.id", ondelete="CASCADE"), nullable=False
     )
     languageId: Mapped[str] = mapped_column(
-        String, ForeignKey("Language.id"), nullable=False
+        String(26), ForeignKey("Language.id"), nullable=False
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(
@@ -250,9 +250,9 @@ class UserVocabularyItem(Base):
         ),
     )
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
     userVocabularyId: Mapped[str] = mapped_column(
-        String, ForeignKey("UserVocabulary.id", ondelete="CASCADE"), nullable=False
+        String(26), ForeignKey("UserVocabulary.id", ondelete="CASCADE"), nullable=False
     )
     term: Mapped[str] = mapped_column(String, nullable=False)
     lemma: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -288,8 +288,8 @@ class TextTag(Base):
 
     __tablename__ = "TextTag"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    id: Mapped[str] = mapped_column(String(26), primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
@@ -307,10 +307,10 @@ class TextTagAssociation(Base):
     __tablename__ = "TextTagAssociation"
 
     textId: Mapped[str] = mapped_column(
-        String, ForeignKey("Text.id", ondelete="CASCADE"), primary_key=True
+        String(26), ForeignKey("Text.id", ondelete="CASCADE"), primary_key=True
     )
     tagId: Mapped[str] = mapped_column(
-        String, ForeignKey("TextTag.id", ondelete="CASCADE"), primary_key=True
+        String(26), ForeignKey("TextTag.id", ondelete="CASCADE"), primary_key=True
     )
 
     # Relationships

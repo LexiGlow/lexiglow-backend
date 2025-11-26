@@ -6,14 +6,13 @@ using SQLAlchemy async ORM and raw SQL queries.
 """
 
 import logging
-import uuid
-from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.config import BASE_DIR
+from app.core.types import ULIDStr
 from app.domain.entities.language import Language as LanguageEntity
 from app.domain.interfaces.language_repository import ILanguageRepository
 from app.infrastructure.database.sqlite.models import Language as LanguageModel
@@ -71,7 +70,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             Pydantic Language entity
         """
         return LanguageEntity(
-            id=UUID(str(model.id)),
+            id=model.id,
             name=str(model.name),
             code=str(model.code),
             nativeName=str(model.nativeName),
@@ -89,7 +88,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             SQLAlchemy Language model
         """
         return LanguageModel(
-            id=str(entity.id),
+            id=entity.id,
             name=entity.name,
             code=entity.code,
             nativeName=entity.native_name,
@@ -111,10 +110,6 @@ class SQLiteLanguageRepository(ILanguageRepository):
         """
         try:
             async with self.SessionLocal() as session:
-                # Generate ID if not provided
-                if entity.id is None:
-                    entity.id = uuid.uuid4()
-
                 # Convert entity to model
                 language_model = self._entity_to_model(entity)
 
@@ -132,7 +127,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to create language: {e}")
             raise Exception(f"Failed to create language: {e}") from e
 
-    async def get_by_id(self, entity_id: UUID) -> LanguageEntity | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> LanguageEntity | None:
         """
         Retrieve a language by its ID.
 
@@ -148,7 +143,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel).filter_by(id=str(entity_id))
+                    select(LanguageModel).filter_by(id=entity_id)
                 )
                 language_model = result.scalar_one_or_none()
 
@@ -194,7 +189,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             raise Exception(f"Failed to get all languages: {e}") from e
 
     async def update(
-        self, entity_id: UUID, entity: LanguageEntity
+        self, entity_id: ULIDStr, entity: LanguageEntity
     ) -> LanguageEntity | None:
         """
         Update an existing language.
@@ -212,7 +207,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel).filter_by(id=str(entity_id))
+                    select(LanguageModel).filter_by(id=entity_id)
                 )
                 language_model = result.scalar_one_or_none()
 
@@ -237,7 +232,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to update language: {e}")
             raise Exception(f"Failed to update language: {e}") from e
 
-    async def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete a language by its ID.
 
@@ -253,7 +248,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel).filter_by(id=str(entity_id))
+                    select(LanguageModel).filter_by(id=entity_id)
                 )
                 language_model = result.scalar_one_or_none()
 
@@ -273,7 +268,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to delete language: {e}")
             raise Exception(f"Failed to delete language: {e}") from e
 
-    async def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if a language exists by its ID.
 
@@ -289,7 +284,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel.id).filter_by(id=str(entity_id))
+                    select(LanguageModel.id).filter_by(id=entity_id)
                 )
                 exists = result.scalar_one_or_none() is not None
 

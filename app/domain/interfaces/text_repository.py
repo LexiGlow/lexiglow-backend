@@ -6,8 +6,8 @@ extending the base repository with text-specific methods.
 """
 
 from abc import abstractmethod
-from uuid import UUID
 
+from app.core.types import ULIDStr
 from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text
 from app.domain.interfaces.base_repository import IRepository
@@ -22,13 +22,13 @@ class ITextRepository(IRepository[Text]):
 
     @abstractmethod
     async def get_by_language(
-        self, language_id: UUID, skip: int = 0, limit: int = 100
+        self, language_id: ULIDStr, skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """
         Retrieve texts by language.
 
         Args:
-            language_id: The UUID of the language
+            language_id: The ULID of the language
             skip: Number of texts to skip (for pagination)
             limit: Maximum number of texts to return
 
@@ -42,13 +42,13 @@ class ITextRepository(IRepository[Text]):
 
     @abstractmethod
     async def get_by_user(
-        self, user_id: UUID, skip: int = 0, limit: int = 100
+        self, user_id: ULIDStr, skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """
         Retrieve texts by user.
 
         Args:
-            user_id: The UUID of the user
+            user_id: The ULID of the user
             skip: Number of texts to skip (for pagination)
             limit: Maximum number of texts to return
 
@@ -119,13 +119,13 @@ class ITextRepository(IRepository[Text]):
 
     @abstractmethod
     async def get_by_tags(
-        self, tag_ids: list[UUID], skip: int = 0, limit: int = 100
+        self, tag_ids: list[ULIDStr], skip: int = 0, limit: int = 100
     ) -> list[Text]:
         """
         Retrieve texts by tags.
 
         Args:
-            tag_ids: List of tag UUIDs to filter by
+            tag_ids: List of tag ULIDs to filter by
             skip: Number of texts to skip (for pagination)
             limit: Maximum number of texts to return
 

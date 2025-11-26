@@ -5,7 +5,6 @@ This module provides REST API handlers for text CRUD operations using FastAPI.
 
 import logging
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -16,6 +15,7 @@ from app.application.dto.text_dto import (
 )
 from app.application.services.text_service import TextService
 from app.core.dependencies import get_text_service
+from app.core.types import ULIDStr
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ async def get_texts(
     description="Retrieve a specific text by its UUID",
 )
 async def get_text_by_id(
-    textId: UUID,
+    textId: ULIDStr,
     service: TextService = Depends(get_text_service),  # noqa: B008
 ) -> TextResponse:
     """
@@ -170,7 +170,7 @@ async def create_text(
     description="Update an existing text's information",
 )
 async def update_text(
-    textId: UUID,
+    textId: ULIDStr,
     text_data: TextUpdate,
     service: TextService = Depends(get_text_service),  # noqa: B008
 ) -> TextResponse:
@@ -230,7 +230,7 @@ async def update_text(
     description="Delete an existing text by its UUID",
 )
 async def delete_text(
-    textId: UUID,
+    textId: ULIDStr,
     service: TextService = Depends(get_text_service),  # noqa: B008
 ) -> None:
     """

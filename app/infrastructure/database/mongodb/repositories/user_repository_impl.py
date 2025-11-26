@@ -3,14 +3,12 @@ MongoDB implementation of User repository.
 """
 
 import logging
-import uuid
 from datetime import UTC, datetime
-from uuid import UUID
 
-from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
 
+from app.core.types import ULIDStr
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
 
@@ -27,7 +25,7 @@ class MongoDBUserRepository(IUserRepository):
         Initialize the MongoDB User repository.
         """
         self.client: AsyncIOMotorClient = AsyncIOMotorClient(
-            db_url, uuidRepresentation="standard"
+            db_url, uuidRepresentation="unspecified"
         )
         self.db = self.client[db_name]
         self.collection = self.db.User
@@ -36,33 +34,10 @@ class MongoDBUserRepository(IUserRepository):
     def _model_to_entity(self, model: dict) -> UserEntity:
         """
         Convert MongoDB document to domain entity.
-        Handles ObjectId conversion to UUID for compatibility.
+        Maps MongoDB _id to entity id.
         """
-        # Convert MongoDB _id to entity id, handling ObjectId conversion
         if "_id" in model:
-            _id_value = model.pop("_id")
-            if isinstance(_id_value, ObjectId):
-                # Convert ObjectId to a padded hex string to form a UUID
-                model["id"] = UUID(str(_id_value).ljust(32, "0"))
-            else:
-                model["id"] = (
-                    _id_value  # Expecting it to be a UUID object if stored correctly
-                )
-
-        if "nativeLanguageId" in model:
-            native_lang_id = model["nativeLanguageId"]
-            if isinstance(native_lang_id, ObjectId):
-                model["nativeLanguageId"] = UUID(str(native_lang_id).ljust(32, "0"))
-            else:
-                model["nativeLanguageId"] = native_lang_id
-
-        if "currentLanguageId" in model:
-            current_lang_id = model["currentLanguageId"]
-            if isinstance(current_lang_id, ObjectId):
-                model["currentLanguageId"] = UUID(str(current_lang_id).ljust(32, "0"))
-            else:
-                model["currentLanguageId"] = current_lang_id
-
+            model["id"] = model.pop("_id")
         return UserEntity.model_validate(model)
 
     def _entity_to_model(self, entity: UserEntity) -> dict:
@@ -80,10 +55,6 @@ class MongoDBUserRepository(IUserRepository):
         Create a new user in the repository.
         """
         try:
-            # Generate ID if not provided
-            if entity.id is None:
-                entity.id = uuid.uuid4()
-
             # Check for duplicate email
             if await self.email_exists(entity.email):
                 raise Exception(
@@ -106,19 +77,12 @@ class MongoDBUserRepository(IUserRepository):
             logger.error(f"Failed to create user: {e}")
             raise Exception(f"Failed to create user: {e}") from e
 
-    async def get_by_id(self, entity_id: UUID) -> UserEntity | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> UserEntity | None:
         """
         Retrieve a user by their ID.
         """
         try:
-            # Convert UUID to ObjectId for query, assuming UUIDs are derived
-            # from ObjectIds by padding. We need to reverse this to query for
-            # the original ObjectId. Extract the relevant 24 hex characters
-            # for ObjectId from the UUID string.
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
-            user_model = await self.collection.find_one({"_id": mongo_id})
+            user_model = await self.collection.find_one({"_id": entity_id})
 
             if user_model:
                 logger.debug(f"Retrieved user by ID: {entity_id}")
@@ -150,20 +114,16 @@ class MongoDBUserRepository(IUserRepository):
             logger.error(f"Failed to get all users: {e}")
             raise Exception(f"Failed to get all users: {e}") from e
 
-    async def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
+    async def update(self, entity_id: ULIDStr, entity: UserEntity) -> UserEntity | None:
         """
         Update an existing user.
         """
         try:
-            # Convert UUID to ObjectId for query
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
             # Update the updated_at timestamp
             entity.updated_at = datetime.now(UTC)
             user_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": mongo_id}, {"$set": user_model}
+                {"_id": entity_id}, {"$set": user_model}
             )
 
             if result.matched_count:
@@ -179,16 +139,12 @@ class MongoDBUserRepository(IUserRepository):
             logger.error(f"Failed to update user: {e}")
             raise Exception(f"Failed to update user: {e}") from e
 
-    async def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete a user by their ID.
         """
         try:
-            # Convert UUID to ObjectId for query
-            object_id_str = str(entity_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
-            result = await self.collection.delete_one({"_id": mongo_id})
+            result = await self.collection.delete_one({"_id": entity_id})
 
             if result.deleted_count:
                 logger.info(f"Deleted user: {entity_id}")
@@ -201,7 +157,7 @@ class MongoDBUserRepository(IUserRepository):
             logger.error(f"Failed to delete user: {e}")
             raise Exception(f"Failed to delete user: {e}") from e
 
-    async def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if a user exists by their ID.
         """
@@ -279,17 +235,13 @@ class MongoDBUserRepository(IUserRepository):
             logger.error(f"Failed to check username existence: {e}")
             raise Exception(f"Failed to check username existence: {e}") from e
 
-    async def update_last_active(self, user_id: UUID) -> bool:
+    async def update_last_active(self, user_id: ULIDStr) -> bool:
         """
         Update the last active timestamp for a user.
         """
         try:
-            # Convert UUID to ObjectId for query
-            object_id_str = str(user_id).replace("-", "")[:24]
-            mongo_id = ObjectId(object_id_str)
-
             result = await self.collection.update_one(
-                {"_id": mongo_id}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
+                {"_id": user_id}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
             )
 
             if result.matched_count:

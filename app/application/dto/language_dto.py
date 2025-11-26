@@ -6,9 +6,10 @@ These DTOs represent the contract between the application layer and other layers
 """
 
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.types import ULIDStr
 
 
 class LanguageCreate(BaseModel):
@@ -38,7 +39,7 @@ class LanguageUpdate(BaseModel):
 class LanguageResponse(BaseModel):
     """DTO for language responses."""
 
-    id: UUID
+    id: ULIDStr
     name: str
     code: str
     native_name: str = Field(..., alias="nativeName")

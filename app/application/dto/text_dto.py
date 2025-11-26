@@ -6,10 +6,10 @@ This module defines DTOs for text-related service operations.
 
 from datetime import datetime
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.types import ULIDStr
 from app.domain.entities.enums import ProficiencyLevel
 
 if TYPE_CHECKING:
@@ -21,8 +21,8 @@ class TextCreate(BaseModel):
 
     title: str = Field(..., description="Title of the text")
     content: str = Field(..., description="The actual text content")
-    language_id: UUID = Field(..., alias="languageId", description="FK to Language")
-    user_id: UUID | None = Field(
+    language_id: ULIDStr = Field(..., alias="languageId", description="FK to Language")
+    user_id: ULIDStr | None = Field(
         None, alias="userId", description="FK to User (nullable for system content)"
     )
     proficiency_level: ProficiencyLevel = Field(
@@ -46,7 +46,7 @@ class TextUpdate(BaseModel):
 
     title: str | None = Field(None, description="Title of the text")
     content: str | None = Field(None, description="The actual text content")
-    language_id: UUID | None = Field(
+    language_id: ULIDStr | None = Field(
         None, alias="languageId", description="FK to Language"
     )
     proficiency_level: ProficiencyLevel | None = Field(
@@ -68,11 +68,11 @@ class TextUpdate(BaseModel):
 class TextResponse(BaseModel):
     """DTO for text responses."""
 
-    id: UUID
+    id: ULIDStr
     title: str = Field(..., description="Title of the text")
     content: str = Field(..., description="The actual text content")
-    language_id: UUID = Field(..., alias="languageId", description="FK to Language")
-    user_id: UUID | None = Field(
+    language_id: ULIDStr = Field(..., alias="languageId", description="FK to Language")
+    user_id: ULIDStr | None = Field(
         None, alias="userId", description="FK to User (nullable for system content)"
     )
     proficiency_level: ProficiencyLevel = Field(
@@ -93,11 +93,11 @@ class TextResponse(BaseModel):
     @classmethod
     def from_entity(cls, entity: "TextModel") -> "TextResponse":
         return cls(
-            id=UUID(entity.id),
+            id=entity.id,
             title=entity.title,
             content=entity.content,
-            languageId=UUID(entity.languageId),
-            userId=UUID(entity.userId) if entity.userId else None,
+            languageId=entity.languageId,
+            userId=entity.userId if entity.userId else None,
             proficiencyLevel=ProficiencyLevel(entity.proficiencyLevel),
             wordCount=entity.wordCount,
             isPublic=bool(entity.isPublic),

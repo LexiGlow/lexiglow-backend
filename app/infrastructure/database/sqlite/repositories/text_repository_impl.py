@@ -6,15 +6,14 @@ using SQLAlchemy async ORM and raw SQL queries.
 """
 
 import logging
-import uuid
 from datetime import UTC, datetime
-from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.config import BASE_DIR
+from app.core.types import ULIDStr
 from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
 from app.domain.interfaces.text_repository import ITextRepository
@@ -76,11 +75,11 @@ class SQLiteTextRepository(ITextRepository):
             Pydantic Text entity
         """
         return TextEntity(
-            id=UUID(str(model.id)),
+            id=model.id,
             title=str(model.title),
             content=str(model.content),
-            languageId=UUID(str(model.languageId)),
-            userId=UUID(str(model.userId)) if model.userId else None,
+            languageId=model.languageId,
+            userId=model.userId if model.userId else None,
             proficiencyLevel=ProficiencyLevel(model.proficiencyLevel),
             wordCount=int(model.wordCount),
             isPublic=bool(model.isPublic),
@@ -100,11 +99,11 @@ class SQLiteTextRepository(ITextRepository):
             SQLAlchemy Text model
         """
         return TextModel(
-            id=str(entity.id),
+            id=entity.id,
             title=entity.title,
             content=entity.content,
-            languageId=str(entity.language_id),
-            userId=str(entity.user_id) if entity.user_id else None,
+            languageId=entity.language_id,
+            userId=entity.user_id if entity.user_id else None,
             proficiencyLevel=entity.proficiency_level.value,
             wordCount=entity.word_count,
             isPublic=int(entity.is_public),
@@ -129,10 +128,6 @@ class SQLiteTextRepository(ITextRepository):
         text_model: TextModel
         try:
             async with self.SessionLocal() as session:
-                # Generate ID if not provided
-                if entity.id is None:
-                    entity.id = uuid.uuid4()
-
                 # Convert entity to model
                 text_model = self._entity_to_model(entity)
 
@@ -142,13 +137,13 @@ class SQLiteTextRepository(ITextRepository):
                 await session.refresh(text_model)
 
                 logger.info(f"Created text: {text_model.title} (ID: {text_model.id})")
-            return self._model_to_entity(text_model)
+                return self._model_to_entity(text_model)
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to create text: {e}")
             raise Exception(f"Failed to create text: {e}") from e
 
-    async def get_by_id(self, entity_id: UUID) -> TextEntity | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> TextEntity | None:
         """
         Retrieve a text by its ID.
 
@@ -164,7 +159,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel).filter_by(id=str(entity_id))
+                    select(TextModel).filter_by(id=entity_id)
                 )
                 text_model = result.scalar_one_or_none()
 
@@ -209,7 +204,7 @@ class SQLiteTextRepository(ITextRepository):
             logger.error(f"Failed to get all texts: {e}")
             raise Exception(f"Failed to get all texts: {e}") from e
 
-    async def update(self, entity_id: UUID, entity: TextEntity) -> TextEntity | None:
+    async def update(self, entity_id: ULIDStr, entity: TextEntity) -> TextEntity | None:
         """
         Update an existing text.
 
@@ -226,7 +221,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel).filter_by(id=str(entity_id))
+                    select(TextModel).filter_by(id=entity_id)
                 )
                 text_model = result.scalar_one_or_none()
 
@@ -255,7 +250,7 @@ class SQLiteTextRepository(ITextRepository):
             logger.error(f"Failed to update text: {e}")
             raise Exception(f"Failed to update text: {e}") from e
 
-    async def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete a text by its ID.
 
@@ -271,7 +266,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel).filter_by(id=str(entity_id))
+                    select(TextModel).filter_by(id=entity_id)
                 )
                 text_model = result.scalar_one_or_none()
 
@@ -289,7 +284,7 @@ class SQLiteTextRepository(ITextRepository):
             logger.error(f"Failed to delete text: {e}")
             raise Exception(f"Failed to delete text: {e}") from e
 
-    async def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if a text exists by its ID.
 
@@ -305,7 +300,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel.id).filter_by(id=str(entity_id))
+                    select(TextModel.id).filter_by(id=entity_id)
                 )
                 exists = result.scalar_one_or_none() is not None
 
@@ -317,7 +312,7 @@ class SQLiteTextRepository(ITextRepository):
             raise Exception(f"Failed to check text existence: {e}") from e
 
     async def get_by_language(
-        self, language_id: UUID, skip: int = 0, limit: int = 100
+        self, language_id: ULIDStr, skip: int = 0, limit: int = 100
     ) -> list[TextEntity]:
         """
         Retrieve texts by language.
@@ -337,7 +332,7 @@ class SQLiteTextRepository(ITextRepository):
             async with self.SessionLocal() as session:
                 result = await session.execute(
                     select(TextModel)
-                    .filter_by(languageId=str(language_id))
+                    .filter_by(languageId=language_id)
                     .offset(skip)
                     .limit(limit)
                 )
@@ -354,7 +349,7 @@ class SQLiteTextRepository(ITextRepository):
             raise Exception(f"Failed to get texts by language: {e}") from e
 
     async def get_by_user(
-        self, user_id: UUID, skip: int = 0, limit: int = 100
+        self, user_id: ULIDStr, skip: int = 0, limit: int = 100
     ) -> list[TextEntity]:
         """
         Retrieve texts by user.
@@ -374,7 +369,7 @@ class SQLiteTextRepository(ITextRepository):
             async with self.SessionLocal() as session:
                 result = await session.execute(
                     select(TextModel)
-                    .filter_by(userId=str(user_id))
+                    .filter_by(userId=user_id)
                     .offset(skip)
                     .limit(limit)
                 )
@@ -499,7 +494,7 @@ class SQLiteTextRepository(ITextRepository):
             raise Exception(f"Failed to search texts by title: {e}") from e
 
     async def get_by_tags(
-        self, tag_ids: list[UUID], skip: int = 0, limit: int = 100
+        self, tag_ids: list[ULIDStr], skip: int = 0, limit: int = 100
     ) -> list[TextEntity]:
         """
         Retrieve texts by tags.
@@ -518,7 +513,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 # Convert tag_ids to strings
-                str_tag_ids = [str(tag_id) for tag_id in tag_ids]
+                str_tag_ids = tag_ids
 
                 # Query texts that have associations with any of the provided tags
                 result = await session.execute(

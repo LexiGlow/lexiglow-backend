@@ -5,7 +5,6 @@ This module provides REST API handlers for language CRUD operations using FastAP
 
 import logging
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -16,6 +15,7 @@ from app.application.dto.language_dto import (
 )
 from app.application.services.language_service import LanguageService
 from app.core.dependencies import get_language_service
+from app.core.types import ULIDStr
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ async def get_languages(
     description="Retrieve a specific language by its UUID",
 )
 async def get_language_by_id(
-    languageId: UUID,
+    languageId: ULIDStr,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> LanguageResponse:
     """
@@ -178,7 +178,7 @@ async def create_language(
     description="Update an existing language's information",
 )
 async def update_language(
-    languageId: UUID,
+    languageId: ULIDStr,
     language_data: LanguageUpdate,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> LanguageResponse:
@@ -241,7 +241,7 @@ async def update_language(
     description="Delete an existing language by its UUID",
 )
 async def delete_language(
-    languageId: UUID,
+    languageId: ULIDStr,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> None:
     """

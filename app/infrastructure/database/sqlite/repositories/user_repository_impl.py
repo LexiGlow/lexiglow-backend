@@ -6,15 +6,14 @@ using SQLAlchemy async ORM and raw SQL queries.
 """
 
 import logging
-import uuid
 from datetime import UTC, datetime
-from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.config import BASE_DIR
+from app.core.types import ULIDStr
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
 from app.infrastructure.database.sqlite.models import User as UserModel
@@ -72,14 +71,14 @@ class SQLiteUserRepository(IUserRepository):
             Pydantic User entity
         """
         return UserEntity(
-            id=UUID(str(model.id)),
+            id=model.id,
             email=str(model.email),
             username=str(model.username),
             passwordHash=str(model.passwordHash),
             firstName=str(model.firstName),
             lastName=str(model.lastName),
-            nativeLanguageId=UUID(str(model.nativeLanguageId)),
-            currentLanguageId=UUID(str(model.currentLanguageId)),
+            nativeLanguageId=model.nativeLanguageId,
+            currentLanguageId=model.currentLanguageId,
             createdAt=model.createdAt,
             updatedAt=model.updatedAt,
             lastActiveAt=model.lastActiveAt,
@@ -96,14 +95,14 @@ class SQLiteUserRepository(IUserRepository):
             SQLAlchemy User model
         """
         return UserModel(
-            id=str(entity.id),
+            id=entity.id,
             email=entity.email,
             username=entity.username,
             passwordHash=entity.password_hash,
             firstName=entity.first_name,
             lastName=entity.last_name,
-            nativeLanguageId=str(entity.native_language_id),
-            currentLanguageId=str(entity.current_language_id),
+            nativeLanguageId=entity.native_language_id,
+            currentLanguageId=entity.current_language_id,
             createdAt=entity.created_at,
             updatedAt=entity.updated_at,
             lastActiveAt=entity.last_active_at,
@@ -125,10 +124,6 @@ class SQLiteUserRepository(IUserRepository):
         user_model: UserModel
         try:
             async with self.SessionLocal() as session:
-                # Generate ID if not provided
-                if entity.id is None:
-                    entity.id = uuid.uuid4()
-
                 # Convert entity to model
                 user_model = self._entity_to_model(entity)
 
@@ -140,13 +135,13 @@ class SQLiteUserRepository(IUserRepository):
                 logger.info(
                     f"Created user: {user_model.username} (ID: {user_model.id})"
                 )
-            return self._model_to_entity(user_model)
+                return self._model_to_entity(user_model)
 
         except SQLAlchemyError as e:
             logger.error(f"Failed to create user: {e}")
             raise Exception(f"Failed to create user: {e}") from e
 
-    async def get_by_id(self, entity_id: UUID) -> UserEntity | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> UserEntity | None:
         """
         Retrieve a user by their ID.
 
@@ -162,7 +157,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel).filter_by(id=str(entity_id))
+                    select(UserModel).filter_by(id=entity_id)
                 )
                 user_model = result.scalar_one_or_none()
 
@@ -207,7 +202,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to get all users: {e}")
             raise Exception(f"Failed to get all users: {e}") from e
 
-    async def update(self, entity_id: UUID, entity: UserEntity) -> UserEntity | None:
+    async def update(self, entity_id: ULIDStr, entity: UserEntity) -> UserEntity | None:
         """
         Update an existing user.
 
@@ -224,7 +219,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel).filter_by(id=str(entity_id))
+                    select(UserModel).filter_by(id=entity_id)
                 )
                 user_model = result.scalar_one_or_none()
 
@@ -255,7 +250,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to update user: {e}")
             raise Exception(f"Failed to update user: {e}") from e
 
-    async def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete a user by their ID.
 
@@ -271,7 +266,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel).filter_by(id=str(entity_id))
+                    select(UserModel).filter_by(id=entity_id)
                 )
                 user_model = result.scalar_one_or_none()
 
@@ -289,7 +284,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to delete user: {e}")
             raise Exception(f"Failed to delete user: {e}") from e
 
-    async def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if a user exists by their ID.
 
@@ -305,7 +300,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel.id).filter_by(id=str(entity_id))
+                    select(UserModel.id).filter_by(id=entity_id)
                 )
                 exists = result.scalar_one_or_none() is not None
 
@@ -430,7 +425,7 @@ class SQLiteUserRepository(IUserRepository):
             logger.error(f"Failed to check username existence: {e}")
             raise Exception(f"Failed to check username existence: {e}") from e
 
-    async def update_last_active(self, user_id: UUID) -> bool:
+    async def update_last_active(self, user_id: ULIDStr) -> bool:
         """
         Update the last active timestamp for a user.
 
@@ -445,9 +440,7 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             async with self.SessionLocal() as session:
-                result = await session.execute(
-                    select(UserModel).filter_by(id=str(user_id))
-                )
+                result = await session.execute(select(UserModel).filter_by(id=user_id))
                 user_model = result.scalar_one_or_none()
 
                 if not user_model:

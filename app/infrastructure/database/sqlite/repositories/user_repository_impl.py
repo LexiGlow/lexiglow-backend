@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from ulid import ULID
 
 from app.core.config import BASE_DIR
 from app.core.types import ULIDStr
@@ -71,14 +72,18 @@ class SQLiteUserRepository(IUserRepository):
             Pydantic User entity
         """
         return UserEntity(
-            id=model.id,
+            id=str(ULID.from_str(model.id)) if model.id else "",
             email=str(model.email),
             username=str(model.username),
             passwordHash=str(model.passwordHash),
             firstName=str(model.firstName),
             lastName=str(model.lastName),
-            nativeLanguageId=model.nativeLanguageId,
-            currentLanguageId=model.currentLanguageId,
+            nativeLanguageId=str(ULID.from_str(model.nativeLanguageId))
+            if model.nativeLanguageId
+            else "",
+            currentLanguageId=str(ULID.from_str(model.currentLanguageId))
+            if model.currentLanguageId
+            else "",
             createdAt=model.createdAt,
             updatedAt=model.updatedAt,
             lastActiveAt=model.lastActiveAt,
@@ -95,14 +100,18 @@ class SQLiteUserRepository(IUserRepository):
             SQLAlchemy User model
         """
         return UserModel(
-            id=entity.id,
+            id=str(entity.id) if entity.id else None,
             email=entity.email,
             username=entity.username,
             passwordHash=entity.password_hash,
             firstName=entity.first_name,
             lastName=entity.last_name,
-            nativeLanguageId=entity.native_language_id,
-            currentLanguageId=entity.current_language_id,
+            nativeLanguageId=str(entity.native_language_id)
+            if entity.native_language_id
+            else None,
+            currentLanguageId=str(entity.current_language_id)
+            if entity.current_language_id
+            else None,
             createdAt=entity.created_at,
             updatedAt=entity.updated_at,
             lastActiveAt=entity.last_active_at,
@@ -125,6 +134,8 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 # Convert entity to model
+                if not entity.id:
+                    entity.id = str(ULID())
                 user_model = self._entity_to_model(entity)
 
                 # Add and commit
@@ -157,7 +168,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel).filter_by(id=entity_id)
+                    select(UserModel).filter_by(id=str(entity_id))
                 )
                 user_model = result.scalar_one_or_none()
 
@@ -219,7 +230,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel).filter_by(id=entity_id)
+                    select(UserModel).filter_by(id=str(entity_id))
                 )
                 user_model = result.scalar_one_or_none()
 
@@ -266,7 +277,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel).filter_by(id=entity_id)
+                    select(UserModel).filter_by(id=str(entity_id))
                 )
                 user_model = result.scalar_one_or_none()
 
@@ -300,7 +311,7 @@ class SQLiteUserRepository(IUserRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(UserModel.id).filter_by(id=entity_id)
+                    select(UserModel.id).filter_by(id=str(entity_id))
                 )
                 exists = result.scalar_one_or_none() is not None
 
@@ -440,7 +451,9 @@ class SQLiteUserRepository(IUserRepository):
         """
         try:
             async with self.SessionLocal() as session:
-                result = await session.execute(select(UserModel).filter_by(id=user_id))
+                result = await session.execute(
+                    select(UserModel).filter_by(id=str(user_id))
+                )
                 user_model = result.scalar_one_or_none()
 
                 if not user_model:

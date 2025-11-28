@@ -5,13 +5,13 @@ Tests cover CRUD operations, relationships, queries, and constraints
 for all database models in the LexiGlow backend.
 """
 
-import uuid
 from datetime import datetime
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
+from ulid import ULID
 
 from app.infrastructure.database.sqlite.models import (
     Base,
@@ -50,7 +50,7 @@ def session(engine):
 def english_language(session):
     """Create and return an English language record."""
     language = Language(
-        id=str(uuid.uuid4()),
+        id=str(ULID()),
         name="English",
         code="en",
         nativeName="English",
@@ -64,7 +64,7 @@ def english_language(session):
 def russian_language(session):
     """Create and return a Russian language record."""
     language = Language(
-        id=str(uuid.uuid4()),
+        id=str(ULID()),
         name="Russian",
         code="ru",
         nativeName="Русский",
@@ -78,7 +78,7 @@ def russian_language(session):
 def test_user(session, english_language, russian_language):
     """Create and return a test user."""
     user = User(
-        id=str(uuid.uuid4()),
+        id=str(ULID()),
         email="john@example.com",
         username="johndoe",
         passwordHash="$2b$12$hashedpassword",
@@ -101,7 +101,7 @@ class TestLanguageModel:
     def test_create_language(self, session):
         """Test creating a new language."""
         language = Language(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             name="Spanish",
             code="es",
             nativeName="Español",
@@ -120,7 +120,7 @@ class TestLanguageModel:
     def test_language_unique_code(self, session, english_language):
         """Test that language codes must be unique."""
         duplicate_language = Language(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             name="English US",
             code="en",  # Duplicate code
             nativeName="English",
@@ -145,7 +145,7 @@ class TestUserModel:
     def test_create_user(self, session, english_language, russian_language):
         """Test creating a new user."""
         user = User(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             email="alice@example.com",
             username="alice",
             passwordHash="$2b$12$hashedpassword",
@@ -168,7 +168,7 @@ class TestUserModel:
     def test_user_unique_email(self, session, test_user, russian_language):
         """Test that user emails must be unique."""
         duplicate_user = User(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             email=test_user.email,  # Duplicate email
             username="different",
             passwordHash="$2b$12$hashedpassword",
@@ -185,7 +185,7 @@ class TestUserModel:
     def test_user_unique_username(self, session, test_user, russian_language):
         """Test that usernames must be unique."""
         duplicate_user = User(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             email="different@example.com",
             username=test_user.username,  # Duplicate username
             passwordHash="$2b$12$hashedpassword",
@@ -338,7 +338,7 @@ class TestTextModel:
     def test_create_text(self, session, test_user, english_language):
         """Test creating a new text."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Introduction to Python",
             content="Python is a high-level programming language...",
             languageId=english_language.id,
@@ -360,7 +360,7 @@ class TestTextModel:
     def test_text_relationships(self, session, test_user, english_language):
         """Test text relationships with user and language."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Test Article",
             content="Content here...",
             languageId=english_language.id,
@@ -378,7 +378,7 @@ class TestTextModel:
     def test_text_with_source(self, session, test_user, english_language):
         """Test creating text with optional source."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Article",
             content="Content...",
             languageId=english_language.id,
@@ -396,7 +396,7 @@ class TestTextModel:
     def test_text_repr(self, session, test_user, english_language):
         """Test text string representation."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Test Text",
             content="Content...",
             languageId=english_language.id,
@@ -421,7 +421,7 @@ class TestTextTagModel:
     def test_create_text_tag(self, session):
         """Test creating a text tag."""
         tag = TextTag(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             name="programming",
             description="Programming tutorials",
         )
@@ -435,7 +435,7 @@ class TestTextTagModel:
     def test_text_tag_unique_name(self, session):
         """Test that tag names must be unique."""
         tag1 = TextTag(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             name="science",
             description="Science articles",
         )
@@ -443,7 +443,7 @@ class TestTextTagModel:
         session.commit()
 
         tag2 = TextTag(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             name="science",  # Duplicate name
             description="Different description",
         )
@@ -455,7 +455,7 @@ class TestTextTagModel:
     def test_text_tag_repr(self, session):
         """Test text tag string representation."""
         tag = TextTag(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             name="education",
         )
         session.add(tag)
@@ -474,7 +474,7 @@ class TestTextTagAssociationModel:
     def test_create_text_tag_association(self, session, test_user, english_language):
         """Test creating a text-tag association."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Python Guide",
             content="Guide content...",
             languageId=english_language.id,
@@ -483,7 +483,7 @@ class TestTextTagAssociationModel:
             wordCount=100,
             isPublic=1,
         )
-        tag = TextTag(id=str(uuid.uuid4()), name="tutorial")
+        tag = TextTag(id=str(ULID()), name="tutorial")
 
         session.add_all([text, tag])
         session.commit()
@@ -500,7 +500,7 @@ class TestTextTagAssociationModel:
     ):
         """Test text-tag association relationships."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Article",
             content="Content...",
             languageId=english_language.id,
@@ -509,7 +509,7 @@ class TestTextTagAssociationModel:
             wordCount=50,
             isPublic=1,
         )
-        tag = TextTag(id=str(uuid.uuid4()), name="news")
+        tag = TextTag(id=str(ULID()), name="news")
 
         session.add_all([text, tag])
         session.commit()
@@ -524,7 +524,7 @@ class TestTextTagAssociationModel:
     def test_text_with_multiple_tags(self, session, test_user, english_language):
         """Test text with multiple tags."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Python Tutorial",
             content="Content...",
             languageId=english_language.id,
@@ -533,8 +533,8 @@ class TestTextTagAssociationModel:
             wordCount=150,
             isPublic=1,
         )
-        tag1 = TextTag(id=str(uuid.uuid4()), name="programming")
-        tag2 = TextTag(id=str(uuid.uuid4()), name="education")
+        tag1 = TextTag(id=str(ULID()), name="programming")
+        tag2 = TextTag(id=str(ULID()), name="education")
 
         session.add_all([text, tag1, tag2])
         session.commit()
@@ -555,7 +555,7 @@ class TestTextTagAssociationModel:
     ):
         """Test that deleting a text deletes its tag associations."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Article",
             content="Content...",
             languageId=english_language.id,
@@ -564,7 +564,7 @@ class TestTextTagAssociationModel:
             wordCount=25,
             isPublic=1,
         )
-        tag = TextTag(id=str(uuid.uuid4()), name="test")
+        tag = TextTag(id=str(ULID()), name="test")
 
         session.add_all([text, tag])
         session.commit()
@@ -588,7 +588,7 @@ class TestTextTagAssociationModel:
     def test_text_tag_association_repr(self, session, test_user, english_language):
         """Test text tag association string representation."""
         text = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Article",
             content="Content...",
             languageId=english_language.id,
@@ -597,7 +597,7 @@ class TestTextTagAssociationModel:
             wordCount=80,
             isPublic=1,
         )
-        tag = TextTag(id=str(uuid.uuid4()), name="sample")
+        tag = TextTag(id=str(ULID()), name="sample")
 
         session.add_all([text, tag])
         session.commit()
@@ -619,7 +619,7 @@ class TestUserVocabularyModel:
     def test_create_user_vocabulary(self, session, test_user, english_language):
         """Test creating a user vocabulary."""
         vocab = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,
             name="My English Vocabulary",
@@ -636,7 +636,7 @@ class TestUserVocabularyModel:
     def test_user_vocabulary_relationships(self, session, test_user, english_language):
         """Test user vocabulary relationships."""
         vocab = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,
             name="Test Vocabulary",
@@ -652,7 +652,7 @@ class TestUserVocabularyModel:
     ):
         """Test unique constraint on userId and languageId."""
         vocab1 = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,
             name="First Vocabulary",
@@ -661,7 +661,7 @@ class TestUserVocabularyModel:
         session.commit()
 
         vocab2 = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,  # Same user and language
             name="Second Vocabulary",
@@ -676,7 +676,7 @@ class TestUserVocabularyModel:
     ):
         """Test that deleting a user deletes their vocabularies."""
         vocab = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,
             name="Test Vocabulary",
@@ -697,7 +697,7 @@ class TestUserVocabularyModel:
     def test_user_vocabulary_repr(self, session, test_user, english_language):
         """Test user vocabulary string representation."""
         vocab = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,
             name="My Vocabulary",
@@ -722,7 +722,7 @@ class TestUserVocabularyItemModel:
     def test_vocabulary(self, session, test_user, english_language):
         """Create a test vocabulary."""
         vocab = UserVocabulary(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userId=test_user.id,
             languageId=english_language.id,
             name="Test Vocabulary",
@@ -734,7 +734,7 @@ class TestUserVocabularyItemModel:
     def test_create_vocabulary_item(self, session, test_vocabulary):
         """Test creating a vocabulary item."""
         item = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="function",
             lemma="function",
@@ -758,7 +758,7 @@ class TestUserVocabularyItemModel:
     def test_vocabulary_item_defaults(self, session, test_vocabulary):
         """Test vocabulary item default values."""
         item = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="test",
         )
@@ -773,7 +773,7 @@ class TestUserVocabularyItemModel:
     def test_vocabulary_item_relationship(self, session, test_vocabulary):
         """Test vocabulary item relationship with vocabulary."""
         item = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="variable",
         )
@@ -786,19 +786,19 @@ class TestUserVocabularyItemModel:
         """Test vocabulary with multiple items."""
         items = [
             UserVocabularyItem(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 userVocabularyId=test_vocabulary.id,
                 term="function",
                 status="KNOWN",
             ),
             UserVocabularyItem(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 userVocabularyId=test_vocabulary.id,
                 term="variable",
                 status="LEARNING",
             ),
             UserVocabularyItem(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 userVocabularyId=test_vocabulary.id,
                 term="constant",
                 status="NEW",
@@ -819,7 +819,7 @@ class TestUserVocabularyItemModel:
     def test_vocabulary_item_unique_constraint(self, session, test_vocabulary):
         """Test unique constraint on userVocabularyId and term."""
         item1 = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="duplicate",
         )
@@ -827,7 +827,7 @@ class TestUserVocabularyItemModel:
         session.commit()
 
         item2 = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="duplicate",  # Duplicate term in same vocabulary
         )
@@ -839,7 +839,7 @@ class TestUserVocabularyItemModel:
     def test_delete_vocabulary_cascades_items(self, session, test_vocabulary):
         """Test that deleting a vocabulary deletes its items."""
         item = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="test",
         )
@@ -859,7 +859,7 @@ class TestUserVocabularyItemModel:
     def test_vocabulary_item_with_notes(self, session, test_vocabulary):
         """Test vocabulary item with optional notes."""
         item = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="algorithm",
             notes="Important concept in computer science",
@@ -872,7 +872,7 @@ class TestUserVocabularyItemModel:
     def test_vocabulary_item_repr(self, session, test_vocabulary):
         """Test vocabulary item string representation."""
         item = UserVocabularyItem(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             userVocabularyId=test_vocabulary.id,
             term="test",
             status="MASTERED",
@@ -902,7 +902,7 @@ class TestQueryPatterns:
 
         for username, email, first_name, last_name in users_data:
             user = User(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 email=email,
                 username=username,
                 passwordHash="$2b$12$hashedpassword",
@@ -934,7 +934,7 @@ class TestQueryPatterns:
 
         for username, email, first_name, last_name in users_data:
             user = User(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 email=email,
                 username=username,
                 passwordHash="$2b$12$hashedpassword",
@@ -962,7 +962,7 @@ class TestQueryPatterns:
 
         for username, email, first_name, last_name in users_data:
             user = User(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 email=email,
                 username=username,
                 passwordHash="$2b$12$hashedpassword",
@@ -982,7 +982,7 @@ class TestQueryPatterns:
         """Test counting query results."""
         for i in range(5):
             user = User(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 email=f"user{i}@example.com",
                 username=f"user{i}",
                 passwordHash="$2b$12$hashedpassword",
@@ -1006,7 +1006,7 @@ class TestQueryPatterns:
 
         for username, email, first_name, last_name in users_data:
             user = User(
-                id=str(uuid.uuid4()),
+                id=str(ULID()),
                 email=email,
                 username=username,
                 passwordHash="$2b$12$hashedpassword",

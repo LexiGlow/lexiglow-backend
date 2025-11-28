@@ -6,13 +6,12 @@ CRUD operations, queries, existence checks, and entity conversions.
 """
 
 import asyncio
-import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
-from uuid import UUID
 
 import pytest
 import pytest_asyncio
+from ulid import ULID
 
 from app.domain.entities.user import User as UserEntity
 from app.infrastructure.database.mongodb.repositories.user_repository_impl import (
@@ -25,50 +24,50 @@ from app.infrastructure.database.mongodb.repositories.user_repository_impl impor
 @pytest_asyncio.fixture(scope="function")
 async def repository(mongo_client, db_url):
     """Create a MongoDBUserRepository instance with a test database."""
-    db_name = f"test_db_{uuid.uuid4().hex}"
+    db_name = f"test_db_{ULID().hex}"
     repo = MongoDBUserRepository(db_url=db_url, db_name=db_name)
     yield repo
     await mongo_client.drop_database(db_name)
 
 
 @pytest.fixture
-def english_language_id():
-    """UUID for English language."""
-    return UUID("00000000-0000-0000-0000-000000000001")
+def english_language_id() -> ULID:
+    """ULID for English language."""
+    return ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAV")
 
 
 @pytest.fixture
-def russian_language_id():
-    """UUID for Russian language."""
-    return UUID("00000000-0000-0000-0000-000000000002")
+def russian_language_id() -> ULID:
+    """ULID for Russian language."""
+    return ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAW")
 
 
 @pytest.fixture
 def sample_user_entity(
-    english_language_id: UUID, russian_language_id: UUID
+    english_language_id: ULID, russian_language_id: ULID
 ) -> Callable[..., UserEntity]:
     """Factory fixture for creating User entities."""
 
     def _create_user(
-        user_id: UUID | None = None,
+        user_id: ULID | None = None,
         email: str = "test@example.com",
         username: str = "testuser",
         password_hash: str = "$2b$12$hashedpassword",
         first_name: str = "Test",
         last_name: str = "User",
-        native_language_id: UUID | None = None,
-        current_language_id: UUID | None = None,
+        native_language_id: ULID | None = None,
+        current_language_id: ULID | None = None,
     ) -> UserEntity:
         now = datetime.now(UTC)
         return UserEntity(
-            id=user_id or uuid.uuid4(),
+            id=str(user_id or ULID()),
             email=email,
             username=username,
             passwordHash=password_hash,
             firstName=first_name,
             lastName=last_name,
-            nativeLanguageId=native_language_id or english_language_id,
-            currentLanguageId=current_language_id or russian_language_id,
+            nativeLanguageId=str(native_language_id or english_language_id),
+            currentLanguageId=str(current_language_id or russian_language_id),
             createdAt=now,
             updatedAt=now,
             lastActiveAt=None,
@@ -110,12 +109,13 @@ class TestCreateUser:
 
         assert created_user is not None
         assert created_user.id is not None
-        assert isinstance(created_user.id, UUID)
+        assert isinstance(created_user.id, str)
+        assert ULID.from_str(created_user.id)
 
     @pytest.mark.asyncio
     async def test_create_user_with_existing_id(self, repository, sample_user_entity):
         """Test creating user with pre-set ID."""
-        preset_id = uuid.uuid4()
+        preset_id = ULID()
         user_entity = sample_user_entity(user_id=preset_id)
 
         created_user = await repository.create(user_entity)
@@ -129,7 +129,7 @@ class TestCreateUser:
         await repository.create(user1)
 
         user2 = sample_user_entity(
-            user_id=uuid.uuid4(),
+            user_id=ULID(),
             email="duplicate@example.com",
             username="user2",
         )
@@ -144,7 +144,7 @@ class TestCreateUser:
         await repository.create(user1)
 
         user2 = sample_user_entity(
-            user_id=uuid.uuid4(),
+            user_id=ULID(),
             email="user2@example.com",
             username="duplicate",
         )
@@ -171,19 +171,22 @@ class TestGetUserById:
     @pytest.mark.asyncio
     async def test_get_by_id_not_found(self, repository):
         """Test retrieving non-existent user returns None."""
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
 
         result = await repository.get_by_id(non_existent_id)
 
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_by_id_invalid_uuid(self, repository):
-        """Test handling of invalid UUID format."""
-        # This would be caught at the UUID type level, but we test repository handling
-        valid_uuid = uuid.uuid4()
-        result = await repository.get_by_id(valid_uuid)
+    async def test_get_by_id_invalid_ulid(self, repository):
+        """Test handling of invalid ULID format."""
+        invalid_ulid_str = "not-a-valid-ulid"
+        with pytest.raises(ValueError):
+            ULID.from_str(invalid_ulid_str)
 
+        # Assuming that if ULID.from_str doesn't raise, it's a valid ULID
+        # The repository's get_by_id should still return None if it doesn't exist
+        result = await repository.get_by_id(ULID())
         assert result is None
 
 
@@ -279,7 +282,7 @@ class TestUpdateUser:
     @pytest.mark.asyncio
     async def test_update_user_not_found(self, repository, sample_user_entity):
         """Test updating non-existent user returns None."""
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
         user_entity = sample_user_entity()
 
         result = await repository.update(non_existent_id, user_entity)
@@ -335,7 +338,7 @@ class TestDeleteUser:
     @pytest.mark.asyncio
     async def test_delete_user_not_found(self, repository):
         """Test deleting non-existent user returns False."""
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
 
         result = await repository.delete(non_existent_id)
 
@@ -357,7 +360,7 @@ class TestExistsUser:
     @pytest.mark.asyncio
     async def test_exists_false(self, repository):
         """Test exists returns False for non-existent user."""
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
 
         result = await repository.exists(non_existent_id)
 
@@ -479,7 +482,7 @@ class TestUpdateLastActive:
         """
         Test updating last active for non-existent user returns False.
         """
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
 
         result = await repository.update_last_active(non_existent_id)
 

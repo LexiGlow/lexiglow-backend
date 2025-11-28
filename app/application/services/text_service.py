@@ -14,6 +14,7 @@ from app.application.dto.text_dto import (
 )
 from app.core.ids import get_ulid
 from app.core.types import ULIDStr
+from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
 from app.domain.interfaces.text_repository import ITextRepository
 
@@ -161,25 +162,34 @@ class TextService:
             logger.warning(f"Text not found for update: {text_id}")
             return None
 
-        # Prepare update data using model_dump(by_alias=True) for aliased fields
-        update_dict = text_data.model_dump(by_alias=True, exclude_unset=True)
+        # Prepare update data using model_dump(by_alias=True, exclude_none=True)
+        # to ensure only explicitly set, non-None fields are included
+        update_dict = text_data.model_dump(by_alias=True, exclude_none=True)
 
-        # Create a new TextEntity with updated fields
+        # Create a dictionary from the existing entity's data
+        # Use model_dump to get values with aliases if available, and exclude unset
+        # (though for an existing entity, most fields should be set)
+        existing_entity_data = existing_entity.model_dump(by_alias=True)
+
+        # Apply updates, ensuring 'id', 'createdAt' are preserved and 'updatedAt' is new
         updated_entity_data = {
-            "id": existing_entity.id,
-            "title": update_dict.get("title", existing_entity.title),
-            "content": update_dict.get("content", existing_entity.content),
-            "languageId": update_dict.get("languageId", existing_entity.language_id),
-            "userId": update_dict.get("userId", existing_entity.user_id),
-            "proficiencyLevel": update_dict.get(
-                "proficiencyLevel", existing_entity.proficiency_level
-            ),
-            "wordCount": update_dict.get("wordCount", existing_entity.word_count),
-            "isPublic": update_dict.get("isPublic", existing_entity.is_public),
-            "source": update_dict.get("source", existing_entity.source),
-            "createdAt": existing_entity.created_at,
-            "updatedAt": datetime.now(UTC),
+            **existing_entity_data,  # Start with all existing data
+            **update_dict,  # Overlay with update data (only non-None fields)
+            "id": existing_entity.id,  # Ensure ID remains the same
+            "createdAt": existing_entity.created_at,  # Ensure creation date is the same
+            "updatedAt": datetime.now(UTC),  # Always update the updatedAt timestamp
         }
+
+        # Pydantic requires enum values to be actual enum members,
+        # but from model_dump(by_alias=True) they might be strings.
+        # Ensure correct type for proficiencyLevel before passing to TextEntity
+        if "proficiencyLevel" in updated_entity_data and isinstance(
+            updated_entity_data["proficiencyLevel"], str
+        ):
+            updated_entity_data["proficiencyLevel"] = ProficiencyLevel(
+                updated_entity_data["proficiencyLevel"]
+            )
+
         updated_entity = TextEntity(**updated_entity_data)
 
         updated = await self.repository.update(text_id, updated_entity)

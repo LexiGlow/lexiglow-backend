@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
+from ulid import ULID
 
 from app.core.types import ULIDStr
 from app.domain.entities.enums import ProficiencyLevel
@@ -39,7 +40,11 @@ class MongoDBTextRepository(ITextRepository):
         Maps MongoDB _id to entity id.
         """
         if "_id" in model:
-            model["id"] = model.pop("_id")
+            model["id"] = str(model.pop("_id"))
+        if "languageId" in model:
+            model["languageId"] = str(model["languageId"])
+        if "userId" in model:
+            model["userId"] = str(model["userId"])
         return TextEntity.model_validate(model)
 
     def _entity_to_model(self, entity: TextEntity) -> dict:
@@ -48,8 +53,10 @@ class MongoDBTextRepository(ITextRepository):
         """
         model = entity.model_dump(by_alias=True)
         # Convert entity id to MongoDB _id
-        if "id" in model:
-            model["_id"] = model.pop("id")
+        if "id" in model and model["id"] is not None:
+            model["_id"] = str(model.pop("id"))
+        elif "id" in model:
+            del model["id"]
         return model
 
     async def create(self, entity: TextEntity) -> TextEntity:
@@ -58,10 +65,13 @@ class MongoDBTextRepository(ITextRepository):
         """
         try:
             text_model = self._entity_to_model(entity)
-            await self.collection.insert_one(text_model)
+            if "_id" not in text_model:
+                text_model["_id"] = str(ULID())
+            result = await self.collection.insert_one(text_model)
+            text_model["_id"] = result.inserted_id
 
             logger.info(f"Created text: {entity.title} (ID: {entity.id})")
-            return entity
+            return self._model_to_entity(text_model)
 
         except PyMongoError as e:
             logger.error(f"Failed to create text: {e}")
@@ -72,7 +82,7 @@ class MongoDBTextRepository(ITextRepository):
         Retrieve a text by its ID.
         """
         try:
-            text_model = await self.collection.find_one({"_id": entity_id})
+            text_model = await self.collection.find_one({"_id": str(entity_id)})
 
             if text_model:
                 logger.debug(f"Retrieved text by ID: {entity_id}")
@@ -113,7 +123,7 @@ class MongoDBTextRepository(ITextRepository):
             entity.updated_at = datetime.now(UTC)
             text_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": entity_id}, {"$set": text_model}
+                {"_id": str(entity_id)}, {"$set": text_model}
             )
 
             if result.matched_count:
@@ -133,7 +143,7 @@ class MongoDBTextRepository(ITextRepository):
         Delete a text by its ID.
         """
         try:
-            result = await self.collection.delete_one({"_id": entity_id})
+            result = await self.collection.delete_one({"_id": str(entity_id)})
 
             if result.deleted_count:
                 logger.info(f"Deleted text: {entity_id}")
@@ -151,7 +161,7 @@ class MongoDBTextRepository(ITextRepository):
         Check if a text exists by its ID.
         """
         try:
-            count: int = await self.collection.count_documents({"_id": entity_id})
+            count: int = await self.collection.count_documents({"_id": str(entity_id)})
             exists = count > 0
             logger.debug(f"Text exists check for {entity_id}: {exists}")
             return exists
@@ -173,7 +183,7 @@ class MongoDBTextRepository(ITextRepository):
                 return []
 
             cursor = (
-                self.collection.find({"languageId": language_id})
+                self.collection.find({"languageId": str(language_id)})
                 .skip(skip)
                 .limit(limit)
             )
@@ -200,7 +210,9 @@ class MongoDBTextRepository(ITextRepository):
             if limit == 0:
                 return []
 
-            cursor = self.collection.find({"userId": user_id}).skip(skip).limit(limit)
+            cursor = (
+                self.collection.find({"userId": str(user_id)}).skip(skip).limit(limit)
+            )
             texts = await cursor.to_list(length=limit)
             logger.debug(
                 f"Retrieved {len(texts)} texts for user {user_id} "

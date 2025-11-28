@@ -5,15 +5,14 @@ Tests cover all methods of the repository implementation including
 CRUD operations, queries, existence checks, and entity conversions.
 """
 
-import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
-from uuid import UUID
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from ulid import ULID
 
 from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
@@ -49,14 +48,14 @@ def setup_database(tmp_path):
     with SessionLocal() as session:
         # Seed Languages
         lang1 = LanguageModel(
-            id=str(UUID("00000000-0000-0000-0000-000000000001")),
+            id=str(ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAV")),
             name="English",
             code="en",
             nativeName="English",
         )
         # Seed Users
         user1 = UserModel(
-            id=str(UUID("10000000-0000-0000-0000-000000000001")),
+            id=str(ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAX")),
             email="author@example.com",
             username="author1",
             passwordHash="hash",
@@ -67,10 +66,10 @@ def setup_database(tmp_path):
         )
         # Seed Tags
         tag1 = TagModel(
-            id=str(UUID("20000000-0000-0000-0000-000000000001")), name="news"
+            id=str(ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAY")), name="news"
         )
         tag2 = TagModel(
-            id=str(UUID("20000000-0000-0000-0000-000000000002")), name="history"
+            id=str(ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAZ")), name="history"
         )
 
         session.add_all([lang1, user1, tag1, tag2])
@@ -89,29 +88,29 @@ async def repository(setup_database):
 
 
 @pytest.fixture
-def language_id():
-    return UUID("00000000-0000-0000-0000-000000000001")
+def language_id() -> ULID:
+    return ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAV")
 
 
 @pytest.fixture
-def user_id():
-    return UUID("10000000-0000-0000-0000-000000000001")
+def user_id() -> ULID:
+    return ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAX")
 
 
 @pytest.fixture
-def tag_ids():
+def tag_ids() -> list[ULID]:
     return [
-        UUID("20000000-0000-0000-0000-000000000001"),
-        UUID("20000000-0000-0000-0000-000000000002"),
+        ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAY"),
+        ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAZ"),
     ]
 
 
 @pytest.fixture
-def sample_text_entity(language_id: UUID, user_id: UUID) -> Callable[..., TextEntity]:
+def sample_text_entity(language_id: ULID, user_id: ULID) -> Callable[..., TextEntity]:
     """Factory fixture for creating Text entities."""
 
     def _create_text(
-        text_id: UUID | None = None,
+        text_id: ULID | None = None,
         title: str = "Sample Text",
         content: str = "This is the content.",
         level: ProficiencyLevel = ProficiencyLevel.B1,
@@ -119,11 +118,11 @@ def sample_text_entity(language_id: UUID, user_id: UUID) -> Callable[..., TextEn
     ) -> TextEntity:
         now = datetime.now(UTC)
         return TextEntity(
-            id=text_id or uuid.uuid4(),
+            id=str(text_id or ULID()),
             title=title,
             content=content,
-            languageId=language_id,
-            userId=user_id,
+            languageId=str(language_id),
+            userId=str(user_id),
             proficiencyLevel=level,
             wordCount=len(content.split()),
             isPublic=is_public,
@@ -160,7 +159,8 @@ class TestCreateText:
 
         created_text = await repository.create(text_entity)
         assert created_text.id is not None
-        assert isinstance(created_text.id, UUID)
+        assert isinstance(created_text.id, str)
+        assert ULID.from_str(created_text.id)
 
 
 class TestGetTextById:
@@ -178,7 +178,7 @@ class TestGetTextById:
     @pytest.mark.asyncio
     async def test_get_by_id_not_found(self, repository):
         """Test retrieving a non-existent text returns None."""
-        assert await repository.get_by_id(uuid.uuid4()) is None
+        assert await repository.get_by_id(ULID()) is None
 
 
 class TestGetAllTexts:
@@ -226,7 +226,7 @@ class TestUpdateText:
     @pytest.mark.asyncio
     async def test_update_text_not_found(self, repository, sample_text_entity):
         """Test updating a non-existent text returns None."""
-        result = await repository.update(uuid.uuid4(), sample_text_entity())
+        result = await repository.update(ULID(), sample_text_entity())
         assert result is None
 
 
@@ -244,7 +244,7 @@ class TestDeleteText:
     @pytest.mark.asyncio
     async def test_delete_text_not_found(self, repository):
         """Test deleting a non-existent text returns False."""
-        assert await repository.delete(uuid.uuid4()) is False
+        assert await repository.delete(ULID()) is False
 
 
 class TestTextQueries:
@@ -326,7 +326,7 @@ class TestEntityConversionText:
     async def test_model_to_entity_conversion(self, repository, language_id, user_id):
         """Test converting Text ORM model to domain entity."""
         text_model = TextModel(
-            id=str(uuid.uuid4()),
+            id=str(ULID()),
             title="Model Title",
             content="Model content.",
             languageId=str(language_id),

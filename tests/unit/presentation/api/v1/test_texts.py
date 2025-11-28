@@ -10,10 +10,10 @@ from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from ulid import ULID
 
 from app.application.dto.text_dto import TextResponse
 from app.core.dependencies import get_text_service
@@ -42,20 +42,20 @@ def client(mock_text_service: AsyncMock) -> Generator[TestClient, None, None]:
 
 
 @pytest.fixture
-def sample_text_id() -> UUID:
-    """Fixture for a sample text UUID."""
-    return uuid4()
+def sample_text_id() -> ULID:
+    """Fixture for a sample text ULID."""
+    return ULID()
 
 
 @pytest.fixture
-def sample_text_response(sample_text_id: UUID) -> TextResponse:
+def sample_text_response(sample_text_id: ULID) -> TextResponse:
     """Fixture for a sample TextResponse object."""
     return TextResponse(
-        id=sample_text_id,
+        id=str(sample_text_id),
         title="Sample Title",
         content="This is sample content.",
-        languageId=uuid4(),
-        userId=uuid4(),
+        languageId=str(ULID()),
+        userId=str(ULID()),
         proficiencyLevel=ProficiencyLevel.A1,
         wordCount=4,
         isPublic=True,
@@ -71,8 +71,8 @@ def sample_text_create_data() -> dict[str, Any]:
     return {
         "title": "New Title",
         "content": "A new piece of text content.",
-        "language_id": str(uuid4()),
-        "user_id": str(uuid4()),
+        "language_id": str(ULID()),
+        "user_id": str(ULID()),
         "proficiency_level": "B1",
         "word_count": 10,
         "is_public": False,
@@ -165,7 +165,7 @@ class TestGetTextById:
         client: TestClient,
         mock_text_service: AsyncMock,
         sample_text_response: TextResponse,
-        sample_text_id: UUID,
+        sample_text_id: ULID,
     ) -> None:
         """Test get_text_by_id returns 200 and a text on success."""
         mock_text_service.get_text.return_value = sample_text_response
@@ -181,7 +181,7 @@ class TestGetTextById:
         logger.info("get_text_by_id success test passed")
 
     def test_get_text_by_id_not_found(
-        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: UUID
+        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test get_text_by_id returns 404 when the text does not exist."""
         mock_text_service.get_text.return_value = None
@@ -194,21 +194,21 @@ class TestGetTextById:
         mock_text_service.get_text.assert_called_once_with(sample_text_id)
         logger.info("get_text_by_id not found test passed")
 
-    def test_get_text_by_id_invalid_uuid(
+    def test_get_text_by_id_invalid_ulid(
         self, client: TestClient, mock_text_service: AsyncMock
     ) -> None:
-        """Test get_text_by_id returns 422 for a malformed UUID."""
-        invalid_id = "not-a-uuid"
+        """Test get_text_by_id returns 422 for a malformed ULID."""
+        invalid_id = "not-a-ulid"
         logger.info(f"Testing get_text_by_id with invalid ID: {invalid_id}")
 
         response = client.get(f"/texts/{invalid_id}")
 
         assert response.status_code == 422
         mock_text_service.get_text.assert_not_called()
-        logger.info("get_text_by_id invalid UUID test passed")
+        logger.info("get_text_by_id invalid ULID test passed")
 
     def test_get_text_by_id_handles_exception(
-        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: UUID
+        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test get_text_by_id returns 500 when the service raises an exception."""
         error_message = "Service unavailable"
@@ -314,7 +314,7 @@ class TestUpdateText:
         client: TestClient,
         mock_text_service: AsyncMock,
         sample_text_response: TextResponse,
-        sample_text_id: UUID,
+        sample_text_id: ULID,
         sample_text_update_data: dict[str, Any],
     ) -> None:
         """Test update_text returns 200 and the updated text on success."""
@@ -333,7 +333,7 @@ class TestUpdateText:
         self,
         client: TestClient,
         mock_text_service: AsyncMock,
-        sample_text_id: UUID,
+        sample_text_id: ULID,
         sample_text_update_data: dict[str, Any],
     ) -> None:
         """Test update_text returns 404 when the text does not exist."""
@@ -347,24 +347,24 @@ class TestUpdateText:
         mock_text_service.update_text.assert_called_once()
         logger.info("update_text not found test passed")
 
-    def test_update_text_invalid_uuid(
+    def test_update_text_invalid_ulid(
         self,
         client: TestClient,
         mock_text_service: AsyncMock,
         sample_text_update_data: dict[str, Any],
     ) -> None:
-        """Test update_text returns 422 for a malformed UUID."""
-        invalid_id = "not-a-uuid"
+        """Test update_text returns 422 for a malformed ULID."""
+        invalid_id = "not-a-ulid"
         logger.info(f"Testing update_text with invalid ID: {invalid_id}")
 
         response = client.put(f"/texts/{invalid_id}", json=sample_text_update_data)
 
         assert response.status_code == 422
         mock_text_service.update_text.assert_not_called()
-        logger.info("update_text invalid UUID test passed")
+        logger.info("update_text invalid ULID test passed")
 
     def test_update_text_invalid_body(
-        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: UUID
+        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test update_text returns 422 for an invalid request body."""
         invalid_body = {"proficiency_level": "INVALID_LEVEL"}
@@ -380,7 +380,7 @@ class TestUpdateText:
         self,
         client: TestClient,
         mock_text_service: AsyncMock,
-        sample_text_id: UUID,
+        sample_text_id: ULID,
         sample_text_update_data: dict[str, Any],
     ) -> None:
         """Test update_text returns 409 when the service reports a conflict."""
@@ -400,7 +400,7 @@ class TestUpdateText:
         self,
         client: TestClient,
         mock_text_service: AsyncMock,
-        sample_text_id: UUID,
+        sample_text_id: ULID,
         sample_text_update_data: dict[str, Any],
     ) -> None:
         """Test update_text returns 500 for an unexpected service exception."""
@@ -421,7 +421,7 @@ class TestDeleteText:
     """Tests for the delete_text handler."""
 
     def test_delete_text_success(
-        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: UUID
+        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test delete_text returns 204 on successful deletion."""
         mock_text_service.delete_text.return_value = True
@@ -434,7 +434,7 @@ class TestDeleteText:
         logger.info("delete_text success test passed")
 
     def test_delete_text_not_found(
-        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: UUID
+        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test delete_text returns 404 when the text does not exist."""
         mock_text_service.delete_text.return_value = False
@@ -448,21 +448,21 @@ class TestDeleteText:
         mock_text_service.delete_text.assert_called_once_with(sample_text_id)
         logger.info("delete_text not found test passed")
 
-    def test_delete_text_invalid_uuid(
+    def test_delete_text_invalid_ulid(
         self, client: TestClient, mock_text_service: AsyncMock
     ) -> None:
-        """Test delete_text returns 422 for a malformed UUID."""
-        invalid_id = "not-a-uuid"
+        """Test delete_text returns 422 for a malformed ULID."""
+        invalid_id = "not-a-ulid"
         logger.info(f"Testing delete_text with invalid ID: {invalid_id}")
 
         response = client.delete(f"/texts/{invalid_id}")
 
         assert response.status_code == 422
         mock_text_service.delete_text.assert_not_called()
-        logger.info("delete_text invalid UUID test passed")
+        logger.info("delete_text invalid ULID test passed")
 
     def test_delete_text_handles_exception(
-        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: UUID
+        self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test delete_text returns 500 for an unexpected service exception."""
         error_message = "Failed to delete text"

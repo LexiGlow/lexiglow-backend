@@ -6,6 +6,7 @@ import logging
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
+from ulid import ULID
 
 from app.core.types import ULIDStr
 from app.domain.entities.language import Language as LanguageEntity
@@ -45,8 +46,10 @@ class MongoDBLanguageRepository(ILanguageRepository):
         """
         model = entity.model_dump(by_alias=True)
         # Convert entity id to MongoDB _id
-        if "id" in model:
-            model["_id"] = model.pop("id")
+        if "id" in model and model["id"] is not None:
+            model["_id"] = str(model.pop("id"))
+        elif "id" in model:
+            del model["id"]
         return model
 
     async def create(self, entity: LanguageEntity) -> LanguageEntity:
@@ -55,10 +58,13 @@ class MongoDBLanguageRepository(ILanguageRepository):
         """
         try:
             language_model = self._entity_to_model(entity)
-            await self.collection.insert_one(language_model)
+            if "_id" not in language_model:
+                language_model["_id"] = str(ULID())
+            result = await self.collection.insert_one(language_model)
+            language_model["_id"] = result.inserted_id
 
             logger.info(f"Created language: {entity.name} (ID: {entity.id})")
-            return entity
+            return self._model_to_entity(language_model)
 
         except PyMongoError as e:
             logger.error(f"Failed to create language: {e}")
@@ -69,7 +75,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Retrieve a language by its ID.
         """
         try:
-            language_model = await self.collection.find_one({"_id": entity_id})
+            language_model = await self.collection.find_one({"_id": str(entity_id)})
 
             if language_model:
                 logger.debug(f"Retrieved language by ID: {entity_id}")
@@ -112,7 +118,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         try:
             language_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": entity_id}, {"$set": language_model}
+                {"_id": str(entity_id)}, {"$set": language_model}
             )
 
             if result.matched_count:
@@ -131,7 +137,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Delete a language by its ID.
         """
         try:
-            result = await self.collection.delete_one({"_id": entity_id})
+            result = await self.collection.delete_one({"_id": str(entity_id)})
 
             if result.deleted_count:
                 logger.info(f"Deleted language: {entity_id}")
@@ -149,7 +155,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
         Check if a language exists by its ID.
         """
         try:
-            count: int = await self.collection.count_documents({"_id": entity_id})
+            count: int = await self.collection.count_documents({"_id": str(entity_id)})
             exists = count > 0
             logger.debug(f"Language exists check for {entity_id}: {exists}")
             return exists

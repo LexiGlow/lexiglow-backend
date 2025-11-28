@@ -6,16 +6,15 @@ using FastAPI's TestClient with a temporary SQLite database.
 """
 
 import logging
-import uuid
 from collections.abc import Generator
-from pathlib import Path  # Import Path
+from pathlib import Path
 from typing import Any, cast
-from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from ulid import ULID
 
 from app.application.services.text_service import TextService
 from app.core.dependencies import get_text_service
@@ -62,13 +61,13 @@ def db_session(
 def test_db_setup(db_session: Session) -> dict[str, Any]:
     """Seed the database with a language and a user."""
     language = LanguageModel(
-        id=str(UUID("30000000-0000-0000-0000-000000000001")),
+        id=str(ULID()),
         name="German",
         code="de",
         nativeName="Deutsch",
     )
     user = UserModel(
-        id=str(UUID("40000000-0000-0000-0000-000000000001")),
+        id=str(ULID()),
         email="text.test@example.com",
         username="text_tester",
         passwordHash="some_hash",
@@ -84,8 +83,8 @@ def test_db_setup(db_session: Session) -> dict[str, Any]:
 
     return {
         "db_path": cast(Engine, db_session.get_bind()).url.database,
-        "language_id": UUID(language.id),
-        "user_id": UUID(user.id),
+        "language_id": ULID.from_str(language.id),
+        "user_id": ULID.from_str(user.id),
     }
 
 
@@ -189,7 +188,7 @@ class TestGetTextById:
 
     def test_get_text_by_id_not_found(self, client: TestClient) -> None:
         """Test retrieving non-existent text returns 404."""
-        non_existent_id = str(uuid.uuid4())
+        non_existent_id = ULID()
         response = client.get(f"/texts/{non_existent_id}")
         assert response.status_code == 404
         logger.info("Get text by ID not found test passed")
@@ -246,7 +245,7 @@ class TestUpdateText:
 
     def test_update_text_not_found(self, client: TestClient) -> None:
         """Test updating non-existent text returns 404."""
-        non_existent_id = str(uuid.uuid4())
+        non_existent_id = ULID()
         update_data = create_update_data(title="Non-existent")
         response = client.put(f"/texts/{non_existent_id}", json=update_data)
         assert response.status_code == 404
@@ -274,7 +273,7 @@ class TestDeleteText:
 
     def test_delete_text_not_found(self, client: TestClient) -> None:
         """Test deleting non-existent text returns 404."""
-        non_existent_id = str(uuid.uuid4())
+        non_existent_id = ULID()
         response = client.delete(f"/texts/{non_existent_id}")
         assert response.status_code == 404
         logger.info("Delete text not found test passed")

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
 from app.application.services.user_service import UserService
 from app.core.dependencies import get_user_service
+from app.core.exceptions import LanguageNotFoundError
 from app.core.types import ULIDStr
 
 logger = logging.getLogger(__name__)
@@ -146,7 +147,12 @@ async def create_user(
             created_user = await service.create_user(user_data)
             logger.info(f"User created successfully: {created_user.id}")
             return created_user
-
+        except LanguageNotFoundError as e:
+            logger.warning(f"Language not found error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": "Language not found", "message": str(e)},
+            ) from e
         except ValueError as e:
             # Email or username already exists
             logger.warning(f"Conflict error: {e}")

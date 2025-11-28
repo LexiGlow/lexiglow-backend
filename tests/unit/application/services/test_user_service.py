@@ -6,9 +6,9 @@ These tests mock the IUserRepository to test the service's business logic in iso
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
 
 import pytest
+from ulid import ULID
 
 from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
 from app.application.services.user_service import UserService
@@ -30,9 +30,9 @@ def user_service(mock_user_repo: AsyncMock) -> UserService:
 
 
 @pytest.fixture
-def sample_user_id() -> UUID:
-    """Provides a sample UUID for a user."""
-    return uuid4()
+def sample_user_id() -> ULID:
+    """Provides a sample ULID for a user."""
+    return ULID()
 
 
 @pytest.fixture
@@ -44,23 +44,23 @@ def sample_user_create() -> UserCreate:
         password="strongpassword123",
         firstName="Test",
         lastName="User",
-        nativeLanguageId=uuid4(),
-        currentLanguageId=uuid4(),
+        nativeLanguageId=str(ULID()),
+        currentLanguageId=str(ULID()),
     )
 
 
 @pytest.fixture
-def sample_user_entity(sample_user_id: UUID) -> UserEntity:
+def sample_user_entity(sample_user_id: ULID) -> UserEntity:
     now = datetime.now(UTC)
     return UserEntity(
-        id=sample_user_id,
+        id=str(sample_user_id),
         email="test@example.com",
         username="testuser",
         passwordHash="hashed_password",
         firstName="Test",
         lastName="User",
-        nativeLanguageId=uuid4(),
-        currentLanguageId=uuid4(),
+        nativeLanguageId=str(ULID()),
+        currentLanguageId=str(ULID()),
         createdAt=now,
         updatedAt=now,
         lastActiveAt=None,
@@ -82,7 +82,7 @@ class TestUserService:
         mock_user_repo.email_exists.return_value = False
         mock_user_repo.username_exists.return_value = False
         mock_user_repo.create.return_value = UserEntity(
-            id=uuid4(),
+            id=str(ULID()),
             passwordHash="hashed_password",
             **sample_user_create.model_dump(exclude={"password"}, by_alias=True),
         )
@@ -157,8 +157,8 @@ class TestUserService:
             password="PlainPassword123!",
             firstName="Hash",
             lastName="Test",
-            nativeLanguageId=uuid4(),
-            currentLanguageId=uuid4(),
+            nativeLanguageId=str(ULID()),
+            currentLanguageId=str(ULID()),
         )
         mock_user_repo.email_exists.return_value = False
         mock_user_repo.username_exists.return_value = False
@@ -166,7 +166,7 @@ class TestUserService:
         # Create a return entity with proper password hash
         now = datetime.now(UTC)
         mock_user_repo.create.return_value = UserEntity(
-            id=uuid4(),
+            id=str(ULID()),
             email=user_create.email,
             username=user_create.username,
             passwordHash="$2b$12$somehashvalue",
@@ -235,7 +235,7 @@ class TestUserService:
     ) -> None:
         """Test Case 3.2: Get non-existent user."""
         # Arrange
-        user_id = uuid4()
+        user_id = str(ULID())
         mock_user_repo.get_by_id.return_value = None
 
         # Act
@@ -357,7 +357,7 @@ class TestUserService:
     ) -> None:
         """Test Case 5.2: Attempt to update a non-existent user."""
         # Arrange
-        user_id = uuid4()
+        user_id = str(ULID())
         update_data = UserUpdate(
             firstName="UpdatedName",
             lastName=None,
@@ -466,7 +466,7 @@ class TestUserService:
     ) -> None:
         """Test Case 6.1: Successful deletion."""
         # Arrange
-        user_id = uuid4()
+        user_id = str(ULID())
         mock_user_repo.delete.return_value = True
 
         # Act
@@ -482,7 +482,7 @@ class TestUserService:
     ) -> None:
         """Test Case 6.2: Attempt to delete a non-existent user."""
         # Arrange
-        user_id = uuid4()
+        user_id = str(ULID())
         mock_user_repo.delete.return_value = False
 
         # Act

@@ -9,10 +9,10 @@ import logging
 from datetime import datetime
 from typing import Any
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from ulid import ULID
 
 from app.application.dto.user_dto import UserResponse
 from app.core.dependencies import get_user_service
@@ -39,22 +39,22 @@ def client(mock_user_service: AsyncMock) -> TestClient:
 
 
 @pytest.fixture
-def sample_user_id() -> UUID:
-    """Fixture for a sample user UUID."""
-    return uuid4()
+def sample_user_id() -> ULID:
+    """Fixture for a sample user ULID."""
+    return ULID()
 
 
 @pytest.fixture
-def sample_user_response(sample_user_id: UUID) -> UserResponse:
+def sample_user_response(sample_user_id: ULID) -> UserResponse:
     """Fixture for a sample UserResponse object."""
     return UserResponse(
-        id=sample_user_id,
+        id=str(sample_user_id),
         email="test@example.com",
         username="testuser",
         firstName="Test",
         lastName="User",
-        nativeLanguageId=uuid4(),
-        currentLanguageId=uuid4(),
+        nativeLanguageId=str(ULID()),
+        currentLanguageId=str(ULID()),
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
         lastActiveAt=None,
@@ -70,8 +70,8 @@ def sample_user_create_data() -> dict[str, Any]:
         "password": "a-secure-password",
         "firstName": "New",
         "lastName": "User",
-        "nativeLanguageId": str(uuid4()),
-        "currentLanguageId": str(uuid4()),
+        "nativeLanguageId": str(ULID()),
+        "currentLanguageId": str(ULID()),
     }
 
 
@@ -182,7 +182,7 @@ class TestGetUserById:
         client: TestClient,
         mock_user_service: AsyncMock,
         sample_user_response: UserResponse,
-        sample_user_id: UUID,
+        sample_user_id: ULID,
     ) -> None:
         """
         Test get_user_by_id returns 200 and a user on success.
@@ -203,7 +203,7 @@ class TestGetUserById:
         logger.info("get_user_by_id success test passed")
 
     def test_get_user_by_id_not_found(
-        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: ULID
     ) -> None:
         """
         Test get_user_by_id returns 404 when the user does not exist.
@@ -221,14 +221,14 @@ class TestGetUserById:
         mock_user_service.get_user.assert_called_once_with(sample_user_id)
         logger.info("get_user_by_id not found test passed")
 
-    def test_get_user_by_id_invalid_uuid(
+    def test_get_user_by_id_invalid_ulid(
         self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
-        Test get_user_by_id returns 422 for a malformed UUID.
+        Test get_user_by_id returns 422 for a malformed ULID.
         """
         # Arrange
-        invalid_id = "not-a-valid-uuid"
+        invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing get_user_by_id with invalid ID: {invalid_id}")
 
         # Act
@@ -237,10 +237,10 @@ class TestGetUserById:
         # Assert
         assert response.status_code == 422
         mock_user_service.get_user.assert_not_called()
-        logger.info("get_user_by_id invalid UUID test passed")
+        logger.info("get_user_by_id invalid ULID test passed")
 
     def test_get_user_by_id_handles_exception(
-        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: ULID
     ) -> None:
         """
         Test get_user_by_id returns 500 when the service raises an exception.
@@ -371,7 +371,7 @@ class TestUpdateUser:
         client: TestClient,
         mock_user_service: AsyncMock,
         sample_user_response: UserResponse,
-        sample_user_id: UUID,
+        sample_user_id: ULID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
@@ -395,7 +395,7 @@ class TestUpdateUser:
         self,
         client: TestClient,
         mock_user_service: AsyncMock,
-        sample_user_id: UUID,
+        sample_user_id: ULID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
@@ -414,17 +414,17 @@ class TestUpdateUser:
         mock_user_service.update_user.assert_called_once()
         logger.info("update_user not found test passed")
 
-    def test_update_user_invalid_uuid(
+    def test_update_user_invalid_ulid(
         self,
         client: TestClient,
         mock_user_service: AsyncMock,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
-        Test update_user returns 422 for a malformed UUID.
+        Test update_user returns 422 for a malformed ULID.
         """
         # Arrange
-        invalid_id = "not-a-valid-uuid"
+        invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing update_user with invalid ID: {invalid_id}")
 
         # Act
@@ -433,10 +433,10 @@ class TestUpdateUser:
         # Assert
         assert response.status_code == 422
         mock_user_service.update_user.assert_not_called()
-        logger.info("update_user invalid UUID test passed")
+        logger.info("update_user invalid ULID test passed")
 
     def test_update_user_invalid_body(
-        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: ULID
     ) -> None:
         """
         Test update_user returns 422 for an invalid request body.
@@ -457,7 +457,7 @@ class TestUpdateUser:
         self,
         client: TestClient,
         mock_user_service: AsyncMock,
-        sample_user_id: UUID,
+        sample_user_id: ULID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
@@ -482,7 +482,7 @@ class TestUpdateUser:
         self,
         client: TestClient,
         mock_user_service: AsyncMock,
-        sample_user_id: UUID,
+        sample_user_id: ULID,
         sample_user_update_data: dict[str, Any],
     ) -> None:
         """
@@ -508,7 +508,7 @@ class TestDeleteUser:
     """Tests for the delete_user handler."""
 
     def test_delete_user_success(
-        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: ULID
     ) -> None:
         """
         Test delete_user returns 204 on successful deletion.
@@ -526,7 +526,7 @@ class TestDeleteUser:
         logger.info("delete_user success test passed")
 
     def test_delete_user_not_found(
-        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: ULID
     ) -> None:
         """
         Test delete_user returns 404 when the user does not exist.
@@ -545,14 +545,14 @@ class TestDeleteUser:
         mock_user_service.delete_user.assert_called_once_with(sample_user_id)
         logger.info("delete_user not found test passed")
 
-    def test_delete_user_invalid_uuid(
+    def test_delete_user_invalid_ulid(
         self, client: TestClient, mock_user_service: AsyncMock
     ) -> None:
         """
-        Test delete_user returns 422 for a malformed UUID.
+        Test delete_user returns 422 for a malformed ULID.
         """
         # Arrange
-        invalid_id = "not-a-valid-uuid"
+        invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing delete_user with invalid ID: {invalid_id}")
 
         # Act
@@ -561,10 +561,10 @@ class TestDeleteUser:
         # Assert
         assert response.status_code == 422
         mock_user_service.delete_user.assert_not_called()
-        logger.info("delete_user invalid UUID test passed")
+        logger.info("delete_user invalid ULID test passed")
 
     def test_delete_user_handles_exception(
-        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: UUID
+        self, client: TestClient, mock_user_service: AsyncMock, sample_user_id: ULID
     ) -> None:
         """
         Test delete_user returns 500 for an unexpected service exception.

@@ -6,10 +6,8 @@ using FastAPI's TestClient with temporary SQLite database fixtures.
 """
 
 import logging
-import uuid
 from collections.abc import Generator
 from typing import Any
-from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.application.services.user_service import UserService
 from app.core.dependencies import get_user_service
+from app.core.ids import get_ulid
 from app.infrastructure.database.sqlite.models import Base
 from app.infrastructure.database.sqlite.models import Language as LanguageModel
 from app.infrastructure.database.sqlite.repositories.user_repository_impl import (
@@ -57,14 +56,16 @@ def test_db_with_languages(tmp_path, monkeypatch):
     # Seed languages
     SessionLocal = sessionmaker(bind=engine)
     with SessionLocal() as session:
+        english_id = get_ulid()
+        spanish_id = get_ulid()
         english = LanguageModel(
-            id=str(UUID("10000000-0000-0000-0000-000000000001")),
+            id=str(english_id),
             name="English",
             code="en",
             nativeName="English",
         )
         spanish = LanguageModel(
-            id=str(UUID("20000000-0000-0000-0000-000000000001")),
+            id=str(spanish_id),
             name="Spanish",
             code="es",
             nativeName="Español",
@@ -80,8 +81,8 @@ def test_db_with_languages(tmp_path, monkeypatch):
     # Return language IDs and db path for tests
     yield {
         "db_path": db_path,
-        "english_id": UUID("10000000-0000-0000-0000-000000000001"),
-        "spanish_id": UUID("20000000-0000-0000-0000-000000000001"),
+        "english_id": str(english_id),
+        "spanish_id": str(spanish_id),
     }
 
 
@@ -120,8 +121,8 @@ def create_user_data(
         "password": password,
         "firstName": first_name,
         "lastName": last_name,
-        "nativeLanguageId": str(test_db["english_id"]),
-        "currentLanguageId": str(test_db["english_id"]),
+        "nativeLanguageId": test_db["english_id"],
+        "currentLanguageId": test_db["english_id"],
     }
 
 
@@ -282,7 +283,7 @@ class TestGetUserById:
 
     def test_get_user_by_id_not_found(self, client: TestClient) -> None:
         """Test retrieving non-existent user returns 404."""
-        non_existent_id = str(uuid.uuid4())
+        non_existent_id = get_ulid()
 
         response = client.get(f"/users/{non_existent_id}")
 
@@ -295,9 +296,9 @@ class TestGetUserById:
 
         logger.info("Get user by ID not found test passed")
 
-    def test_get_user_by_id_invalid_uuid(self, client: TestClient) -> None:
-        """Test retrieving user with malformed UUID returns 422."""
-        invalid_ids = ["not-a-uuid", "12345", "abc-def-ghi"]
+    def test_get_user_by_id_invalid_ulid(self, client: TestClient) -> None:
+        """Test retrieving user with malformed ULID returns 422."""
+        invalid_ids = ["not-a-ulid", "12345", "abc-def-ghi"]
 
         for invalid_id in invalid_ids:
             response = client.get(f"/users/{invalid_id}")
@@ -306,7 +307,7 @@ class TestGetUserById:
             data = response.json()
             assert "detail" in data
 
-        logger.info("Get user by ID invalid UUID test passed")
+        logger.info("Get user by ID invalid ULID test passed")
 
     def test_get_user_by_id_method_not_allowed(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
@@ -452,7 +453,7 @@ class TestCreateUser:
     ) -> None:
         """Test creating user with non-existent language ID."""
         user_data = create_user_data(test_db_with_languages)
-        user_data["nativeLanguageId"] = str(uuid.uuid4())
+        user_data["nativeLanguageId"] = str(get_ulid())
 
         response = client.post("/users/", json=user_data)
 
@@ -552,7 +553,7 @@ class TestUpdateUser:
 
     def test_update_user_not_found(self, client: TestClient) -> None:
         """Test updating non-existent user returns 404."""
-        non_existent_id = str(uuid.uuid4())
+        non_existent_id = get_ulid()
         update_data = create_update_data(email="test@example.com")
         response = client.put(f"/users/{non_existent_id}", json=update_data)
 
@@ -563,15 +564,15 @@ class TestUpdateUser:
 
         logger.info("Update user not found test passed")
 
-    def test_update_user_invalid_uuid(self, client: TestClient) -> None:
-        """Test updating with malformed UUID returns 422."""
-        invalid_id = "not-a-uuid"
+    def test_update_user_invalid_ulid(self, client: TestClient) -> None:
+        """Test updating with malformed ULID returns 422."""
+        invalid_id = "not-a-ulid"
         update_data = create_update_data(email="test@example.com")
         response = client.put(f"/users/{invalid_id}", json=update_data)
 
         assert response.status_code == 422
 
-        logger.info("Update user invalid UUID test passed")
+        logger.info("Update user invalid ULID test passed")
 
     def test_update_user_duplicate_email(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
@@ -658,7 +659,7 @@ class TestDeleteUser:
 
     def test_delete_user_not_found(self, client: TestClient) -> None:
         """Test deleting non-existent user returns 404."""
-        non_existent_id = str(uuid.uuid4())
+        non_existent_id = get_ulid()
         response = client.delete(f"/users/{non_existent_id}")
         assert response.status_code == 404
 
@@ -668,13 +669,13 @@ class TestDeleteUser:
 
         logger.info("Delete user not found test passed")
 
-    def test_delete_user_invalid_uuid(self, client: TestClient) -> None:
-        """Test deleting with malformed UUID returns 422."""
-        invalid_id = "not-a-uuid"
+    def test_delete_user_invalid_ulid(self, client: TestClient) -> None:
+        """Test deleting with malformed ULID returns 422."""
+        invalid_id = "not-a-ulid"
         response = client.delete(f"/users/{invalid_id}")
         assert response.status_code == 422
 
-        logger.info("Delete user invalid UUID test passed")
+        logger.info("Delete user invalid ULID test passed")
 
     def test_delete_user_idempotent(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
@@ -797,7 +798,7 @@ def test_user_endpoints_json_structure(
     assert update_response.headers["content-type"] == "application/json"
     assert isinstance(update_response.json(), dict)
 
-    error_response = client.get("/users/invalid-uuid")
+    error_response = client.get("/users/invalid-ulid")
     assert error_response.headers["content-type"] == "application/json"
     error_data = error_response.json()
     assert "detail" in error_data

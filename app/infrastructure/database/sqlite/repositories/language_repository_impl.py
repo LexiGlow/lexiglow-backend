@@ -10,6 +10,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from ulid import ULID
 
 from app.core.config import BASE_DIR
 from app.core.types import ULIDStr
@@ -70,7 +71,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             Pydantic Language entity
         """
         return LanguageEntity(
-            id=model.id,
+            id=str(model.id),
             name=str(model.name),
             code=str(model.code),
             nativeName=str(model.nativeName),
@@ -88,7 +89,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
             SQLAlchemy Language model
         """
         return LanguageModel(
-            id=entity.id,
+            id=str(entity.id),
             name=entity.name,
             code=entity.code,
             nativeName=entity.native_name,
@@ -111,6 +112,8 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 # Convert entity to model
+                if not entity.id:
+                    entity.id = str(ULID())
                 language_model = self._entity_to_model(entity)
 
                 # Add and commit
@@ -143,7 +146,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel).filter_by(id=entity_id)
+                    select(LanguageModel).filter_by(id=str(entity_id))
                 )
                 language_model = result.scalar_one_or_none()
 
@@ -207,7 +210,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel).filter_by(id=entity_id)
+                    select(LanguageModel).filter_by(id=str(entity_id))
                 )
                 language_model = result.scalar_one_or_none()
 
@@ -248,7 +251,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel).filter_by(id=entity_id)
+                    select(LanguageModel).filter_by(id=str(entity_id))
                 )
                 language_model = result.scalar_one_or_none()
 
@@ -284,7 +287,7 @@ class SQLiteLanguageRepository(ILanguageRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(LanguageModel.id).filter_by(id=entity_id)
+                    select(LanguageModel.id).filter_by(id=str(entity_id))
                 )
                 exists = result.scalar_one_or_none() is not None
 

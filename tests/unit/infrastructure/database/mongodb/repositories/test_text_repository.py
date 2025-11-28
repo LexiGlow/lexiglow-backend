@@ -5,12 +5,11 @@ Tests cover all methods of the repository implementation including
 CRUD operations, queries, existence checks, and entity conversions.
 """
 
-import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
-from uuid import UUID
 
 import pytest
+from ulid import ULID
 
 from app.domain.entities.enums import ProficiencyLevel
 from app.domain.entities.text import Text as TextEntity
@@ -24,36 +23,36 @@ from app.infrastructure.database.mongodb.repositories.text_repository_impl impor
 @pytest.fixture(scope="function")
 def repository(mongo_client, db_url):
     """Create a MongoDBTextRepository instance with a test database."""
-    db_name = f"test_db_{uuid.uuid4().hex}"
+    db_name = f"test_db_{ULID().hex}"
     repo = MongoDBTextRepository(db_url=db_url, db_name=db_name)
     yield repo
     mongo_client.drop_database(db_name)
 
 
 @pytest.fixture
-def language_id():
-    return UUID("00000000-0000-0000-0000-000000000001")
+def language_id() -> ULID:
+    return ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAV")
 
 
 @pytest.fixture
-def user_id():
-    return UUID("10000000-0000-0000-0000-000000000001")
+def user_id() -> ULID:
+    return ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAX")
 
 
 @pytest.fixture
-def tag_ids():
+def tag_ids() -> list[ULID]:
     return [
-        UUID("20000000-0000-0000-0000-000000000001"),
-        UUID("20000000-0000-0000-0000-000000000002"),
+        ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAY"),
+        ULID.from_str("01ARZ3NDEKTSV4RRFFQ69G5FAZ"),
     ]
 
 
 @pytest.fixture
-def sample_text_entity(language_id: UUID, user_id: UUID) -> Callable[..., TextEntity]:
+def sample_text_entity(language_id: ULID, user_id: ULID) -> Callable[..., TextEntity]:
     """Factory fixture for creating Text entities."""
 
     def _create_text(
-        text_id: UUID | None = None,
+        text_id: ULID | None = None,
         title: str = "Sample Text",
         content: str = "This is the content.",
         level: ProficiencyLevel = ProficiencyLevel.B1,
@@ -61,11 +60,11 @@ def sample_text_entity(language_id: UUID, user_id: UUID) -> Callable[..., TextEn
     ) -> TextEntity:
         now = datetime.now(UTC)
         return TextEntity(
-            id=text_id or uuid.uuid4(),
+            id=str(text_id or ULID()),
             title=title,
             content=content,
-            languageId=language_id,
-            userId=user_id,
+            languageId=str(language_id),
+            userId=str(user_id),
             proficiencyLevel=level,
             wordCount=len(content.split()),
             isPublic=is_public,
@@ -106,7 +105,8 @@ class TestCreateText:
 
         created_text = await repository.create(text_entity)
         assert created_text.id is not None
-        assert isinstance(created_text.id, UUID)
+        assert isinstance(created_text.id, str)
+        assert ULID.from_str(created_text.id)
 
 
 class TestGetTextById:
@@ -130,7 +130,7 @@ class TestGetTextById:
         """
         Test retrieving a non-existent text returns None.
         """
-        assert await repository.get_by_id(uuid.uuid4()) is None
+        assert await repository.get_by_id(ULID()) is None
 
 
 class TestGetAllTexts:
@@ -203,7 +203,7 @@ class TestUpdateText:
         """
         Test updating a non-existent text returns None.
         """
-        result = await repository.update(uuid.uuid4(), sample_text_entity())
+        result = await repository.update(ULID(), sample_text_entity())
         assert result is None
 
 
@@ -227,7 +227,7 @@ class TestDeleteText:
         """
         Test deleting a non-existent text returns False.
         """
-        assert await repository.delete(uuid.uuid4()) is False
+        assert await repository.delete(ULID()) is False
 
 
 class TestTextQueries:
@@ -248,7 +248,7 @@ class TestTextQueries:
         """
         Test exists returns False for a non-existent text.
         """
-        assert await repository.exists(uuid.uuid4()) is False
+        assert await repository.exists(ULID()) is False
 
     @pytest.mark.asyncio
     async def test_get_by_language(self, repository, sample_text_entity, language_id):
@@ -334,14 +334,13 @@ class TestEntityConversionText:
         """
         Test converting MongoDB document to domain entity.
         """
-        text_id = uuid.uuid4()
+        text_id = ULID()
         text_model_dict = {
-            # MongoDB returns UUID objects with uuidRepresentation="standard"
-            "_id": text_id,
+            "_id": str(text_id),
             "title": "Model Title",
             "content": "Model content.",
-            "languageId": language_id,  # UUID object
-            "userId": user_id,  # UUID object
+            "languageId": str(language_id),  # ULID object
+            "userId": str(user_id),  # ULID object
             "proficiencyLevel": ProficiencyLevel.B2.value,
             "wordCount": 3,
             "isPublic": True,
@@ -366,10 +365,10 @@ class TestEntityConversionText:
         entity = sample_text_entity()
         model = repository._entity_to_model(entity)
         assert isinstance(model, dict)
-        # _id should be a UUID object (MongoDB stores UUIDs as UUID objects
-        # with uuidRepresentation="standard")
+        # _id should be a ULID object
         assert model["_id"] == entity.id
-        assert isinstance(model["_id"], UUID)
+        assert isinstance(model["_id"], str)
+        assert ULID.from_str(model["_id"])
         assert model["title"] == entity.title
         assert model["proficiencyLevel"] == entity.proficiency_level.value
         # Verify id was converted to _id (no longer exists in model)

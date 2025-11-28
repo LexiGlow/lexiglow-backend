@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
+from ulid import ULID
 
 from app.core.types import ULIDStr
 from app.domain.entities.user import User as UserEntity
@@ -37,7 +38,11 @@ class MongoDBUserRepository(IUserRepository):
         Maps MongoDB _id to entity id.
         """
         if "_id" in model:
-            model["id"] = model.pop("_id")
+            model["id"] = str(model.pop("_id"))
+        if "nativeLanguageId" in model:
+            model["nativeLanguageId"] = str(model["nativeLanguageId"])
+        if "currentLanguageId" in model:
+            model["currentLanguageId"] = str(model["currentLanguageId"])
         return UserEntity.model_validate(model)
 
     def _entity_to_model(self, entity: UserEntity) -> dict:
@@ -46,8 +51,10 @@ class MongoDBUserRepository(IUserRepository):
         """
         model = entity.model_dump(by_alias=True)
         # Convert entity id to MongoDB _id
-        if "id" in model:
-            model["_id"] = model.pop("id")
+        if "id" in model and model["id"] is not None:
+            model["_id"] = str(model.pop("id"))
+        elif "id" in model:
+            del model["id"]
         return model
 
     async def create(self, entity: UserEntity) -> UserEntity:
@@ -68,10 +75,13 @@ class MongoDBUserRepository(IUserRepository):
                 )
 
             user_model = self._entity_to_model(entity)
-            await self.collection.insert_one(user_model)
+            if "_id" not in user_model:
+                user_model["_id"] = str(ULID())
+            result = await self.collection.insert_one(user_model)
+            user_model["_id"] = result.inserted_id
 
             logger.info(f"Created user: {entity.username} (ID: {entity.id})")
-            return entity
+            return self._model_to_entity(user_model)
 
         except PyMongoError as e:
             logger.error(f"Failed to create user: {e}")
@@ -82,7 +92,7 @@ class MongoDBUserRepository(IUserRepository):
         Retrieve a user by their ID.
         """
         try:
-            user_model = await self.collection.find_one({"_id": entity_id})
+            user_model = await self.collection.find_one({"_id": str(entity_id)})
 
             if user_model:
                 logger.debug(f"Retrieved user by ID: {entity_id}")
@@ -123,7 +133,7 @@ class MongoDBUserRepository(IUserRepository):
             entity.updated_at = datetime.now(UTC)
             user_model = self._entity_to_model(entity)
             result = await self.collection.update_one(
-                {"_id": entity_id}, {"$set": user_model}
+                {"_id": str(entity_id)}, {"$set": user_model}
             )
 
             if result.matched_count:
@@ -144,7 +154,7 @@ class MongoDBUserRepository(IUserRepository):
         Delete a user by their ID.
         """
         try:
-            result = await self.collection.delete_one({"_id": entity_id})
+            result = await self.collection.delete_one({"_id": str(entity_id)})
 
             if result.deleted_count:
                 logger.info(f"Deleted user: {entity_id}")
@@ -162,7 +172,7 @@ class MongoDBUserRepository(IUserRepository):
         Check if a user exists by their ID.
         """
         try:
-            count: int = await self.collection.count_documents({"_id": entity_id})
+            count: int = await self.collection.count_documents({"_id": str(entity_id)})
             exists = count > 0
             logger.debug(f"User exists check for {entity_id}: {exists}")
             return exists
@@ -241,7 +251,7 @@ class MongoDBUserRepository(IUserRepository):
         """
         try:
             result = await self.collection.update_one(
-                {"_id": user_id}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
+                {"_id": str(user_id)}, {"$set": {"lastActiveAt": datetime.now(UTC)}}
             )
 
             if result.matched_count:

@@ -9,10 +9,10 @@ import logging
 from datetime import datetime
 from typing import Any
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from ulid import ULID
 
 from app.application.dto.language_dto import LanguageResponse
 from app.core.dependencies import get_language_service
@@ -39,16 +39,16 @@ def client(mock_language_service: AsyncMock) -> TestClient:
 
 
 @pytest.fixture
-def sample_language_id() -> UUID:
-    """Fixture for a sample language UUID."""
-    return uuid4()
+def sample_language_id() -> ULID:
+    """Fixture for a sample language ULID."""
+    return ULID()
 
 
 @pytest.fixture
-def sample_language_response(sample_language_id: UUID) -> LanguageResponse:
+def sample_language_response(sample_language_id: ULID) -> LanguageResponse:
     """Fixture for a sample LanguageResponse object."""
     return LanguageResponse(
-        id=sample_language_id,
+        id=str(sample_language_id),
         name="Spanish",
         code="es",
         nativeName="Español",
@@ -178,7 +178,7 @@ class TestGetLanguageById:
         client: TestClient,
         mock_language_service: AsyncMock,
         sample_language_response: LanguageResponse,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
     ) -> None:
         """
         Test get_language_by_id returns 200 and a language on success.
@@ -202,7 +202,7 @@ class TestGetLanguageById:
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
     ) -> None:
         """
         Test get_language_by_id returns 404 when the language does not exist.
@@ -222,14 +222,14 @@ class TestGetLanguageById:
         mock_language_service.get_language.assert_called_once_with(sample_language_id)
         logger.info("get_language_by_id not found test passed")
 
-    def test_get_language_by_id_invalid_uuid(
+    def test_get_language_by_id_invalid_ulid(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
         """
-        Test get_language_by_id returns 422 for a malformed UUID.
+        Test get_language_by_id returns 422 for a malformed ULID.
         """
         # Arrange
-        invalid_id = "not-a-valid-uuid"
+        invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing get_language_by_id with invalid ID: {invalid_id}")
 
         # Act
@@ -238,13 +238,13 @@ class TestGetLanguageById:
         # Assert
         assert response.status_code == 422
         mock_language_service.get_language.assert_not_called()
-        logger.info("get_language_by_id invalid UUID test passed")
+        logger.info("get_language_by_id invalid ULID test passed")
 
     def test_get_language_by_id_handles_exception(
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
     ) -> None:
         """
         Test get_language_by_id returns 500 when the service raises an exception.
@@ -379,7 +379,7 @@ class TestUpdateLanguage:
         client: TestClient,
         mock_language_service: AsyncMock,
         sample_language_response: LanguageResponse,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
         """
@@ -405,7 +405,7 @@ class TestUpdateLanguage:
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
         """
@@ -428,17 +428,17 @@ class TestUpdateLanguage:
         mock_language_service.update_language.assert_called_once()
         logger.info("update_language not found test passed")
 
-    def test_update_language_invalid_uuid(
+    def test_update_language_invalid_ulid(
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
         sample_language_update_data: dict[str, Any],
     ) -> None:
         """
-        Test update_language returns 422 for a malformed UUID.
+        Test update_language returns 422 for a malformed ULID.
         """
         # Arrange
-        invalid_id = "not-a-valid-uuid"
+        invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing update_language with invalid ID: {invalid_id}")
 
         # Act
@@ -449,13 +449,13 @@ class TestUpdateLanguage:
         # Assert
         assert response.status_code == 422
         mock_language_service.update_language.assert_not_called()
-        logger.info("update_language invalid UUID test passed")
+        logger.info("update_language invalid ULID test passed")
 
     def test_update_language_conflict(
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
         """
@@ -482,7 +482,7 @@ class TestUpdateLanguage:
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
         """
@@ -513,7 +513,7 @@ class TestDeleteLanguage:
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
     ) -> None:
         """
         Test delete_language returns 204 on successful deletion.
@@ -536,7 +536,7 @@ class TestDeleteLanguage:
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
     ) -> None:
         """
         Test delete_language returns 404 when the language does not exist.
@@ -559,14 +559,14 @@ class TestDeleteLanguage:
         )
         logger.info("delete_language not found test passed")
 
-    def test_delete_language_invalid_uuid(
+    def test_delete_language_invalid_ulid(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
         """
-        Test delete_language returns 422 for a malformed UUID.
+        Test delete_language returns 422 for a malformed ULID.
         """
         # Arrange
-        invalid_id = "not-a-valid-uuid"
+        invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing delete_language with invalid ID: {invalid_id}")
 
         # Act
@@ -575,13 +575,13 @@ class TestDeleteLanguage:
         # Assert
         assert response.status_code == 422
         mock_language_service.delete_language.assert_not_called()
-        logger.info("delete_language invalid UUID test passed")
+        logger.info("delete_language invalid ULID test passed")
 
     def test_delete_language_handles_exception(
         self,
         client: TestClient,
         mock_language_service: AsyncMock,
-        sample_language_id: UUID,
+        sample_language_id: ULID,
     ) -> None:
         """
         Test delete_language returns 500 for an unexpected service exception.

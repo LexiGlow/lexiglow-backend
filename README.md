@@ -106,6 +106,14 @@ This section outlines how to set up and run the LexiGlow backend locally without
 - For `scripts` dir readme, please refer to [scripts/README.md](scripts/README.md).
 - For `tests` dir readme, please refer to [tests/README.md](tests/README.md).
 
+## 🧹 Code Quality
+
+This project enforces high code quality standards using the following tools:
+
+-   **Ruff**: Used for linting and code formatting, ensuring adherence to PEP 8 and consistent code style. Configuration is managed via `pyproject.toml`.
+-   **MyPy**: A static type checker that verifies type hints, improving code reliability and maintainability. Configuration is managed via `pyproject.toml`.
+-   **Pre-commit Hooks**: Automated checks run before each commit to ensure code quality standards (linting, formatting, type checking) are met. See `.pre-commit-config.yaml` for details.
+
 ## 🧪 Testing
 
 Run tests using pytest:

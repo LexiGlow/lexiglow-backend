@@ -92,12 +92,37 @@ This section outlines how to set up and run the LexiGlow backend locally without
     curl http://localhost:5000/about
     ```
 
+## Accessing the OpenAPI Specification
+
+The OpenAPI specification is now available at runtime at the following endpoints:
+
+- **JSON format**: `http://localhost:8000/openapi.json`
+- **Interactive documentation (Swagger UI)**: `http://localhost:8000/docs`
+- **Alternative documentation (ReDoc)**: `http://localhost:8000/redoc`
+
+### Benefits of Auto-Generated OpenAPI
+
+1. **Single Source of Truth**: API specification is derived directly from code
+2. **Always in Sync**: Documentation automatically updates with code changes
+3. **Type Safety**: Leverages Python type hints for validation
+4. **Less Maintenance**: No need to manually keep YAML file in sync with code
+
+If you need to export the current OpenAPI specification:
+
+```bash
+# Start the server
+python -m app.main
+
+# In another terminal, download the spec
+curl http://localhost:8000/openapi.json > openapi.json
+```
+
 ## 📋 Available Services
 
 - **Flask API**: http://localhost:5000
 - **MongoDB**: http://localhost:27017 (if running with Docker)
 - **Mongo Express**: http://localhost:8081 (if running with Docker)
-- **API Documentation**: http://localhost:5000/docs
+- **API Documentation**: http://localhost:8000/docs
 
 ## Additional Documentation for Further Reading
 

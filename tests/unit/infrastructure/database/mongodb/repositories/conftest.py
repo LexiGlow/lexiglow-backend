@@ -19,7 +19,7 @@ def db_url() -> str:
 async def mongo_client(db_url: str) -> AsyncGenerator[AsyncIOMotorClient, None]:
     """Provides an AsyncIOMotorClient for testing."""
     client: AsyncIOMotorClient = AsyncIOMotorClient(
-        db_url, uuidRepresentation="standard"
+        db_url, uuidRepresentation="unspecified"
     )
     yield client
     client.close()

@@ -32,7 +32,7 @@ class Container:
     def __init__(
         self,
         repository_factory: IRepositoryFactory,
-        service_mapping: dict[type, type],
+        service_mapping: dict[type, list[type]],
     ):
         """
         Initialize the DI container with a repository factory.
@@ -53,7 +53,7 @@ class Container:
         self._repository_factory = repository_factory
         self._services: dict[type, Any] = {}
         self._overrides: dict[type, Any] = {}
-        self._service_mapping: dict[type, type] = service_mapping
+        self._service_mapping: dict[type, list[type]] = service_mapping
 
         logger.info("DI Container initialized")
 
@@ -184,13 +184,16 @@ class Container:
                 f"Available types: {list(self._service_mapping.keys())}"
             )
 
-        repository_type = self._service_mapping[service_type]
+        repository_types = self._service_mapping[service_type]
         logger.debug(
-            f"Creating {service_type.__name__} with {repository_type.__name__}"
+            f"Creating {service_type.__name__} "
+            f"with {len(repository_types)} repositories"
         )
-        repo: Any = self.get_repository(repository_type)
+        repos: list[Any] = [
+            self.get_repository(repo_type) for repo_type in repository_types
+        ]
         service_cls = cast(type[Any], service_type)
-        return cast(T, service_cls(repo))
+        return cast(T, service_cls(*repos))
 
     def __repr__(self) -> str:
         """Return string representation of the container state."""

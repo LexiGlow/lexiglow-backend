@@ -129,7 +129,7 @@ class AppInitializer:
         return repository_factory
 
     @staticmethod
-    def __create_service_mapping() -> dict[type, type]:
+    def __create_service_mapping() -> dict[type, list[type]]:
         """
         Create service mapping configuration.
 
@@ -143,10 +143,10 @@ class AppInitializer:
         from app.domain.interfaces.text_repository import ITextRepository
         from app.domain.interfaces.user_repository import IUserRepository
 
-        service_mapping: dict[type, type] = {
-            UserService: IUserRepository,
-            TextService: ITextRepository,
-            LanguageService: ILanguageRepository,
+        service_mapping: dict[type, list[type]] = {
+            UserService: [IUserRepository, ILanguageRepository],
+            TextService: [ITextRepository],
+            LanguageService: [ILanguageRepository],
         }
         return service_mapping
 

@@ -7,9 +7,9 @@ in isolation.
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
 
 import pytest
+from ulid import ULID
 
 from app.application.dto.language_dto import (
     LanguageCreate,
@@ -34,9 +34,9 @@ def language_service(mock_language_repo: AsyncMock) -> LanguageService:
 
 
 @pytest.fixture
-def sample_language_id() -> UUID:
-    """Provides a sample UUID for a language."""
-    return uuid4()
+def sample_language_id() -> ULID:
+    """Provides a sample ULID for a language."""
+    return ULID()
 
 
 @pytest.fixture
@@ -50,10 +50,10 @@ def sample_language_create() -> LanguageCreate:
 
 
 @pytest.fixture
-def sample_language_entity(sample_language_id: UUID) -> LanguageEntity:
+def sample_language_entity(sample_language_id: ULID) -> LanguageEntity:
     """Provides a sample LanguageEntity."""
     return LanguageEntity(
-        id=sample_language_id,
+        id=str(sample_language_id),
         name="Spanish",
         code="es",
         nativeName="Español",
@@ -75,7 +75,7 @@ class TestLanguageService:
         # Arrange
         mock_language_repo.code_exists.return_value = False
         created_entity = LanguageEntity(
-            id=uuid4(),
+            id=str(ULID()),
             name=sample_language_create.name,
             code=sample_language_create.code,
             nativeName=sample_language_create.native_name,
@@ -168,7 +168,7 @@ class TestLanguageService:
     ) -> None:
         """Test Case 2.2: Get non-existent language."""
         # Arrange
-        language_id = uuid4()
+        language_id = str(ULID())
         mock_language_repo.get_by_id.return_value = None
 
         # Act
@@ -283,7 +283,7 @@ class TestLanguageService:
     ) -> None:
         """Test Case 4.2: Attempt to update a non-existent language."""
         # Arrange
-        language_id = uuid4()
+        language_id = str(ULID())
         update_data = LanguageUpdate(
             name="Updated Name",
             code=None,
@@ -397,7 +397,7 @@ class TestLanguageService:
     ) -> None:
         """Test Case 5.1: Successful deletion."""
         # Arrange
-        language_id = uuid4()
+        language_id = str(ULID())
         mock_language_repo.delete.return_value = True
 
         # Act
@@ -413,7 +413,7 @@ class TestLanguageService:
     ) -> None:
         """Test Case 5.2: Attempt to delete a non-existent language."""
         # Arrange
-        language_id = uuid4()
+        language_id = str(ULID())
         mock_language_repo.delete.return_value = False
 
         # Act

@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from ulid import ULID
 
 from app.core.config import BASE_DIR
 from app.core.types import ULIDStr
@@ -75,11 +76,11 @@ class SQLiteTextRepository(ITextRepository):
             Pydantic Text entity
         """
         return TextEntity(
-            id=model.id,
+            id=str(model.id),
             title=str(model.title),
             content=str(model.content),
-            languageId=model.languageId,
-            userId=model.userId if model.userId else None,
+            languageId=str(model.languageId),
+            userId=str(model.userId) if model.userId else None,
             proficiencyLevel=ProficiencyLevel(model.proficiencyLevel),
             wordCount=int(model.wordCount),
             isPublic=bool(model.isPublic),
@@ -99,11 +100,11 @@ class SQLiteTextRepository(ITextRepository):
             SQLAlchemy Text model
         """
         return TextModel(
-            id=entity.id,
+            id=str(entity.id),
             title=entity.title,
             content=entity.content,
-            languageId=entity.language_id,
-            userId=entity.user_id if entity.user_id else None,
+            languageId=str(entity.language_id),
+            userId=str(entity.user_id) if entity.user_id else None,
             proficiencyLevel=entity.proficiency_level.value,
             wordCount=entity.word_count,
             isPublic=int(entity.is_public),
@@ -129,6 +130,8 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 # Convert entity to model
+                if not entity.id:
+                    entity.id = str(ULID())
                 text_model = self._entity_to_model(entity)
 
                 # Add and commit
@@ -159,7 +162,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel).filter_by(id=entity_id)
+                    select(TextModel).filter_by(id=str(entity_id))
                 )
                 text_model = result.scalar_one_or_none()
 
@@ -221,7 +224,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel).filter_by(id=entity_id)
+                    select(TextModel).filter_by(id=str(entity_id))
                 )
                 text_model = result.scalar_one_or_none()
 
@@ -266,7 +269,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel).filter_by(id=entity_id)
+                    select(TextModel).filter_by(id=str(entity_id))
                 )
                 text_model = result.scalar_one_or_none()
 
@@ -300,7 +303,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 result = await session.execute(
-                    select(TextModel.id).filter_by(id=entity_id)
+                    select(TextModel.id).filter_by(id=str(entity_id))
                 )
                 exists = result.scalar_one_or_none() is not None
 
@@ -332,7 +335,7 @@ class SQLiteTextRepository(ITextRepository):
             async with self.SessionLocal() as session:
                 result = await session.execute(
                     select(TextModel)
-                    .filter_by(languageId=language_id)
+                    .filter_by(languageId=str(language_id))
                     .offset(skip)
                     .limit(limit)
                 )
@@ -369,7 +372,7 @@ class SQLiteTextRepository(ITextRepository):
             async with self.SessionLocal() as session:
                 result = await session.execute(
                     select(TextModel)
-                    .filter_by(userId=user_id)
+                    .filter_by(userId=str(user_id))
                     .offset(skip)
                     .limit(limit)
                 )
@@ -513,7 +516,7 @@ class SQLiteTextRepository(ITextRepository):
         try:
             async with self.SessionLocal() as session:
                 # Convert tag_ids to strings
-                str_tag_ids = tag_ids
+                str_tag_ids = [str(tag_id) for tag_id in tag_ids]
 
                 # Query texts that have associations with any of the provided tags
                 result = await session.execute(

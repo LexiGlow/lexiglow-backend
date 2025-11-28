@@ -5,12 +5,11 @@ Tests cover all methods of the repository implementation including
 CRUD operations, queries, existence checks, and entity conversions.
 """
 
-import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
-from uuid import UUID
 
 import pytest
+from ulid import ULID
 
 from app.domain.entities.language import Language as LanguageEntity
 from app.infrastructure.database.mongodb.repositories.language_repository_impl import (
@@ -23,7 +22,7 @@ from app.infrastructure.database.mongodb.repositories.language_repository_impl i
 @pytest.fixture(scope="function")
 def repository(mongo_client, db_url):
     """Create a MongoDBLanguageRepository instance with a test database."""
-    db_name = f"test_db_{uuid.uuid4().hex}"
+    db_name = f"test_db_{ULID().hex}"
     repo = MongoDBLanguageRepository(db_url=db_url, db_name=db_name)
     yield repo
     mongo_client.drop_database(db_name)
@@ -34,13 +33,13 @@ def sample_language_entity() -> Callable[..., LanguageEntity]:
     """Factory fixture for creating Language entities."""
 
     def _create_language(
-        lang_id: UUID | None = None,
+        lang_id: ULID | None = None,
         name: str = "English",
         code: str = "en",
         native_name: str = "English",
     ) -> LanguageEntity:
         return LanguageEntity(
-            id=lang_id or uuid.uuid4(),
+            id=str(lang_id or ULID()),
             name=name,
             code=code,
             nativeName=native_name,
@@ -78,7 +77,8 @@ class TestCreateLanguage:
         created_lang = await repository.create(lang_entity)
 
         assert created_lang.id is not None
-        assert isinstance(created_lang.id, UUID)
+        assert isinstance(created_lang.id, str)
+        assert ULID.from_str(created_lang.id)
 
     @pytest.mark.asyncio
     async def test_create_language_duplicate_code(
@@ -94,7 +94,7 @@ class TestCreateLanguage:
         await repository.create(sample_language_entity(code="fr", name="French"))
 
         duplicate_lang = sample_language_entity(
-            lang_id=uuid.uuid4(), code="fr", name="French Variant"
+            lang_id=ULID(), code="fr", name="French Variant"
         )
 
         # MongoDB doesn't automatically raise an exception for duplicate values
@@ -134,7 +134,7 @@ class TestGetLanguageById:
     @pytest.mark.asyncio
     async def test_get_by_id_not_found(self, repository):
         """Test retrieving a non-existent language returns None."""
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
         result = await repository.get_by_id(non_existent_id)
         assert result is None
 
@@ -201,7 +201,7 @@ class TestUpdateLanguage:
         """
         Test updating a non-existent language returns None.
         """
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
         lang_entity = sample_language_entity()
         result = await repository.update(non_existent_id, lang_entity)
         assert result is None
@@ -227,7 +227,7 @@ class TestDeleteLanguage:
         """
         Test deleting a non-existent language returns False.
         """
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
         result = await repository.delete(non_existent_id)
         assert result is False
 
@@ -250,7 +250,7 @@ class TestExistsLanguage:
         """
         Test exists returns False for a non-existent language.
         """
-        non_existent_id = uuid.uuid4()
+        non_existent_id = ULID()
         assert await repository.exists(non_existent_id) is False
 
 

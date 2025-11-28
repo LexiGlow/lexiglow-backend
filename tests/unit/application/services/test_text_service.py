@@ -6,9 +6,9 @@ These tests mock the ITextRepository to test the service's business logic in iso
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
-from uuid import UUID, uuid4
 
 import pytest
+from ulid import ULID
 
 from app.application.dto.text_dto import TextCreate, TextResponse, TextUpdate
 from app.application.services.text_service import TextService
@@ -30,9 +30,9 @@ def text_service(mock_text_repo: AsyncMock) -> TextService:
 
 
 @pytest.fixture
-def sample_text_id() -> UUID:
-    """Provides a sample UUID for a text."""
-    return uuid4()
+def sample_text_id() -> ULID:
+    """Provides a sample ULID for a text."""
+    return ULID()
 
 
 @pytest.fixture
@@ -41,8 +41,8 @@ def sample_text_create() -> TextCreate:
     return TextCreate(
         title="Test Title",
         content="Test content.",
-        languageId=uuid4(),
-        userId=uuid4(),
+        languageId=str(ULID()),
+        userId=str(ULID()),
         proficiencyLevel=ProficiencyLevel.A1,
         wordCount=2,
         isPublic=True,
@@ -51,14 +51,14 @@ def sample_text_create() -> TextCreate:
 
 
 @pytest.fixture
-def sample_text_entity(sample_text_id: UUID) -> TextEntity:
+def sample_text_entity(sample_text_id: ULID) -> TextEntity:
     now = datetime.now(UTC)
     return TextEntity(
-        id=sample_text_id,
+        id=str(sample_text_id),
         title="Test Title",
         content="Test content.",
-        languageId=uuid4(),
-        userId=uuid4(),
+        languageId=str(ULID()),
+        userId=str(ULID()),
         proficiencyLevel=ProficiencyLevel.A1,
         wordCount=2,
         isPublic=True,
@@ -81,7 +81,7 @@ class TestTextService:
         """Test Case 2.1: Successful text creation."""
         # Arrange
         mock_text_repo.create.return_value = TextEntity(
-            id=uuid4(),
+            id=str(ULID()),
             title=sample_text_create.title,
             content=sample_text_create.content,
             languageId=sample_text_create.language_id,
@@ -90,6 +90,8 @@ class TestTextService:
             wordCount=sample_text_create.word_count,
             isPublic=sample_text_create.is_public,
             source=sample_text_create.source,
+            createdAt=datetime.now(UTC),
+            updatedAt=datetime.now(UTC),
         )
 
         # Act
@@ -146,7 +148,7 @@ class TestTextService:
     ) -> None:
         """Test Case 3.2: Get non-existent text."""
         # Arrange
-        text_id = uuid4()
+        text_id = str(ULID())
         mock_text_repo.get_by_id.return_value = None
 
         # Act
@@ -264,7 +266,7 @@ class TestTextService:
     ) -> None:
         """Test Case 5.2: Attempt to update a non-existent text."""
         # Arrange
-        text_id = uuid4()
+        text_id = str(ULID())
         update_data = TextUpdate(
             title="Updated Title",
             content=None,
@@ -325,7 +327,7 @@ class TestTextService:
     ) -> None:
         """Test Case 6.1: Successful deletion."""
         # Arrange
-        text_id = uuid4()
+        text_id = str(ULID())
         mock_text_repo.delete.return_value = True
 
         # Act
@@ -341,7 +343,7 @@ class TestTextService:
     ) -> None:
         """Test Case 6.2: Attempt to delete a non-existent text."""
         # Arrange
-        text_id = uuid4()
+        text_id = str(ULID())
         mock_text_repo.delete.return_value = False
 
         # Act

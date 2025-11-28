@@ -144,7 +144,7 @@ class AppInitializer:
         from app.domain.interfaces.user_repository import IUserRepository
 
         service_mapping: dict[type, list[type]] = {
-            UserService: [IUserRepository, ILanguageRepository],
+            UserService: [IUserRepository],
             TextService: [ITextRepository],
             LanguageService: [ILanguageRepository],
         }

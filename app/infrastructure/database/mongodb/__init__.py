@@ -7,6 +7,8 @@ This module provides MongoDB repository factory and implementations.
 import logging
 from typing import Any, cast
 
+from motor.motor_asyncio import AsyncIOMotorClient
+
 from app.domain.interfaces.language_repository import ILanguageRepository
 from app.domain.interfaces.repository_factory import IRepositoryFactory
 from app.domain.interfaces.text_repository import ITextRepository
@@ -24,11 +26,12 @@ class MongoDBRepositoryFactory(IRepositoryFactory):
     only one factory instance exists per configuration.
 
     This factory also caches repository instances to ensure singleton behavior
-    for repositories.
+    for repositories. Uses a shared async client for connection pooling.
     """
 
     _instance: "MongoDBRepositoryFactory | None" = None
     _initialized: bool = False
+    _shared_async_client: AsyncIOMotorClient | None = None
 
     def __new__(cls, db_url: str, db_name: str) -> "MongoDBRepositoryFactory":
         """
@@ -64,6 +67,14 @@ class MongoDBRepositoryFactory(IRepositoryFactory):
 
         self.db_url = db_url
         self.db_name = db_name
+
+        # Create shared async client if not already created
+        if MongoDBRepositoryFactory._shared_async_client is None:
+            MongoDBRepositoryFactory._shared_async_client = AsyncIOMotorClient(
+                db_url, uuidRepresentation="unspecified"
+            )
+            logger.info(f"Created shared async client for MongoDB: {db_url}")
+
         # Map interface types to their MongoDB implementations
         self._repository_classes: dict[type, type] = {
             IUserRepository: MongoDBUserRepository,
@@ -122,10 +133,30 @@ class MongoDBRepositoryFactory(IRepositoryFactory):
 
         repository_class = self._repository_classes[repository_type]
         logger.debug(
-            f"Creating {repository_class.__name__} instance with "
-            f"db_url={self.db_url}, db_name={self.db_name}"
+            f"Creating {repository_class.__name__} instance with db_name={self.db_name}"
         )
-        return cast(T, repository_class(db_url=self.db_url, db_name=self.db_name))
+        return cast(
+            T,
+            repository_class(
+                db_name=self.db_name,
+                client=MongoDBRepositoryFactory._shared_async_client,
+            ),
+        )
+
+    async def close_client(self) -> None:
+        """
+        Close the shared async client.
+
+        This should be called during application shutdown to properly
+        close all database connections.
+
+        Returns:
+            None
+        """
+        if MongoDBRepositoryFactory._shared_async_client is not None:
+            MongoDBRepositoryFactory._shared_async_client.close()
+            MongoDBRepositoryFactory._shared_async_client = None
+            logger.info("Closed shared async MongoDB client")
 
 
 __all__ = ["MongoDBRepositoryFactory"]

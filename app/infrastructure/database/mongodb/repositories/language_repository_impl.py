@@ -20,13 +20,36 @@ class MongoDBLanguageRepository(ILanguageRepository):
     MongoDB implementation of Language repository.
     """
 
-    def __init__(self, db_url: str, db_name: str):
+    def __init__(
+        self,
+        db_name: str,
+        client: AsyncIOMotorClient | None = None,
+        db_url: str | None = None,
+    ):
         """
         Initialize the MongoDB Language repository.
+
+        Args:
+            db_name: MongoDB database name
+            client: Optional shared async client. If provided, uses this client.
+                    Otherwise, creates a new one (for backward compatibility).
+            db_url: Optional MongoDB connection URL. Required if client is not provided.
         """
-        self.client: AsyncIOMotorClient = AsyncIOMotorClient(
-            db_url, uuidRepresentation="unspecified"
-        )
+        if client is not None:
+            self.client: AsyncIOMotorClient = client
+        else:
+            # Fallback: create own client (for backward compatibility)
+            if db_url is None:
+                raise ValueError(
+                    "Either 'client' or 'db_url' must be provided to "
+                    "MongoDBLanguageRepository"
+                )
+            self.client = AsyncIOMotorClient(db_url, uuidRepresentation="unspecified")
+            logger.warning(
+                "MongoDBLanguageRepository created its own client. "
+                "This should only happen for backward compatibility."
+            )
+
         self.db = self.client[db_name]
         self.collection = self.db.Language
         logger.info(f"MongoDBLanguageRepository initialized with database: {db_name}")

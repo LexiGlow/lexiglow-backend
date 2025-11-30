@@ -57,6 +57,16 @@ class Container:
 
         logger.info("DI Container initialized")
 
+    @property
+    def repository_factory(self) -> IRepositoryFactory:
+        """
+        Get the repository factory instance.
+
+        Returns:
+            The repository factory used by this container
+        """
+        return self._repository_factory
+
     def register_override(self, interface: type, implementation: Any) -> None:
         """
         Register an override for dependency injection (primarily for testing).

@@ -108,12 +108,15 @@ class SQLiteRepositoryFactory(IRepositoryFactory):
         self._repository_cache: dict[type, Any] = {}
         self.__class__._initialized = True
 
-    async def dispose_engine(self) -> None:
+    async def dispose(self) -> None:
         """
         Dispose the shared async engine.
 
         This should be called during application shutdown to properly
         close all database connections.
+
+        Returns:
+            None
         """
         if SQLiteRepositoryFactory._shared_async_engine is not None:
             await SQLiteRepositoryFactory._shared_async_engine.dispose()

@@ -35,3 +35,16 @@ class IRepositoryFactory(ABC):
             ValueError: If repository type is not supported
         """
         pass
+
+    @abstractmethod
+    async def dispose(self) -> None:
+        """
+        Dispose of shared database resources.
+
+        This should be called during application shutdown to properly
+        close all database connections and free resources.
+
+        Returns:
+            None
+        """
+        pass

@@ -143,7 +143,7 @@ class MongoDBRepositoryFactory(IRepositoryFactory):
             ),
         )
 
-    async def close_client(self) -> None:
+    async def dispose(self) -> None:
         """
         Close the shared async client.
 

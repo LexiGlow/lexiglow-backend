@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.container import Container
+from app.domain.interfaces.repository_factory import IRepositoryFactory
 
 logger = logging.getLogger(__name__)
 
@@ -80,19 +81,16 @@ class AppInitializer:
         @app.on_event("shutdown")
         async def shutdown_event():
             """Clean up database connections on shutdown."""
-            from app.core.config import ACTIVE_DATABASE_TYPE
-
-            if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.sqlite import SQLiteRepositoryFactory
-
-                if SQLiteRepositoryFactory._shared_async_engine is not None:
-                    await SQLiteRepositoryFactory._shared_async_engine.dispose()
-                    logger.info("SQLite async engine disposed")
+            if hasattr(app.state, "container") and app.state.container is not None:
+                repository_factory = app.state.container.repository_factory
+                if repository_factory is not None:
+                    await repository_factory.dispose()
+                    logger.info("Repository factory resources disposed")
 
         return app
 
     @staticmethod
-    def __create_repository_factory():
+    def __create_repository_factory() -> IRepositoryFactory:
         """
         Create repository factory based on configuration.
 
@@ -104,7 +102,6 @@ class AppInitializer:
             ValueError: If database type is unsupported or MONGO_URI is missing
         """
         from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
-        from app.domain.interfaces.repository_factory import IRepositoryFactory
 
         repository_factory: IRepositoryFactory
 

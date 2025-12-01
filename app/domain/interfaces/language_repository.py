@@ -19,7 +19,7 @@ class ILanguageRepository(IRepository[Language]):
     """
 
     @abstractmethod
-    def get_by_code(self, code: str) -> Language | None:
+    async def get_by_code(self, code: str) -> Language | None:
         """
         Retrieve a language by its ISO 639-1 code.
 
@@ -35,7 +35,7 @@ class ILanguageRepository(IRepository[Language]):
         pass
 
     @abstractmethod
-    def get_by_name(self, name: str) -> Language | None:
+    async def get_by_name(self, name: str) -> Language | None:
         """
         Retrieve a language by its name.
 
@@ -51,7 +51,7 @@ class ILanguageRepository(IRepository[Language]):
         pass
 
     @abstractmethod
-    def code_exists(self, code: str) -> bool:
+    async def code_exists(self, code: str) -> bool:
         """
         Check if a language code is already registered.
 

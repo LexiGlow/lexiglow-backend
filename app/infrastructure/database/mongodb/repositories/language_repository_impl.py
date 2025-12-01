@@ -3,12 +3,12 @@ MongoDB implementation of Language repository.
 """
 
 import logging
-import uuid
-from uuid import UUID
 
-from pymongo import MongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
+from ulid import ULID
 
+from app.core.types import ULIDStr
 from app.domain.entities.language import Language as LanguageEntity
 from app.domain.interfaces.language_repository import ILanguageRepository
 
@@ -20,20 +20,45 @@ class MongoDBLanguageRepository(ILanguageRepository):
     MongoDB implementation of Language repository.
     """
 
-    def __init__(self, db_url: str, db_name: str):
+    def __init__(
+        self,
+        db_name: str,
+        client: AsyncIOMotorClient | None = None,
+        db_url: str | None = None,
+    ):
         """
         Initialize the MongoDB Language repository.
+
+        Args:
+            db_name: MongoDB database name
+            client: Optional shared async client. If provided, uses this client.
+                    Otherwise, creates a new one (for backward compatibility).
+            db_url: Optional MongoDB connection URL. Required if client is not provided.
         """
-        self.client: MongoClient = MongoClient(db_url, uuidRepresentation="standard")
+        if client is not None:
+            self.client: AsyncIOMotorClient = client
+        else:
+            # Fallback: create own client (for backward compatibility)
+            if db_url is None:
+                raise ValueError(
+                    "Either 'client' or 'db_url' must be provided to "
+                    "MongoDBLanguageRepository"
+                )
+            self.client = AsyncIOMotorClient(db_url, uuidRepresentation="unspecified")
+            logger.warning(
+                "MongoDBLanguageRepository created its own client. "
+                "This should only happen for backward compatibility."
+            )
+
         self.db = self.client[db_name]
-        self.collection = self.db.languages
+        self.collection = self.db.Language
         logger.info(f"MongoDBLanguageRepository initialized with database: {db_name}")
 
     def _model_to_entity(self, model: dict) -> LanguageEntity:
         """
         Convert MongoDB document to domain entity.
+        Maps MongoDB _id to entity id.
         """
-        # Convert MongoDB _id to entity id
         if "_id" in model:
             model["id"] = model.pop("_id")
         return LanguageEntity.model_validate(model)
@@ -44,35 +69,36 @@ class MongoDBLanguageRepository(ILanguageRepository):
         """
         model = entity.model_dump(by_alias=True)
         # Convert entity id to MongoDB _id
-        if "id" in model:
-            model["_id"] = model.pop("id")
+        if "id" in model and model["id"] is not None:
+            model["_id"] = str(model.pop("id"))
+        elif "id" in model:
+            del model["id"]
         return model
 
-    def create(self, entity: LanguageEntity) -> LanguageEntity:
+    async def create(self, entity: LanguageEntity) -> LanguageEntity:
         """
         Create a new language in the repository.
         """
         try:
-            # Generate ID if not provided
-            if entity.id is None:
-                entity.id = uuid.uuid4()
-
             language_model = self._entity_to_model(entity)
-            self.collection.insert_one(language_model)
+            if "_id" not in language_model:
+                language_model["_id"] = str(ULID())
+            result = await self.collection.insert_one(language_model)
+            language_model["_id"] = result.inserted_id
 
             logger.info(f"Created language: {entity.name} (ID: {entity.id})")
-            return entity
+            return self._model_to_entity(language_model)
 
         except PyMongoError as e:
             logger.error(f"Failed to create language: {e}")
             raise Exception(f"Failed to create language: {e}") from e
 
-    def get_by_id(self, entity_id: UUID) -> LanguageEntity | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> LanguageEntity | None:
         """
         Retrieve a language by its ID.
         """
         try:
-            language_model = self.collection.find_one({"_id": entity_id})
+            language_model = await self.collection.find_one({"_id": str(entity_id)})
 
             if language_model:
                 logger.debug(f"Retrieved language by ID: {entity_id}")
@@ -85,7 +111,7 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to get language by ID: {e}")
             raise Exception(f"Failed to get language by ID: {e}") from e
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[LanguageEntity]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[LanguageEntity]:
         """
         Retrieve all languages with pagination.
         """
@@ -95,7 +121,8 @@ class MongoDBLanguageRepository(ILanguageRepository):
             if limit == 0:
                 return []
 
-            languages = list(self.collection.find().skip(skip).limit(limit))
+            cursor = self.collection.find().skip(skip).limit(limit)
+            languages = await cursor.to_list(length=limit)
             logger.debug(
                 f"Retrieved {len(languages)} languages (skip={skip}, limit={limit})"
             )
@@ -105,19 +132,21 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to get all languages: {e}")
             raise Exception(f"Failed to get all languages: {e}") from e
 
-    def update(self, entity_id: UUID, entity: LanguageEntity) -> LanguageEntity | None:
+    async def update(
+        self, entity_id: ULIDStr, entity: LanguageEntity
+    ) -> LanguageEntity | None:
         """
         Update an existing language.
         """
         try:
             language_model = self._entity_to_model(entity)
-            result = self.collection.update_one(
-                {"_id": entity_id}, {"$set": language_model}
+            result = await self.collection.update_one(
+                {"_id": str(entity_id)}, {"$set": language_model}
             )
 
             if result.matched_count:
                 logger.info(f"Updated language: {entity.name} (ID: {entity.id})")
-                return entity
+                return await self.get_by_id(entity_id)
 
             logger.warning(f"Language not found for update: {entity_id}")
             return None
@@ -126,12 +155,12 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to update language: {e}")
             raise Exception(f"Failed to update language: {e}") from e
 
-    def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete a language by its ID.
         """
         try:
-            result = self.collection.delete_one({"_id": entity_id})
+            result = await self.collection.delete_one({"_id": str(entity_id)})
 
             if result.deleted_count:
                 logger.info(f"Deleted language: {entity_id}")
@@ -144,12 +173,13 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to delete language: {e}")
             raise Exception(f"Failed to delete language: {e}") from e
 
-    def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if a language exists by its ID.
         """
         try:
-            exists = self.collection.count_documents({"_id": entity_id}) > 0
+            count: int = await self.collection.count_documents({"_id": str(entity_id)})
+            exists = count > 0
             logger.debug(f"Language exists check for {entity_id}: {exists}")
             return exists
 
@@ -157,12 +187,12 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to check language existence: {e}")
             raise Exception(f"Failed to check language existence: {e}") from e
 
-    def get_by_code(self, code: str) -> LanguageEntity | None:
+    async def get_by_code(self, code: str) -> LanguageEntity | None:
         """
         Retrieve a language by its ISO 639-1 code.
         """
         try:
-            language_model = self.collection.find_one({"code": code})
+            language_model = await self.collection.find_one({"code": code})
 
             if language_model:
                 logger.debug(f"Retrieved language by code: {code}")
@@ -175,12 +205,12 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to get language by code: {e}")
             raise Exception(f"Failed to get language by code: {e}") from e
 
-    def get_by_name(self, name: str) -> LanguageEntity | None:
+    async def get_by_name(self, name: str) -> LanguageEntity | None:
         """
         Retrieve a language by its name.
         """
         try:
-            language_model = self.collection.find_one({"name": name})
+            language_model = await self.collection.find_one({"name": name})
 
             if language_model:
                 logger.debug(f"Retrieved language by name: {name}")
@@ -193,12 +223,13 @@ class MongoDBLanguageRepository(ILanguageRepository):
             logger.error(f"Failed to get language by name: {e}")
             raise Exception(f"Failed to get language by name: {e}") from e
 
-    def code_exists(self, code: str) -> bool:
+    async def code_exists(self, code: str) -> bool:
         """
         Check if a language code is already registered.
         """
         try:
-            exists = self.collection.count_documents({"code": code}) > 0
+            count: int = await self.collection.count_documents({"code": code})
+            exists = count > 0
             logger.debug(f"Language code exists check for {code}: {exists}")
             return exists
 

@@ -1,227 +1,284 @@
 """User API endpoints.
 
-This module provides REST API handlers for user CRUD operations.
-Handlers are called by Connexion based on operationId in openapi.yaml.
+This module provides REST API handlers for user CRUD operations using FastAPI.
 """
 
 import logging
-from typing import Any
-from uuid import UUID
+from typing import Annotated
 
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.application.dto.user_dto import UserCreate, UserUpdate
-from app.core.dependencies import get_container
+from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
+from app.application.services.user_service import UserService
+from app.core.dependencies import get_user_service
+from app.core.exceptions import LanguageNotFoundError
+from app.core.types import ULIDStr
 
 logger = logging.getLogger(__name__)
 
+# Create router for user endpoints
+router = APIRouter(prefix="/users")
 
-def get_users(
-    skip: int = 0, limit: int = 100
-) -> tuple[list[dict[str, Any]] | dict[str, Any], int]:
-    """Get all users with pagination.
+
+@router.get(
+    "/",
+    response_model=list[UserResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get all users",
+    description="Retrieve a paginated list of users",
+)
+async def get_users(
+    skip: Annotated[
+        int, Query(ge=0, description="Number of users to skip (pagination)")
+    ] = 0,
+    limit: Annotated[
+        int, Query(ge=1, le=1000, description="Maximum number of users to return")
+    ] = 100,
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> list[UserResponse]:
+    """
+    Get all users with pagination.
 
     Args:
-        skip (int): Number of users to skip (for pagination).
-        limit (int): Maximum number of users to return.
+        skip: Number of users to skip (for pagination)
+        limit: Maximum number of users to return
+        service: User service instance (injected)
 
     Returns:
-        tuple[list[dict[str, Any]] | dict[str, Any], int]: A tuple containing
-            a list of user dictionaries on success, or an error dictionary
-            on failure, along with the HTTP status code.
+        List of user response objects
+
+    Raises:
+        HTTPException: 500 if an internal server error occurs
     """
     try:
         logger.info(f"GET /users called with skip={skip}, limit={limit}")
-        container = get_container()
-        service = container.get_user_service()
-        users = service.get_all_users(skip=skip, limit=limit)
-
-        # Convert Pydantic models to dicts for JSON response
-        users_data = [user.model_dump(by_alias=True) for user in users]
-
-        logger.info(f"Retrieved {len(users_data)} users")
-        return users_data, 200
+        users = await service.get_all_users(skip=skip, limit=limit)
+        logger.info(f"Retrieved {len(users)} users")
+        return users
 
     except Exception as e:
         logger.error(f"Error retrieving users: {e}", exc_info=True)
-        return {"error": "Internal server error", "message": str(e)}, 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Internal server error", "message": str(e)},
+        ) from e
 
 
-def get_user_by_id(userId: str) -> tuple[dict[str, Any], int]:
-    """Get a user by ID.
+@router.get(
+    "/{userId}",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get user by ID",
+    description="Retrieve a specific user by their UUID",
+)
+async def get_user_by_id(
+    userId: ULIDStr,
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> UserResponse:
+    """
+    Get a user by ID.
 
     Args:
-        userId (str): User UUID as string.
+        userId: User UUID
+        service: User service instance (injected)
 
     Returns:
-        tuple[dict[str, Any], int]: A tuple containing the user dictionary
-            or an error dictionary, along with the HTTP status code.
+        User response object
+
+    Raises:
+        HTTPException: 404 if user not found, 500 if internal server error
     """
     try:
         logger.info(f"GET /users/{userId} called")
-
-        # Parse UUID
-        try:
-            user_uuid = UUID(userId)
-        except ValueError:
-            logger.warning(f"Invalid UUID format: {userId}")
-            return {
-                "error": "Invalid user ID format",
-                "message": "User ID must be a valid UUID",
-            }, 400
-
-        container = get_container()
-        service = container.get_user_service()
-        user = service.get_user(user_uuid)
+        user = await service.get_user(userId)
 
         if user is None:
             logger.warning(f"User not found: {userId}")
-            return {
-                "error": "User not found",
-                "message": f"User with ID {userId} does not exist",
-            }, 404
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "User not found",
+                    "message": f"User with ID {userId} does not exist",
+                },
+            )
 
         logger.info(f"Retrieved user: {userId}")
-        return user.model_dump(by_alias=True), 200
+        return user
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error retrieving user {userId}: {e}", exc_info=True)
-        return {"error": "Internal server error", "message": str(e)}, 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Internal server error", "message": str(e)},
+        ) from e
 
 
-def create_user(body: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """Create a new user.
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new user",
+    description="Create a new user account with the provided information",
+)
+async def create_user(
+    user_data: UserCreate,
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> UserResponse:
+    """
+    Create a new user.
 
     Args:
-        body (dict[str, Any]): User creation data from request body.
+        user_data: User creation data (validated automatically by FastAPI)
+        service: User service instance (injected)
 
     Returns:
-        tuple[dict[str, Any], int]: A tuple containing the created user
-            dictionary or an error dictionary, along with the HTTP status code.
+        Created user response object
+
+    Raises:
+        HTTPException: 400 if validation fails, 409 if conflict,
+            500 if internal server error
     """
     try:
-        logger.info(f"POST /users called with email: {body.get('email')}")
+        logger.info(f"POST /users called with email: {user_data.email}")
 
-        # Validate and parse request body
         try:
-            user_data = UserCreate(**body)
-        except ValidationError as e:
-            logger.warning(f"Validation error: {e}")
-            return {"error": "Invalid input data", "message": str(e)}, 400
-
-        # Create user via service
-        container = get_container()
-        service = container.get_user_service()
-        try:
-            created_user = service.create_user(user_data)
+            created_user = await service.create_user(user_data)
             logger.info(f"User created successfully: {created_user.id}")
-            return created_user.model_dump(by_alias=True), 201
-
+            return created_user
+        except LanguageNotFoundError as e:
+            logger.warning(f"Language not found error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": "Language not found", "message": str(e)},
+            ) from e
         except ValueError as e:
             # Email or username already exists
             logger.warning(f"Conflict error: {e}")
-            return {"error": "Conflict", "message": str(e)}, 409
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"error": "Conflict", "message": str(e)},
+            ) from e
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating user: {e}", exc_info=True)
-        return {"error": "Internal server error", "message": str(e)}, 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Internal server error", "message": str(e)},
+        ) from e
 
 
-def update_user(userId: str, body: dict[str, Any]) -> tuple[dict[str, Any], int]:
-    """Update a user.
+@router.put(
+    "/{userId}",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update user",
+    description="Update an existing user's information",
+)
+async def update_user(
+    userId: ULIDStr,
+    user_data: UserUpdate,
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> UserResponse:
+    """
+    Update a user.
 
     Args:
-        userId (str): User UUID as string.
-        body (dict[str, Any]): User update data from request body.
+        userId: User UUID
+        user_data: User update data (validated automatically by FastAPI)
+        service: User service instance (injected)
 
     Returns:
-        tuple[dict[str, Any], int]: A tuple containing the updated user
-            dictionary or an error dictionary, along with the HTTP status code.
+        Updated user response object
+
+    Raises:
+        HTTPException: 400 if validation fails, 404 if not found,
+            409 if conflict, 500 if internal server error
     """
     try:
         logger.info(f"PUT /users/{userId} called")
 
-        # Parse UUID
         try:
-            user_uuid = UUID(userId)
-        except ValueError:
-            logger.warning(f"Invalid UUID format: {userId}")
-            return {
-                "error": "Invalid user ID format",
-                "message": "User ID must be a valid UUID",
-            }, 400
-
-        # Validate and parse request body
-        try:
-            user_data = UserUpdate(**body)
-        except ValidationError as e:
-            logger.warning(f"Validation error: {e}")
-            return {"error": "Invalid input data", "message": str(e)}, 400
-
-        # Update user via service
-        container = get_container()
-        service = container.get_user_service()
-        try:
-            updated_user = service.update_user(user_uuid, user_data)
+            updated_user = await service.update_user(userId, user_data)
 
             if updated_user is None:
                 logger.warning(f"User not found: {userId}")
-                return {
-                    "error": "User not found",
-                    "message": f"User with ID {userId} does not exist",
-                }, 404
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={
+                        "error": "User not found",
+                        "message": f"User with ID {userId} does not exist",
+                    },
+                )
 
             logger.info(f"User updated successfully: {userId}")
-            return updated_user.model_dump(by_alias=True), 200
+            return updated_user
 
         except ValueError as e:
             # Email or username conflict
             logger.warning(f"Conflict error: {e}")
-            return {"error": "Conflict", "message": str(e)}, 409
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"error": "Conflict", "message": str(e)},
+            ) from e
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating user {userId}: {e}", exc_info=True)
-        return {"error": "Internal server error", "message": str(e)}, 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Internal server error", "message": str(e)},
+        ) from e
 
 
-def delete_user(userId: str) -> tuple[dict[str, Any], int]:
-    """Delete a user.
+@router.delete(
+    "/{userId}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete user",
+    description="Delete an existing user by their UUID",
+)
+async def delete_user(
+    userId: ULIDStr,
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> None:
+    """
+    Delete a user.
 
     Args:
-        userId (str): User UUID as string.
+        userId: User UUID
+        service: User service instance (injected)
 
     Returns:
-        tuple[dict[str, Any], int]: A tuple containing an empty dictionary
-            on successful deletion or an error dictionary, along with the
-            HTTP status code.
+        None (204 No Content on success)
+
+    Raises:
+        HTTPException: 404 if user not found, 500 if internal server error
     """
     try:
         logger.info(f"DELETE /users/{userId} called")
-
-        # Parse UUID
-        try:
-            user_uuid = UUID(userId)
-        except ValueError:
-            logger.warning(f"Invalid UUID format: {userId}")
-            return {
-                "error": "Invalid user ID format",
-                "message": "User ID must be a valid UUID",
-            }, 400
-
-        container = get_container()
-        service = container.get_user_service()
-        deleted = service.delete_user(user_uuid)
+        deleted = await service.delete_user(userId)
 
         if not deleted:
             logger.warning(f"User not found for deletion: {userId}")
-            return {
-                "error": "User not found",
-                "message": f"User with ID {userId} does not exist",
-            }, 404
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": "User not found",
+                    "message": f"User with ID {userId} does not exist",
+                },
+            )
 
         logger.info(f"User deleted successfully: {userId}")
-        return {}, 204
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting user {userId}: {e}", exc_info=True)
-        return {"error": "Internal server error", "message": str(e)}, 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Internal server error", "message": str(e)},
+        ) from e

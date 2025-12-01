@@ -1,6 +1,8 @@
 import logging
 
-from scripts.wsgi import app
+from fastapi.testclient import TestClient
+
+from app.main import app
 
 # Configure logging for test
 logging.basicConfig(
@@ -13,12 +15,12 @@ def test_health():
     """Test the health endpoint returns correct response."""
 
     # Test the health endpoint
-    client = app.test_client()
+    client = TestClient(app)
     res = client.get("/health")
 
     # Assertions
     assert res.status_code == 200
-    assert res.get_json() == {"status": "ok"}
-    assert res.content_type == "application/json"
+    assert res.json() == {"status": "ok"}
+    assert res.headers["content-type"] == "application/json"
 
-    logger.info(f"Health endpoint test passed: {res.get_json()}")
+    logger.info(f"Health endpoint test passed: {res.json()}")

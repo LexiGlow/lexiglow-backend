@@ -60,10 +60,31 @@ This section outlines how to set up and run the LexiGlow backend locally without
    docker compose --env-file .env -f docker/docker-compose.yml up -d
    ```
 
-6.  **Run the application**
+6.  **Running the Application**
+
+    *Development*
     ```bash
-    python app/main.py
+    # Install dependencies
+    pip install -e ".[dev]"
+
+    # Run with auto-reload
+    python -m app.main
+
+    # Or with uvicorn directly
+    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     ```
+
+    *Production*
+    ```bash
+    # Install dependencies
+    pip install -e .
+
+    # Multiple workers with uvicorn
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+    # Or with gunicorn + uvicorn workers
+    gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
+    ```    
 
 7.  **Test the setup**
     ```bash
@@ -71,12 +92,37 @@ This section outlines how to set up and run the LexiGlow backend locally without
     curl http://localhost:5000/about
     ```
 
+## Accessing the OpenAPI Specification
+
+The OpenAPI specification is now available at runtime at the following endpoints:
+
+- **JSON format**: `http://localhost:8000/openapi.json`
+- **Interactive documentation (Swagger UI)**: `http://localhost:8000/docs`
+- **Alternative documentation (ReDoc)**: `http://localhost:8000/redoc`
+
+### Benefits of Auto-Generated OpenAPI
+
+1. **Single Source of Truth**: API specification is derived directly from code
+2. **Always in Sync**: Documentation automatically updates with code changes
+3. **Type Safety**: Leverages Python type hints for validation
+4. **Less Maintenance**: No need to manually keep YAML file in sync with code
+
+If you need to export the current OpenAPI specification:
+
+```bash
+# Start the server
+python -m app.main
+
+# In another terminal, download the spec
+curl http://localhost:8000/openapi.json > openapi.json
+```
+
 ## 📋 Available Services
 
 - **Flask API**: http://localhost:5000
 - **MongoDB**: http://localhost:27017 (if running with Docker)
 - **Mongo Express**: http://localhost:8081 (if running with Docker)
-- **API Documentation**: http://localhost:5000/docs
+- **API Documentation**: http://localhost:8000/docs
 
 ## Additional Documentation for Further Reading
 
@@ -84,6 +130,14 @@ This section outlines how to set up and run the LexiGlow backend locally without
 - For detailed Docker usage and commands, please refer to [docker/README.md](docker/README.md).
 - For `scripts` dir readme, please refer to [scripts/README.md](scripts/README.md).
 - For `tests` dir readme, please refer to [tests/README.md](tests/README.md).
+
+## 🧹 Code Quality
+
+This project enforces high code quality standards using the following tools:
+
+-   **Ruff**: Used for linting and code formatting, ensuring adherence to PEP 8 and consistent code style. Configuration is managed via `pyproject.toml`.
+-   **MyPy**: A static type checker that verifies type hints, improving code reliability and maintainability. Configuration is managed via `pyproject.toml`.
+-   **Pre-commit Hooks**: Automated checks run before each commit to ensure code quality standards (linting, formatting, type checking) are met. See `.pre-commit-config.yaml` for details.
 
 ## 🧪 Testing
 

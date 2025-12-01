@@ -6,8 +6,8 @@ extending the base repository with user-specific methods.
 """
 
 from abc import abstractmethod
-from uuid import UUID
 
+from app.core.types import ULIDStr
 from app.domain.entities.user import User
 from app.domain.interfaces.base_repository import IRepository
 
@@ -20,7 +20,7 @@ class IUserRepository(IRepository[User]):
     """
 
     @abstractmethod
-    def get_by_email(self, email: str) -> User | None:
+    async def get_by_email(self, email: str) -> User | None:
         """
         Retrieve a user by their email address.
 
@@ -36,7 +36,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def get_by_username(self, username: str) -> User | None:
+    async def get_by_username(self, username: str) -> User | None:
         """
         Retrieve a user by their username.
 
@@ -52,7 +52,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def email_exists(self, email: str) -> bool:
+    async def email_exists(self, email: str) -> bool:
         """
         Check if an email is already registered.
 
@@ -68,7 +68,7 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def username_exists(self, username: str) -> bool:
+    async def username_exists(self, username: str) -> bool:
         """
         Check if a username is already taken.
 
@@ -84,12 +84,12 @@ class IUserRepository(IRepository[User]):
         pass
 
     @abstractmethod
-    def update_last_active(self, user_id: UUID) -> bool:
+    async def update_last_active(self, user_id: ULIDStr) -> bool:
         """
         Update the last active timestamp for a user.
 
         Args:
-            user_id: The UUID of the user
+            user_id: The ULID of the user
 
         Returns:
             True if updated successfully, False otherwise

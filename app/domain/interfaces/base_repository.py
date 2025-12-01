@@ -6,7 +6,8 @@ to provide type-safe repository operations for domain entities.
 """
 
 from abc import ABC, abstractmethod
-from uuid import UUID
+
+from app.core.types import ULIDStr
 
 
 class IRepository[T](ABC):
@@ -21,7 +22,7 @@ class IRepository[T](ABC):
     """
 
     @abstractmethod
-    def create(self, entity: T) -> T:
+    async def create(self, entity: T) -> T:
         """
         Create a new entity in the repository.
 
@@ -37,12 +38,12 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, entity_id: UUID) -> T | None:
+    async def get_by_id(self, entity_id: ULIDStr) -> T | None:
         """
         Retrieve an entity by its ID.
 
         Args:
-            entity_id: The UUID of the entity to retrieve
+            entity_id: The ULID of the entity to retrieve
 
         Returns:
             The entity if found, None otherwise
@@ -53,7 +54,7 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
+    async def get_all(self, skip: int = 0, limit: int = 100) -> list[T]:
         """
         Retrieve all entities with pagination.
 
@@ -70,12 +71,12 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def update(self, entity_id: UUID, entity: T) -> T | None:
+    async def update(self, entity_id: ULIDStr, entity: T) -> T | None:
         """
         Update an existing entity.
 
         Args:
-            entity_id: The UUID of the entity to update
+            entity_id: The ULID of the entity to update
             entity: The entity with updated values
 
         Returns:
@@ -87,12 +88,12 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def delete(self, entity_id: UUID) -> bool:
+    async def delete(self, entity_id: ULIDStr) -> bool:
         """
         Delete an entity by its ID.
 
         Args:
-            entity_id: The UUID of the entity to delete
+            entity_id: The ULID of the entity to delete
 
         Returns:
             True if the entity was deleted, False if not found
@@ -103,12 +104,12 @@ class IRepository[T](ABC):
         pass
 
     @abstractmethod
-    def exists(self, entity_id: UUID) -> bool:
+    async def exists(self, entity_id: ULIDStr) -> bool:
         """
         Check if an entity exists by its ID.
 
         Args:
-            entity_id: The UUID of the entity to check
+            entity_id: The ULID of the entity to check
 
         Returns:
             True if the entity exists, False otherwise

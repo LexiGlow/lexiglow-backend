@@ -1,145 +1,152 @@
-# LexiGlow Backend - Cursor Rules
+# LexiGlow Backend - LLM Guidelines
 
-## Project Context
-This is a Flask-based REST API backend for LexiGlow with OpenAPI/Connexion integration and MongoDB support.
+## Project Overview
+The LexiGlow Backend is a REST API designed with a strong emphasis on clean architecture principles.  
+It currently uses Flask but is transitioning to FastAPI, leveraging OpenAPI for API definition and documentation.  
+The primary database is SQLite, with MongoDB with the ablolutelly same structure.
+
+## Architecture & Structure
+The project follows a Clean Architecture pattern to ensure separation of concerns, maintainability, and testability.
+
+*   **`app/core/`**: Houses application-wide configurations, dependency management, logging, and security settings.
+*   **`app/domain/`**: Encapsulates core business logic, defining entities, value objects, and interfaces for repositories. This layer is independent of external concerns.
+*   **`app/infrastructure/`**: Provides concrete implementations for external services, such as database interactions (MongoDB with PyMongo, SQLite with SQLAlchemy) and other third-party integrations.
+*   **`app/application/`**: Contains application services that orchestrate domain logic, handling specific use cases and coordinating interactions between the domain and infrastructure layers.
+*   **`app/presentation/`**: Defines the API endpoints, handles HTTP requests, and manages request/response serialization (e.g., using Pydantic models for FastAPI).
+*   **`tests/`**: Comprehensive suite for unit and integration tests.
+*   **`data/`**: Stores local data, such as database files (ignored by git).
+*   **`logs/`**: Stores application logs (ignored by git).
+*   **`scripts/`**: Utility scripts for development tasks (e.g., database setup, data seeding, documentation generation).
+*   **`docker/`**: Contains Docker-related configurations for containerized deployment.
+*   **`app/presentation/api/v1/spec/openapi.yaml`**: The central OpenAPI specification document detailing all API endpoints and data models.
 
 ## Technology Stack
-- **Framework**: Flask with Connexion for OpenAPI integration
-- **Database**: MongoDB with PyMongo
-- **API Documentation**: OpenAPI 3.0 (Swagger UI)
-- **Authentication**: TBD (likely JWT-based)
-- **CORS**: Flask-CORS enabled
-- **Environment**: Python 3.13.7 with pyenv
-- **Testing**: pytest
-- **Code Quality**: Black (formatter), Flake8 (linter)
+*   **Language**: Python 3.13.7
+*   **Package Manager**: `pip` with `pyenv` for Python version control and `venv` for dependency management. (`uv` is also an option.)
+*   **Database**: SQLite (primary, via SQLAlchemy), MongoDB (the same structure with SQL, via PyMongo).
+*   **API Documentation**: OpenAPI 3.0 (Swagger UI).
+*   **Testing Framework**: `pytest`.
+*   **Code Quality**: `mypy` (static type checker), `ruff` (linter and formatter).
+*   **CORS**: Enabled for cross-origin requests.
 
-## Project Structure
-```
-lexiglow-backend/
-├── app/
-│   ├── controllers/     # Business logic and API handlers
-│   ├── routes/         # Additional Flask routes/blueprints
-│   └── __init__.py     # App factory and configuration
-├── openapi/            # OpenAPI specification files
-├── tests/              # Test files
-├── logs/               # Application logs
-├── requirements.txt    # Python dependencies
-├── wsgi.py            # WSGI entry point
-└── .env               # Environment variables
-```
-
-## Coding Standards
+## Coding Standards & Best Practices
 
 ### Python Style
-- Use **Black** for code formatting (line length: 88 characters)
-- Follow **PEP 8** conventions
-- Use **type hints** where appropriate
-- Use **f-strings** for string formatting
-- Use **pathlib.Path** for file operations
+*   Adhere strictly to `ruff` for linting and formatting, with a strict line length limit of 88 characters.
+*   Follow PEP 8 conventions.
+*   Avoid imports in the middle of files; place them at the top.
+*   Follow `mypy` rules strictly when writing code.
+*   Use only the custom logger configured in `app/core/logging_config.py` for all logging.
+*   Utilize type hints extensively for improved code clarity and maintainability.
+*   Prefer f-strings for string formatting.
+*   Use `pathlib.Path` for all file system operations.
+*   Write comprehensive docstrings for all modules, classes, and functions.
+*   Employ meaningful and descriptive variable, function, and class names.
+*   Keep functions and methods small, focused, and single-purpose.
 
-### Flask/Connexion Patterns
-- Use **Connexion** for API route definitions (defined in OpenAPI spec)
-- Keep business logic in `app/controllers/`
-- Use **Flask blueprints** for additional routes in `app/routes/`
-- Follow **RESTful** API conventions
-- Use proper **HTTP status codes**
+### Docstring Standards (Google Style)
+All Python modules, classes, and functions/methods **must** include docstrings following the Google Style. This ensures clarity, maintainability, and proper generation of API documentation.
 
-### Database Patterns
-- Use **PyMongo** for MongoDB operations
-- Access database via `flask_app.config["MONGO_CLIENT"]`
-- Use **Marshmallow** for data serialization/validation
-- Implement proper **error handling** for database operations
+#### General Guidelines:
+*   Use triple double quotes (`"""Docstring content"""`).
+*   The first line should be a concise, imperative summary of what the code does, preferably on the same line as the opening quotes.
+*   Follow the summary with a blank line, then a more detailed explanation if necessary.
+*   Use specific sections (e.g., `Args:`, `Returns:`, `Raises:`, `Examples:`) with consistent indentation.
+
+#### Examples:
+
+##### Module Docstring
+```python
+"""Module for user management utilities.
+
+This module provides functions for creating, retrieving, updating, and deleting
+user accounts, as well as user authentication and authorization helpers.
+"""
+```
+
+##### Class Docstring
+```python
+class UserService:
+    """Manages user-related business logic and interactions.
+
+    This service orchestrates operations between the application layer
+    and the user repository, handling data transfer objects (DTOs) and
+    applying business rules.
+
+    Attributes:
+        _user_repository (UserRepository): The repository for user data access.
+    """
+    def __init__(self, user_repository: UserRepository):
+        self._user_repository = user_repository
+```
+
+##### Function/Method Docstring
+```python
+    def get_user_by_id(self, user_id: str) -> Optional[UserDTO]:
+        """Retrieves a user by their unique identifier.
+
+        Args:
+            user_id (str): The unique identifier of the user.
+
+        Returns:
+            Optional[UserDTO]: The user data transfer object if found,
+                otherwise None.
+
+        Raises:
+            RepositoryError: If an error occurs during database access.
+        """
+        # ... implementation ...
+```
+
+### API Design (FastAPI-focused)
+*   Design APIs following RESTful principles.
+*   Use appropriate HTTP status codes for responses (e.g., 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 500 Internal Server Error).
+*   Define all API endpoints and data models in `openapi/openapi.yaml`.
+*   Leverage FastAPI's automatic request and response validation using Pydantic models.
+*   Implement dependency injection for managing services in the `app/application/services/` and data repositories.
+*   Ensure API endpoints return serialized data using Pydantic schemas.
+
+### Database Interaction
+*   Abstract database operations behind well-defined repository interfaces in the `app/domain/interfaces/` layer.
+*   Provide concrete repository implementations in `app/infrastructure/database/`.
+*   Use the appropriate Object-Document Mapper (ODM) or Object-Relational Mapper (ORM) for each database (PyMongo for MongoDB, SQLAlchemy for SQLite).
+*   Implement robust error handling for all database operations.
 
 ### Error Handling
-- Use **proper HTTP status codes** (400, 401, 404, 500, etc.)
-- Log errors using the configured **logging system**
-- Return **consistent error response format**
-- Handle **MongoDB connection errors** gracefully
-
-### Environment & Configuration
-- Use **python-dotenv** for environment variables
-- Store sensitive data in `.env` file (not committed)
-- Use **os.getenv()** with sensible defaults
-- Configure logging with both **file and console** handlers
-
-## API Development Guidelines
-
-### OpenAPI Integration
-- Define API endpoints in `openapi/openapi.yaml`
-- Use **Connexion** to automatically generate Flask routes
-- Enable **response validation** (`validate_responses=True`)
-- Use **Swagger UI** for API documentation (`/ui` endpoint)
-
-### Controller Structure
-- Place business logic in `app/controllers/`
-- Keep controllers **thin** - delegate to service classes if needed
-- Use **dependency injection** for database connections
-- Return **serialized data** using Marshmallow schemas
-
-### Testing
-- Write **unit tests** in `tests/` directory
-- Use **pytest** for test execution
-- Mock **external dependencies** (MongoDB, APIs)
-- Test both **success and error** scenarios
-
-## Code Quality
-- Run **Black** before committing: `black .`
-- Run **Flake8** for linting: `flake8`
-- Write **comprehensive docstrings** for functions/classes
-- Use **meaningful variable and function names**
-- Keep functions **small and focused**
-
-## Security Considerations
-- Validate **all input data** using Marshmallow schemas
-- Use **environment variables** for sensitive configuration
-- Implement **proper CORS** configuration for production
-- Add **authentication/authorization** as needed
-- Sanitize **database queries** to prevent injection
-
-## Development Workflow
-1. Define API endpoints in `openapi/openapi.yaml`
-2. Implement controllers in `app/controllers/`
-3. Add any additional routes in `app/routes/`
-4. Write tests in `tests/`
-5. Run `black` and `flake8` before committing
-6. Test API using Swagger UI at `http://localhost:5000/ui`
-
-## Common Patterns
-
-### Database Operations
-```python
-# Access MongoDB
-db = flask_app.config["MONGO_DB"]
-collection = db["collection_name"]
-
-# Query with error handling
-try:
-    result = collection.find_one({"field": "value"})
-except Exception as e:
-    logger.error(f"Database error: {e}")
-    return {"error": "Database operation failed"}, 500
-```
-
-### API Response Format
-```python
-# Success response
-return {"data": result, "message": "Success"}, 200
-
-# Error response
-return {"error": "Error message", "code": "ERROR_CODE"}, 400
-```
-
-### Logging
+*   Maintain a consistent error response format across the API.
+*   Utilize the configured logging system (`app/core/logging_config.py`) for all error reporting.
 ```python
 import logging
 logger = logging.getLogger(__name__)
 logger.info("Operation completed successfully")
 logger.error(f"Error occurred: {error}")
 ```
+*   Gracefully handle exceptions from external services and database interactions.
 
-## Notes
-- The app uses **Connexion** for automatic route generation from OpenAPI spec
-- MongoDB connection is configured in the app factory
-- CORS is enabled for cross-origin requests
-- Logging is configured to write to both console and file
-- Use the existing project structure and patterns
+### Configuration
+*   Manage application configuration using environment variables, typically loaded from a `.env` file via `python-dotenv`.
+*   Store all sensitive information (e.g., API keys, database credentials) in environment variables and never commit them to version control.
+*   Provide sensible default values for configuration parameters.
+*   Centralize application configuration in `app/core/config.py`.
+
+## Development Workflow
+1.  **API Definition**: Start by defining or updating API endpoints and data models in `openapi/openapi.yaml`.
+2.  **Core Logic**: Implement domain logic, application services, and infrastructure components.
+3.  **API Implementation**: Develop API endpoints in `app/presentation/` that utilize the application and domain layers.
+4.  **Testing**: Write comprehensive unit and integration tests for new and modified code.
+5.  **Code Quality Checks**: During the code generation run `mypy` for type checking and`ruff` for linting and formatting.
+6.  **Local Testing**: Test API functionality using Swagger UI (available at `/docs` endpoint) or `curl`.
+7.  **Documentation**: Generate project documentation using `scripts/generate_docs.py` as needed.
+
+## Testing
+*   All tests are executed using `pytest`.
+*   Tests are organized into `tests/unit` and `tests/integration` directories.
+*   External dependencies (e.g., databases, third-party APIs) should be mocked during unit tests.
+*   Ensure both successful execution paths and error handling scenarios are covered by tests.
+
+## Security Considerations
+*   Validate all incoming request data rigorously using Pydantic models to prevent injection attacks and other vulnerabilities.
+*   Utilize environment variables for all sensitive configuration parameters.
+*   Properly configure CORS policies to restrict access to authorized origins.
+*   Implement robust authentication and authorization mechanisms as required.
+*   Sanitize all database queries and inputs to prevent SQL injection (for SQLite) and similar attacks.

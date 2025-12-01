@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
-"""
-Documentation Generation Script for LexiGlow.
+"""Documentation Generation Script for LexiGlow.
 
 This script generates API documentation in both HTML and Markdown formats
-using pdoc3 for the app/ and tests/ modules.
+using pdoc for the app/ and tests/ modules. It includes functionality
+to clean output directories and injects module-level README.md files into
+the corresponding __init__.py docstrings for richer documentation.
 
 Usage:
     python scripts/generate_docs.py [--html-dir PATH] [--markdown-dir PATH] [--clean]
-
-Options:
-    --html-dir PATH      Directory for HTML documentation output (default: docs/html/)
-    --markdown-dir PATH  Directory for Markdown documentation output
-                            (default: docs/markdown/)
-    --clean              Clean output directories before generating documentation
 """
 
 import argparse
@@ -42,11 +37,10 @@ MODULES_TO_DOCUMENT = ["app", "tests"]
 
 
 def clean_directory(directory: Path) -> None:
-    """
-    Remove all contents of a directory if it exists.
+    """Removes all contents of a directory if it exists, then recreates it.
 
     Args:
-        directory: Path to the directory to clean
+        directory (Path): The path to the directory to clean.
     """
     if directory.exists():
         logger.info(f"Cleaning directory: {directory}")
@@ -55,14 +49,17 @@ def clean_directory(directory: Path) -> None:
 
 
 def find_readme_and_init_pairs(base_path: Path) -> list[tuple[Path, Path]]:
-    """
-    Finds pairs of README.md and __init__.py files within a given base path.
+    """Finds pairs of README.md and __init__.py files recursively.
+
+    This is used to identify modules where a README can be injected into the
+    module's docstring.
 
     Args:
-        base_path: The base directory to search within (e.g., BASE_DIR / "app").
+        base_path (Path): The base directory to start the search from.
 
     Returns:
-        A list of tuples, where each tuple contains (readme_path, init_path).
+        list[tuple[Path, Path]]: A list of tuples, where each tuple contains
+            the path to the README.md and the path to the __init__.py.
     """
     pairs = []
     for root, _, files in base_path.walk():
@@ -74,17 +71,18 @@ def find_readme_and_init_pairs(base_path: Path) -> list[tuple[Path, Path]]:
 
 
 def inject_readme_into_init(readme_path: Path, init_path: Path) -> Path:
-    """
-    Injects the content of a README.md file into the module docstring
-        of an __init__.py file.
-    Creates a temporary backup of the original __init__.py.
+    """Injects README content into an __init__.py module docstring.
+
+    Creates a temporary backup of the original __init__.py file before
+    modification. If the __init__.py already has a docstring, the README
+    content is appended; otherwise, a new docstring is created.
 
     Args:
-        readme_path: Path to the README.md file.
-        init_path: Path to the __init__.py file.
+        readme_path (Path): The path to the README.md file.
+        init_path (Path): The path to the __init__.py file.
 
     Returns:
-        Path to the temporary backup file.
+        Path: The path to the temporary backup file of the original __init__.py.
     """
     logger.info(f"Injecting {readme_path.name} into {init_path.name}")
 
@@ -135,11 +133,12 @@ def inject_readme_into_init(readme_path: Path, init_path: Path) -> Path:
 
 
 def restore_init_files(modified_files: list[tuple[Path, Path]]) -> None:
-    """
-    Restores __init__.py files from their temporary backups.
+    """Restores __init__.py files from their temporary backups.
 
     Args:
-        modified_files: A list of tuples (original_init_path, temp_backup_path).
+        modified_files (list[tuple[Path, Path]]): A list of tuples, where
+            each tuple contains the original __init__.py path and its
+            corresponding backup path.
     """
     for original_path, temp_path in modified_files:
         if temp_path.exists():
@@ -153,11 +152,13 @@ def restore_init_files(modified_files: list[tuple[Path, Path]]) -> None:
 
 
 def generate_custom_index_html(output_dir: Path) -> None:
-    """
-    Generates a custom index.html file for GitHub Pages.
+    """Generates a custom index.html for the main documentation landing page.
+
+    This page includes the content of the main project README.md and provides
+    links to the generated documentation for the application and test modules.
 
     Args:
-        output_dir: The directory where the index.html will be created.
+        output_dir (Path): The directory where the index.html will be created.
     """
     logger.info(f"Generating custom index.html in {output_dir}")
 
@@ -275,13 +276,13 @@ def generate_custom_index_html(output_dir: Path) -> None:
 def generate_html_documentation(
     modules: list[str], output_dir: Path, clean: bool = False
 ) -> None:
-    """
-    Generate HTML documentation using pdoc3.
+    """Generates HTML documentation using the pdoc CLI.
 
     Args:
-        modules: List of module names to document
-        output_dir: Directory where HTML documentation will be generated
-        clean: Whether to clean the output directory before generating
+        modules (list[str]): A list of module names to document.
+        output_dir (Path): The directory where HTML documentation will be saved.
+        clean (bool): If True, the output directory is cleaned before
+            generation. Defaults to False.
     """
     if clean:
         clean_directory(output_dir)
@@ -338,13 +339,14 @@ def generate_html_documentation(
 def generate_markdown_documentation(
     modules: list[str], output_dir: Path, clean: bool = False
 ) -> None:
-    """
-    Generate Markdown documentation using pdoc3.
+    """Generates Markdown documentation using the pdoc CLI.
 
     Args:
-        modules: List of module names to document
-        output_dir: Directory where Markdown documentation will be generated
-        clean: Whether to clean the output directory before generating
+        modules (list[str]): A list of module names to document.
+        output_dir (Path): The directory where Markdown documentation will
+            be saved.
+        clean (bool): If True, the output directory is cleaned before
+            generation. Defaults to False.
     """
     if clean:
         clean_directory(output_dir)
@@ -398,7 +400,14 @@ def generate_markdown_documentation(
 
 
 def main() -> None:
-    """Main function to generate documentation."""
+    """Main entry point to orchestrate documentation generation.
+
+    This function parses command-line arguments and manages the three main
+    stages of documentation generation:
+    1. Pre-processing: Injects README content into module docstrings.
+    2. Generation: Creates HTML and Markdown documentation using pdoc.
+    3. Post-processing: Restores the original __init__.py files.
+    """
     parser = argparse.ArgumentParser(
         description="Generate API documentation for LexiGlow using pdoc3"
     )

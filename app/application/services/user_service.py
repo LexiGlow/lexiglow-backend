@@ -6,8 +6,7 @@ handling business logic, validation, and password hashing.
 """
 
 import logging
-from datetime import datetime
-from uuid import UUID, uuid4
+from datetime import UTC, datetime
 
 import bcrypt
 
@@ -16,6 +15,8 @@ from app.application.dto.user_dto import (
     UserResponse,
     UserUpdate,
 )
+from app.core.ids import get_ulid
+from app.core.types import ULIDStr
 from app.domain.entities.user import User as UserEntity
 from app.domain.interfaces.user_repository import IUserRepository
 
@@ -86,7 +87,7 @@ class UserService:
             lastActiveAt=entity.last_active_at,
         )
 
-    def create_user(self, user_data: UserCreate) -> UserResponse:
+    async def create_user(self, user_data: UserCreate) -> UserResponse:
         """
         Create a new user with validation and password hashing.
 
@@ -103,12 +104,12 @@ class UserService:
         logger.info(f"Creating user with email: {user_data.email}")
 
         # Validate email uniqueness
-        if self.repository.email_exists(user_data.email):
+        if await self.repository.email_exists(user_data.email):
             logger.warning(f"Email already exists: {user_data.email}")
             raise ValueError(f"Email {user_data.email} is already registered")
 
         # Validate username uniqueness
-        if self.repository.username_exists(user_data.username):
+        if await self.repository.username_exists(user_data.username):
             logger.warning(f"Username already exists: {user_data.username}")
             raise ValueError(f"Username {user_data.username} is already taken")
 
@@ -117,7 +118,7 @@ class UserService:
 
         # Create entity
         user_entity = UserEntity(
-            id=uuid4(),
+            id=get_ulid(),
             email=user_data.email,
             username=user_data.username,
             passwordHash=password_hash,
@@ -125,18 +126,18 @@ class UserService:
             lastName=user_data.last_name,
             nativeLanguageId=user_data.native_language_id,
             currentLanguageId=user_data.current_language_id,
-            createdAt=datetime.utcnow(),
-            updatedAt=datetime.utcnow(),
+            createdAt=datetime.now(UTC),
+            updatedAt=datetime.now(UTC),
             lastActiveAt=None,
         )
 
         # Save to repository
-        created_entity = self.repository.create(user_entity)
+        created_entity = await self.repository.create(user_entity)
         logger.info(f"User created successfully: {created_entity.id}")
 
         return self._entity_to_response(created_entity)
 
-    def get_user(self, user_id: UUID) -> UserResponse | None:
+    async def get_user(self, user_id: ULIDStr) -> UserResponse | None:
         """
         Retrieve a user by ID.
 
@@ -151,14 +152,16 @@ class UserService:
         """
         logger.debug(f"Retrieving user: {user_id}")
 
-        entity = self.repository.get_by_id(user_id)
+        entity = await self.repository.get_by_id(user_id)
         if entity is None:
             logger.debug(f"User not found: {user_id}")
             return None
 
         return self._entity_to_response(entity)
 
-    def get_all_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
+    async def get_all_users(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[UserResponse]:
         """
         Retrieve all users with pagination.
 
@@ -174,10 +177,12 @@ class UserService:
         """
         logger.debug(f"Retrieving all users (skip={skip}, limit={limit})")
 
-        entities = self.repository.get_all(skip=skip, limit=limit)
+        entities = await self.repository.get_all(skip=skip, limit=limit)
         return [self._entity_to_response(entity) for entity in entities]
 
-    def update_user(self, user_id: UUID, user_data: UserUpdate) -> UserResponse | None:
+    async def update_user(
+        self, user_id: ULIDStr, user_data: UserUpdate
+    ) -> UserResponse | None:
         """
         Update a user with validation.
 
@@ -195,14 +200,14 @@ class UserService:
         logger.info(f"Updating user: {user_id}")
 
         # Check if user exists
-        existing_entity = self.repository.get_by_id(user_id)
+        existing_entity = await self.repository.get_by_id(user_id)
         if existing_entity is None:
             logger.warning(f"User not found for update: {user_id}")
             return None
 
         # Validate email uniqueness if changed
         if user_data.email is not None and user_data.email != existing_entity.email:
-            if self.repository.email_exists(user_data.email):
+            if await self.repository.email_exists(user_data.email):
                 logger.warning(f"Email already exists: {user_data.email}")
                 raise ValueError(f"Email {user_data.email} is already registered")
 
@@ -211,7 +216,7 @@ class UserService:
             user_data.username is not None
             and user_data.username != existing_entity.username
         ):
-            if self.repository.username_exists(user_data.username):
+            if await self.repository.username_exists(user_data.username):
                 logger.warning(f"Username already exists: {user_data.username}")
                 raise ValueError(f"Username {user_data.username} is already taken")
 
@@ -245,12 +250,12 @@ class UserService:
                 else existing_entity.current_language_id
             ),
             createdAt=existing_entity.created_at,
-            updatedAt=datetime.utcnow(),
+            updatedAt=datetime.now(UTC),
             lastActiveAt=existing_entity.last_active_at,
         )
 
         # Update in repository
-        updated = self.repository.update(user_id, updated_entity)
+        updated = await self.repository.update(user_id, updated_entity)
 
         if updated is None:
             logger.error(f"Failed to update user: {user_id}")
@@ -259,7 +264,7 @@ class UserService:
         logger.info(f"User updated successfully: {user_id}")
         return self._entity_to_response(updated)
 
-    def delete_user(self, user_id: UUID) -> bool:
+    async def delete_user(self, user_id: ULIDStr) -> bool:
         """
         Delete a user by ID.
 
@@ -274,7 +279,7 @@ class UserService:
         """
         logger.info(f"Deleting user: {user_id}")
 
-        deleted = self.repository.delete(user_id)
+        deleted = await self.repository.delete(user_id)
         if deleted:
             logger.info(f"User deleted successfully: {user_id}")
         else:

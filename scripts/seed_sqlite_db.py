@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""
-SQLite Database Seeding Script for LexiGlow.
+"""SQLite Database Seeding Script for LexiGlow.
 
 This script populates the SQLite database with random test data for development
-and testing purposes.
+and testing purposes. It seeds languages, users, texts, vocabularies, and
+their relationships based on a sample data JSON file.
 
 Usage:
-    python scripts/seed_sqlite_db.py [--db-path PATH] [--force]
-
-Options:
-    --db-path PATH    Path to the SQLite database
-                        file (default: from SQLITE_DB_PATH env var)
-    --force           Force reseed (clears existing data first)
+    python scripts/seed_sqlite_db.py [--db-path PATH] [--force] [--verbose]
 """
 
 import argparse
@@ -21,12 +16,16 @@ import os
 import random
 import sqlite3
 import sys
-import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from dotenv import load_dotenv
+
+# Ensure the app directory is in the Python path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.core.ids import get_ulid
 
 # Setup logging
 logging.basicConfig(
@@ -47,25 +46,38 @@ SAMPLE_DATA_PATH = BASE_DIR / "scripts" / "sample_data.json"
 
 
 def load_sample_data() -> dict[str, Any]:
-    """Load sample data from JSON file."""
+    """Loads sample data from the JSON file.
+
+    Returns:
+        dict[str, Any]: A dictionary containing the sample data.
+    """
     logger.info(f"Loading sample data from {SAMPLE_DATA_PATH}")
     with open(SAMPLE_DATA_PATH, encoding="utf-8") as f:
-        return json.load(f)
-
-
-def generate_uuid() -> str:
-    """Generate a UUID string."""
-    return str(uuid.uuid4())
+        return cast(dict[str, Any], json.load(f))
 
 
 def generate_timestamp(days_ago: int = 0) -> str:
-    """Generate a timestamp string."""
+    """Generates a formatted timestamp string for the past.
+
+    Args:
+        days_ago (int): The number of days in the past to set the timestamp.
+            Defaults to 0 (current time).
+
+    Returns:
+        str: A timestamp string in 'YYYY-MM-DD HH:MM:SS' format.
+    """
     dt = datetime.now(UTC) - timedelta(days=days_ago)
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def clear_database(conn: sqlite3.Connection) -> None:
-    """Clear all data from the database."""
+    """Clears all data from all tables in the database.
+
+    Deletion occurs in an order that respects foreign key constraints.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+    """
     logger.info("Clearing existing data...")
     cursor = conn.cursor()
 
@@ -97,13 +109,22 @@ def clear_database(conn: sqlite3.Connection) -> None:
 def seed_languages(
     conn: sqlite3.Connection, data: dict[str, Any]
 ) -> list[tuple[str, str]]:
-    """Seed Language table."""
+    """Seeds the Language table with data from the sample file.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+
+    Returns:
+        list[tuple[str, str]]: A list of tuples, where each contains the
+            generated language ID and language code.
+    """
     logger.info("Seeding languages...")
     cursor = conn.cursor()
     language_ids = []
 
     for lang in data["languages"]:
-        lang_id = generate_uuid()
+        lang_id = get_ulid()
         cursor.execute(
             """
             INSERT INTO Language (id, name, code, nativeName, createdAt)
@@ -131,13 +152,24 @@ def seed_users(
     language_ids: list[tuple[str, str]],
     count: int = 5,
 ) -> list[str]:
-    """Seed User table."""
+    """Seeds the User table with randomly generated users.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+        language_ids (list[tuple[str, str]]): A list of available language
+            IDs and codes.
+        count (int): The number of users to create. Defaults to 5.
+
+    Returns:
+        list[str]: A list of the generated user IDs.
+    """
     logger.info(f"Seeding {count} users...")
     cursor = conn.cursor()
     user_ids = []
 
     for i in range(count):
-        user_id = generate_uuid()
+        user_id = get_ulid()
         first_name = random.choice(data["first_names"])
         last_name = random.choice(data["last_names"])
         username = f"{first_name.lower()}{last_name.lower()}{i}"
@@ -188,7 +220,17 @@ def seed_user_languages(
     user_ids: list[str],
     language_ids: list[tuple[str, str]],
 ) -> None:
-    """Seed UserLanguage table."""
+    """Seeds the UserLanguage junction table.
+
+    Assigns 1-2 random languages to each user.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+        user_ids (list[str]): A list of user IDs to associate languages with.
+        language_ids (list[tuple[str, str]]): A list of available language
+            IDs and codes.
+    """
     logger.info("Seeding user languages...")
     cursor = conn.cursor()
     count = 0
@@ -226,13 +268,21 @@ def seed_user_languages(
 
 
 def seed_text_tags(conn: sqlite3.Connection, data: dict[str, Any]) -> list[str]:
-    """Seed TextTag table."""
+    """Seeds the TextTag table with sample tags.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+
+    Returns:
+        list[str]: A list of the generated tag IDs.
+    """
     logger.info("Seeding text tags...")
     cursor = conn.cursor()
     tag_ids = []
 
     for tag in data["text_tags"]:
-        tag_id = generate_uuid()
+        tag_id = get_ulid()
         cursor.execute(
             """
             INSERT INTO TextTag (id, name, description)
@@ -255,7 +305,19 @@ def seed_texts(
     user_ids: list[str],
     tag_ids: list[str],
 ) -> list[str]:
-    """Seed Text table."""
+    """Seeds the Text table and its tag associations.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+        language_ids (list[tuple[str, str]]): A list of available language
+            IDs and codes.
+        user_ids (list[str]): A list of user IDs for associating authors.
+        tag_ids (list[str]): A list of tag IDs for associating tags.
+
+    Returns:
+        list[str]: A list of the generated text IDs.
+    """
     logger.info("Seeding texts...")
     cursor = conn.cursor()
     text_ids = []
@@ -264,9 +326,9 @@ def seed_texts(
         texts = data["sample_texts"].get(lang_code, [])
 
         for text_data in texts:
-            text_id = generate_uuid()
+            text_id = get_ulid()
             # Some texts have users, some are system content (userId = NULL)
-            user_id = random.choice([None] + user_ids[:2])
+            user_id = random.choice([None, *user_ids[:2]])
             word_count = len(text_data["content"].split())
 
             cursor.execute(
@@ -319,7 +381,21 @@ def seed_vocabularies(
     user_ids: list[str],
     language_ids: list[tuple[str, str]],
 ) -> list[tuple[str, str, str]]:
-    """Seed UserVocabulary table."""
+    """Seeds the UserVocabulary table.
+
+    Creates a vocabulary for 1-2 languages per user.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+        user_ids (list[str]): A list of user IDs.
+        language_ids (list[tuple[str, str]]): A list of available language
+            IDs and codes.
+
+    Returns:
+        list[tuple[str, str, str]]: A list of tuples containing (vocabulary
+            ID, user ID, language code).
+    """
     logger.info("Seeding user vocabularies...")
     cursor = conn.cursor()
     vocab_ids = []
@@ -330,7 +406,7 @@ def seed_vocabularies(
         vocab_languages = random.sample(language_ids, num_vocabs)
 
         for lang_id, lang_code in vocab_languages:
-            vocab_id = generate_uuid()
+            vocab_id = get_ulid()
 
             # Get language name for the vocabulary name
             cursor.execute("SELECT name FROM Language WHERE id = ?", (lang_id,))
@@ -365,7 +441,16 @@ def seed_vocabulary_items(
     data: dict[str, Any],
     vocab_ids: list[tuple[str, str, str]],
 ) -> None:
-    """Seed UserVocabularyItem table."""
+    """Seeds the UserVocabularyItem table.
+
+    Adds 3-5 random vocabulary words to each user's vocabulary.
+
+    Args:
+        conn (sqlite3.Connection): An active SQLite database connection.
+        data (dict[str, Any]): The loaded sample data.
+        vocab_ids (list[tuple[str, str, str]]): A list of vocabulary IDs,
+            user IDs, and language codes to populate.
+    """
     logger.info("Seeding vocabulary items...")
     cursor = conn.cursor()
     count = 0
@@ -379,7 +464,7 @@ def seed_vocabulary_items(
         selected_words = random.sample(vocab_words, num_words)
 
         for word_data in selected_words:
-            item_id = generate_uuid()
+            item_id = get_ulid()
             status = random.choice(data["vocabulary_statuses"])
             times_reviewed = random.randint(0, 20)
             confidence = random.choice(
@@ -418,7 +503,16 @@ def seed_vocabulary_items(
 
 
 def seed_database(db_path: Path, force: bool = False) -> None:
-    """Main function to seed the database."""
+    """Orchestrates the database seeding process.
+
+    Connects to the database and calls seeding functions in the correct
+    dependency order.
+
+    Args:
+        db_path (Path): The path to the SQLite database file.
+        force (bool): If True, clears the database before seeding.
+            Defaults to False.
+    """
     if not db_path.exists():
         logger.error(f"Database file not found: {db_path}")
         logger.error("Please create the database first using create_sqlite_db.py")
@@ -466,7 +560,7 @@ def seed_database(db_path: Path, force: bool = False) -> None:
 
 
 def main():
-    """Parse arguments and run the script."""
+    """Parses arguments and runs the seeding script."""
     parser = argparse.ArgumentParser(
         description="Seed SQLite database with test data for LexiGlow"
     )

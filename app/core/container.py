@@ -9,10 +9,7 @@ configuration and easy testing with mock dependencies.
 import logging
 from typing import Any, cast
 
-from app.application.services.user_service import UserService
-from app.domain.interfaces.language_repository import ILanguageRepository
-from app.domain.interfaces.text_repository import ITextRepository
-from app.domain.interfaces.user_repository import IUserRepository
+from app.domain.interfaces.repository_factory import IRepositoryFactory
 
 logger = logging.getLogger(__name__)
 
@@ -21,22 +18,54 @@ class Container:
     """
     Dependency injection container for managing application dependencies.
 
-    This container implements the singleton pattern for repositories and services,
-    ensuring single instances are reused across the application. It supports
-    dependency overrides for testing purposes.
+    This container implements the singleton pattern for services and delegates
+    repository creation to the repository factory. It supports dependency
+    overrides for testing purposes.
 
     Attributes:
-        _repositories: Cache of instantiated repository instances
+        _repository_factory: Factory for creating repository instances
         _services: Cache of instantiated service instances
         _overrides: Map of interface types to override implementations
+        _service_mapping: Map of service types to their required repository types
     """
 
-    def __init__(self):
-        """Initialize the DI container with empty caches."""
-        self._repositories: dict[str, Any] = {}
-        self._services: dict[str, Any] = {}
+    def __init__(
+        self,
+        repository_factory: IRepositoryFactory,
+        service_mapping: dict[type, list[type]],
+    ):
+        """
+        Initialize the DI container with a repository factory.
+
+        Args:
+            repository_factory: Factory instance for creating repositories
+            service_mapping: Map of service types to their required repository types.
+                           Must not be None.
+
+        Raises:
+            ValueError: If service_mapping is None or empty
+        """
+        if service_mapping is None:
+            raise ValueError("service_mapping cannot be None")
+        if not service_mapping:
+            raise ValueError("service_mapping cannot be empty")
+
+        self._repository_factory = repository_factory
+        self._services: dict[type, Any] = {}
         self._overrides: dict[type, Any] = {}
+        self._service_mapping: dict[type, list[type]] = service_mapping
+
         logger.info("DI Container initialized")
+
+    @property
+    def repository_factory(self) -> IRepositoryFactory:
+        """
+        Get the repository factory instance.
+
+        Returns:
+            The repository factory used by this container
+        """
+        return self._repository_factory
 
     def register_override(self, interface: type, implementation: Any) -> None:
         """
@@ -60,216 +89,123 @@ class Container:
 
         This is useful for testing to ensure a clean state between tests.
         """
-        self._repositories.clear()
         self._services.clear()
         self._overrides.clear()
         logger.debug("Container reset: cleared all caches and overrides")
 
-    def get_user_repository(self) -> IUserRepository:
+    def get_repository[T](self, repository_type: type[T]) -> T:
         """
-        Get the UserRepository instance (singleton).
+        Get a repository instance by type.
+
+        Args:
+            repository_type: The repository interface type
+                           (e.g., IUserRepository, ILanguageRepository)
 
         Returns:
-            IUserRepository implementation instance
+            Repository instance implementing the interface
 
         Raises:
+            ValueError: If repository type is not supported
             Exception: If repository instantiation fails
+
+        Example:
+            >>> container = Container(repository_factory)
+            >>> user_repo = container.get_repository(IUserRepository)
         """
         # Check for override first
-        if IUserRepository in self._overrides:
-            override = self._overrides[IUserRepository]
-            # If override is a class, instantiate it; if it's an instance, return it
+        if repository_type in self._overrides:
+            override = self._overrides[repository_type]
             if isinstance(override, type):
-                return cast(IUserRepository, override())
-            return cast(IUserRepository, override)
+                return cast(T, override())
+            return cast(T, override)
 
-        # Return cached instance if available
-        if "user_repository" in self._repositories:
-            return cast(IUserRepository, self._repositories["user_repository"])
-
-        # Create new instance (lazy initialization)
+        # Use repository factory (factory handles caching)
         try:
-            from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
-
-            repository: IUserRepository
-            if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.repositories import (
-                    SQLiteUserRepository,
-                )
-
-                logger.debug("Creating SQLiteUserRepository instance")
-                repository = SQLiteUserRepository()
-            elif ACTIVE_DATABASE_TYPE == "mongodb":
-                from app.infrastructure.database.repositories import (
-                    MongoDBUserRepository,
-                )
-
-                logger.debug("Creating MongoDBUserRepository instance")
-                if MONGO_URI is None:
-                    raise ValueError("MONGO_URI must be set for MongoDB database")
-                repository = MongoDBUserRepository(db_url=MONGO_URI, db_name="lexiglow")
-            else:
-                raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
-
-            self._repositories["user_repository"] = repository
-            logger.info("UserRepository initialized and cached")
-            return repository
-
+            logger.debug(f"Getting {repository_type.__name__} from factory")
+            instance = self._repository_factory.get_repository(repository_type)
+            logger.info(f"{repository_type.__name__} retrieved")
+            return instance
         except Exception as e:
-            logger.error(f"Failed to create UserRepository: {e}", exc_info=True)
+            logger.error(
+                f"Failed to get {repository_type.__name__}: {e}", exc_info=True
+            )
             raise
 
-    def get_user_service(self) -> UserService:
+    def get_service[T](self, service_type: type[T]) -> T:
         """
-        Get the UserService instance (singleton).
+        Get a service instance by type (singleton).
+
+        Args:
+            service_type: The service class type (e.g., UserService)
 
         Returns:
-            UserService instance with injected dependencies
+            Service instance of the specified type
 
         Raises:
+            ValueError: If service type is not registered
             Exception: If service instantiation fails
+
+        Example:
+            >>> container = Container(repository_factory)
+            >>> user_service = container.get_service(UserService)
         """
         # Check for override first
-        if UserService in self._overrides:
-            override = self._overrides[UserService]
-            # If override is a class, instantiate it; if it's an instance, return it
+        if service_type in self._overrides:
+            override = self._overrides[service_type]
             if isinstance(override, type):
-                return cast(
-                    UserService, override(repository=self.get_user_repository())
-                )
-            return cast(UserService, override)
+                return cast(T, override())
+            return cast(T, override)
 
-        # Return cached instance if available
-        if "user_service" in self._services:
-            return cast(UserService, self._services["user_service"])
+        # Check service cache first
+        if service_type in self._services:
+            logger.debug(f"Returning cached {service_type.__name__} instance")
+            return cast(T, self._services[service_type])
 
-        # Create new instance with dependencies (lazy initialization)
+        # Create new instance
         try:
-            logger.debug("Creating UserService instance with dependencies")
-            repository = self.get_user_repository()
-            service = UserService(repository=repository)
-            self._services["user_service"] = service
-            logger.info("UserService initialized and cached")
-            return service
-
+            logger.debug(f"Creating {service_type.__name__} instance")
+            instance = self._create_service(service_type)
+            self._services[service_type] = instance
+            logger.info(f"{service_type.__name__} initialized and cached")
+            return instance
         except Exception as e:
-            logger.error(f"Failed to create UserService: {e}", exc_info=True)
+            logger.error(
+                f"Failed to create {service_type.__name__}: {e}", exc_info=True
+            )
             raise
 
-    def get_language_repository(self) -> ILanguageRepository:
+    def _create_service[T](self, service_type: type[T]) -> T:
         """
-        Get the LanguageRepository instance (singleton).
+        Universal method to create a service instance with its dependencies.
+
+        Args:
+            service_type: The service class type (e.g., UserService)
 
         Returns:
-            ILanguageRepository implementation instance
+            Service instance with injected dependencies
 
         Raises:
-            Exception: If repository instantiation fails
+            ValueError: If service type is not registered or repository dependency
+                       is not found
         """
-        # Check for override first
-        if ILanguageRepository in self._overrides:
-            override = self._overrides[ILanguageRepository]
-            # If override is a class, instantiate it; if it's an instance, return it
-            if isinstance(override, type):
-                return cast(ILanguageRepository, override())
-            return cast(ILanguageRepository, override)
+        if service_type not in self._service_mapping:
+            raise ValueError(
+                f"Service type {service_type.__name__} is not registered. "
+                f"Available types: {list(self._service_mapping.keys())}"
+            )
 
-        # Return cached instance if available
-        if "language_repository" in self._repositories:
-            return cast(ILanguageRepository, self._repositories["language_repository"])
-
-        # Create new instance (lazy initialization)
-        try:
-            from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
-
-            repository: ILanguageRepository
-            if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.repositories import (
-                    SQLiteLanguageRepository,
-                )
-
-                logger.debug("Creating SQLiteLanguageRepository instance")
-                repository = SQLiteLanguageRepository()
-            elif ACTIVE_DATABASE_TYPE == "mongodb":
-                from app.infrastructure.database.repositories import (
-                    MongoDBLanguageRepository,
-                )
-
-                logger.debug("Creating MongoDBLanguageRepository instance")
-                if MONGO_URI is None:
-                    raise ValueError("MONGO_URI must be set for MongoDB database")
-                repository = MongoDBLanguageRepository(
-                    db_url=MONGO_URI, db_name="lexiglow"
-                )
-            else:
-                raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
-
-            self._repositories["language_repository"] = repository
-            logger.info("LanguageRepository initialized and cached")
-            return repository
-
-        except Exception as e:
-            logger.error(f"Failed to create LanguageRepository: {e}", exc_info=True)
-            raise
-
-    def get_text_repository(self) -> ITextRepository:
-        """
-        Get the TextRepository instance (singleton).
-
-        Returns:
-            ITextRepository implementation instance
-
-        Raises:
-            Exception: If repository instantiation fails
-        """
-        # Check for override first
-        if ITextRepository in self._overrides:
-            override = self._overrides[ITextRepository]
-            # If override is a class, instantiate it; if it's an instance, return it
-            if isinstance(override, type):
-                return cast(ITextRepository, override())
-            return cast(ITextRepository, override)
-
-        # Return cached instance if available
-        if "text_repository" in self._repositories:
-            return cast(ITextRepository, self._repositories["text_repository"])
-
-        # Create new instance (lazy initialization)
-        try:
-            from app.core.config import ACTIVE_DATABASE_TYPE, MONGO_URI
-
-            repository: ITextRepository
-            if ACTIVE_DATABASE_TYPE == "sqlite":
-                from app.infrastructure.database.repositories import (
-                    SQLiteTextRepository,
-                )
-
-                logger.debug("Creating SQLiteTextRepository instance")
-                repository = SQLiteTextRepository()
-            elif ACTIVE_DATABASE_TYPE == "mongodb":
-                from app.infrastructure.database.repositories import (
-                    MongoDBTextRepository,
-                )
-
-                logger.debug("Creating MongoDBTextRepository instance")
-                if MONGO_URI is None:
-                    raise ValueError("MONGO_URI must be set for MongoDB database")
-                repository = MongoDBTextRepository(db_url=MONGO_URI, db_name="lexiglow")
-            else:
-                raise ValueError(f"Unsupported database type: {ACTIVE_DATABASE_TYPE}")
-
-            self._repositories["text_repository"] = repository
-            logger.info("TextRepository initialized and cached")
-            return repository
-
-        except Exception as e:
-            logger.error(f"Failed to create TextRepository: {e}", exc_info=True)
-            raise
+        repository_types = self._service_mapping[service_type]
+        logger.debug(
+            f"Creating {service_type.__name__} "
+            f"with {len(repository_types)} repositories"
+        )
+        repos: list[Any] = [
+            self.get_repository(repo_type) for repo_type in repository_types
+        ]
+        service_cls = cast(type[Any], service_type)
+        return cast(T, service_cls(*repos))
 
     def __repr__(self) -> str:
         """Return string representation of the container state."""
-        return (
-            f"Container(repositories={list(self._repositories.keys())}, "
-            f"services={list(self._services.keys())}, "
-            f"overrides={len(self._overrides)})"
-        )
+        service_names = [s.__name__ for s in self._services.keys()]
+        return f"Container(services={service_names}, overrides={len(self._overrides)})"

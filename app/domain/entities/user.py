@@ -19,8 +19,16 @@ class User(BaseModel):
     email: EmailStr = Field(..., description="User's email address (unique)")
     username: str = Field(..., description="User's username (unique)")
     password_hash: str = Field(..., alias="passwordHash", description="Hashed password")
-    first_name: str = Field(..., alias="firstName", description="User's first name")
-    last_name: str = Field(..., alias="lastName", description="User's last name")
+    first_name: str = Field(
+        default="",
+        alias="firstName",
+        description="User's first name (optional, empty allowed)",
+    )
+    last_name: str = Field(
+        default="",
+        alias="lastName",
+        description="User's last name (optional, empty allowed)",
+    )
     native_language_id: str = Field(
         ..., alias="nativeLanguageId", description="FK to Language"
     )

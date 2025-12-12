@@ -155,10 +155,20 @@ class AppInitializer:
         Args:
             app: FastAPI application instance
         """
-        from app.presentation.api.v1 import about, health, languages, texts, users
+        from app.presentation.api.v1 import (
+            about,
+            auth,
+            health,
+            languages,
+            texts,
+            users,
+        )
 
-        app.include_router(health.router, tags=["Health"])
-        app.include_router(about.router, tags=["About"])
-        app.include_router(users.router, tags=["Users"])
-        app.include_router(texts.router, tags=["Texts"])
-        app.include_router(languages.router, tags=["Languages"])
+        api_v1_prefix = "/api/v1"
+
+        app.include_router(health.router, prefix=api_v1_prefix, tags=["Health"])
+        app.include_router(about.router, prefix=api_v1_prefix, tags=["About"])
+        app.include_router(auth.router, prefix=api_v1_prefix, tags=["Auth"])
+        app.include_router(users.router, prefix=api_v1_prefix, tags=["Users"])
+        app.include_router(texts.router, prefix=api_v1_prefix, tags=["Texts"])
+        app.include_router(languages.router, prefix=api_v1_prefix, tags=["Languages"])

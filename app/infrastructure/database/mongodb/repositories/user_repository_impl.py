@@ -78,6 +78,10 @@ class MongoDBUserRepository(IUserRepository):
             model["_id"] = str(model.pop("id"))
         elif "id" in model:
             del model["id"]
+        # Normalize optional fields
+        model["firstName"] = model.get("firstName") or ""
+        model["lastName"] = model.get("lastName") or ""
+        model["currentLanguageId"] = str(model["currentLanguageId"])
         return model
 
     async def create(self, entity: UserEntity) -> UserEntity:

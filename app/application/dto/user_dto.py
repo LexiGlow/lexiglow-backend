@@ -18,8 +18,8 @@ class UserCreate(BaseModel):
     email: EmailStr
     username: str
     password: str
-    first_name: str = Field(..., alias="firstName")
-    last_name: str = Field(..., alias="lastName")
+    first_name: str | None = Field("", alias="firstName")
+    last_name: str | None = Field("", alias="lastName")
     native_language_id: ULIDStr = Field(..., alias="nativeLanguageId")
     current_language_id: ULIDStr = Field(..., alias="currentLanguageId")
 

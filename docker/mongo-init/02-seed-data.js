@@ -13,7 +13,7 @@ function generateULID() {
     const RANDOM_LEN = 16;
 
     let str = "";
-    
+
     // 1. Timestamp (48-bit)
     let time = Date.now();
     for (let i = 0; i < TIME_LEN; i++) {
@@ -37,7 +37,7 @@ function generateULID() {
 let rawData;
 try {
     // mongosh is based on Node.js, so we can use the 'fs' module
-    const fs = require('fs'); 
+    const fs = require('fs');
     rawData = fs.readFileSync('/scripts/sample_data.json', 'utf8');
     print("Successfully read sample_data.json");
 } catch (e) {
@@ -76,12 +76,12 @@ for (let i = 0; i < 5; i++) {
     const firstName = data.first_names[Math.floor(Math.random() * data.first_names.length)];
     const lastName = data.last_names[Math.floor(Math.random() * data.last_names.length)];
     const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}${i}`;
-    
+
     // Pick languages
     const langKeys = Object.keys(languageIds);
     const nativeLangCode = langKeys[Math.floor(Math.random() * langKeys.length)];
     let currentLangCode = langKeys[Math.floor(Math.random() * langKeys.length)];
-    
+
     db.User.insertOne({
         _id: userId, // Explicit ULID
         email: `${username}@example.com`,
@@ -89,9 +89,8 @@ for (let i = 0; i < 5; i++) {
         passwordHash: "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYuHwZU3Y4u", // "password"
         firstName: firstName,
         lastName: lastName,
-        nativeLanguageId: languageIds[nativeLangCode], // Storing ULID String
+        nativeLanguageId: languageIds[nativeLangCode] || "", // Simple string
         currentLanguageId: languageIds[currentLangCode], // Storing ULID String
-        learningLanguages: [], 
         createdAt: new Date(),
         updatedAt: new Date(),
         lastActiveAt: new Date()
@@ -122,11 +121,11 @@ if (data.sample_texts) {
         data.sample_texts[langCode].forEach(text => {
             const textId = generateULID();
             const selectedUser = userIds[Math.floor(Math.random() * userIds.length)];
-            
+
             // Random tags
             const tagNames = Object.keys(tagIds);
             const selectedTagIds = [];
-            if(tagNames.length > 0) {
+            if (tagNames.length > 0) {
                 const tagName = tagNames[Math.floor(Math.random() * tagNames.length)];
                 selectedTagIds.push(tagIds[tagName]);
             }
@@ -159,7 +158,7 @@ let itemCount = 0;
 userIds.forEach(userId => {
     const vocabId = generateULID();
     const langCode = Object.keys(languageIds)[0]; // Just picking first for demo
-    
+
     db.UserVocabulary.insertOne({
         _id: vocabId,
         userId: userId,

@@ -30,17 +30,6 @@ db.createCollection('User', {
                 lastName: { bsonType: 'string' },
                 nativeLanguageId: { bsonType: 'string' }, // Simple string, no ULID pattern
                 currentLanguageId: { bsonType: 'string', pattern: ULID_PATTERN },
-                learningLanguages: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'object',
-                        properties: {
-                            languageId: { bsonType: 'string', pattern: ULID_PATTERN },
-                            proficiencyLevel: { bsonType: 'string' },
-                            startedAt: { bsonType: 'date' }
-                        }
-                    }
-                },
                 createdAt: { bsonType: 'date' },
                 updatedAt: { bsonType: 'date' },
                 lastActiveAt: { bsonType: 'date' }
@@ -69,7 +58,35 @@ db.createCollection('Language', {
 });
 db.Language.createIndex({ code: 1 }, { unique: true });
 
-// 3. Text Collection
+// 3. UserLanguage Collection
+// Junction collection: tracks languages users are learning
+db.createCollection('UserLanguage', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['_id', 'userId', 'languageId', 'proficiencyLevel', 'startedAt', 'createdAt', 'updatedAt'],
+            properties: {
+                _id: { bsonType: 'string', pattern: ULID_PATTERN },
+                userId: { bsonType: 'string', pattern: ULID_PATTERN },
+                languageId: { bsonType: 'string', pattern: ULID_PATTERN },
+                proficiencyLevel: {
+                    bsonType: 'string',
+                    enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+                },
+                startedAt: { bsonType: 'date' },
+                createdAt: { bsonType: 'date' },
+                updatedAt: { bsonType: 'date' }
+            }
+        }
+    }
+});
+// Composite unique index (equivalent to PRIMARY KEY in SQL)
+db.UserLanguage.createIndex({ userId: 1, languageId: 1 }, { unique: true });
+// Indexes for efficient cascade delete queries
+db.UserLanguage.createIndex({ userId: 1 });
+db.UserLanguage.createIndex({ languageId: 1 });
+
+// 4. Text Collection
 db.createCollection('Text', {
     validator: {
         $jsonSchema: {
@@ -95,7 +112,7 @@ db.createCollection('Text', {
 db.Text.createIndex({ languageId: 1, proficiencyLevel: 1 });
 db.Text.createIndex({ userId: 1 });
 
-// 4. TextTag Collection
+// 5. TextTag Collection
 db.createCollection('TextTag', {
     validator: {
         $jsonSchema: {
@@ -111,7 +128,7 @@ db.createCollection('TextTag', {
 });
 db.TextTag.createIndex({ name: 1 }, { unique: true });
 
-// 5. UserVocabulary Collection
+// 6. UserVocabulary Collection
 db.createCollection('UserVocabulary', {
     validator: {
         $jsonSchema: {
@@ -130,7 +147,7 @@ db.createCollection('UserVocabulary', {
 });
 db.UserVocabulary.createIndex({ userId: 1, languageId: 1 }, { unique: true });
 
-// 6. UserVocabularyItem Collection
+// 7. UserVocabularyItem Collection
 db.createCollection('UserVocabularyItem', {
     validator: {
         $jsonSchema: {

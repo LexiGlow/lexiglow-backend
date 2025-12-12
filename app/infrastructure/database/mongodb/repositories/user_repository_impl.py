@@ -179,9 +179,24 @@ class MongoDBUserRepository(IUserRepository):
 
     async def delete(self, entity_id: ULIDStr) -> bool:
         """
-        Delete a user by their ID.
+        Delete a user by their ID (with cascade delete).
+
+        This method implements CASCADE DELETE behavior for related UserLanguage
+        documents, similar to SQL's ON DELETE CASCADE constraint.
         """
         try:
+            # CASCADE DELETE: Delete related UserLanguage documents first
+            user_lang_collection = self.db.UserLanguage
+            user_lang_result = await user_lang_collection.delete_many(
+                {"userId": str(entity_id)}
+            )
+            if user_lang_result.deleted_count > 0:
+                logger.debug(
+                    f"Deleted {user_lang_result.deleted_count} UserLanguage records "
+                    f"for user {entity_id}"
+                )
+
+            # Then delete the user
             result = await self.collection.delete_one({"_id": str(entity_id)})
 
             if result.deleted_count:

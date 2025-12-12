@@ -242,7 +242,9 @@ class UserService:
             ),
             lastName=user_data.last_name or existing_entity.last_name,
             nativeLanguageId=(
-                user_data.native_language_id or existing_entity.native_language_id
+                user_data.native_language_id
+                if user_data.native_language_id is not None
+                else existing_entity.native_language_id
             ),
             currentLanguageId=(
                 user_data.current_language_id

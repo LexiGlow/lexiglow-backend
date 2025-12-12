@@ -78,9 +78,7 @@ class SQLiteUserRepository(IUserRepository):
             passwordHash=str(model.passwordHash),
             firstName=str(model.firstName),
             lastName=str(model.lastName),
-            nativeLanguageId=str(ULID.from_str(model.nativeLanguageId))
-            if model.nativeLanguageId
-            else "",
+            nativeLanguageId=model.nativeLanguageId or "",
             currentLanguageId=str(ULID.from_str(model.currentLanguageId))
             if model.currentLanguageId
             else "",
@@ -106,9 +104,7 @@ class SQLiteUserRepository(IUserRepository):
             passwordHash=entity.password_hash,
             firstName=entity.first_name or "",
             lastName=entity.last_name or "",
-            nativeLanguageId=str(entity.native_language_id)
-            if entity.native_language_id
-            else None,
+            nativeLanguageId=entity.native_language_id or "",
             currentLanguageId=str(entity.current_language_id)
             if entity.current_language_id
             else None,
@@ -244,7 +240,7 @@ class SQLiteUserRepository(IUserRepository):
                 user_model.passwordHash = entity.password_hash
                 user_model.firstName = entity.first_name or ""
                 user_model.lastName = entity.last_name or ""
-                user_model.nativeLanguageId = str(entity.native_language_id)
+                user_model.nativeLanguageId = entity.native_language_id or ""
                 user_model.currentLanguageId = str(entity.current_language_id)
                 user_model.updatedAt = datetime.now(UTC)
 

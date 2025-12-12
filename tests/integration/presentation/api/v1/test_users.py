@@ -439,11 +439,7 @@ class TestCreateUser:
         response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 422
 
-        # Missing nativeLanguageId
-        user_data = create_user_data(test_db_with_languages)
-        del user_data["nativeLanguageId"]
-        response = client.post(f"{API_V1}/users/", json=user_data)
-        assert response.status_code == 422
+        # Note: nativeLanguageId is now optional, so missing it won't cause 422
 
         logger.info("Create user missing fields test passed")
 

@@ -22,8 +22,8 @@ class UserCreate(BaseModel):
         "", alias="firstName", description="User's first name"
     )
     last_name: str | None = Field("", alias="lastName", description="User's last name")
-    native_language_id: ULIDStr = Field(
-        ..., alias="nativeLanguageId", description="FK to native Language"
+    native_language_id: str = Field(
+        "", alias="nativeLanguageId", description="Optional native language"
     )
     current_language_id: ULIDStr = Field(
         ..., alias="currentLanguageId", description="FK to current learning Language"
@@ -59,8 +59,8 @@ class UserUpdate(BaseModel):
     last_name: str | None = Field(
         None, alias="lastName", description="User's last name"
     )
-    native_language_id: ULIDStr | None = Field(
-        None, alias="nativeLanguageId", description="FK to native Language"
+    native_language_id: str | None = Field(
+        None, alias="nativeLanguageId", description="Optional native language"
     )
     current_language_id: ULIDStr | None = Field(
         None, alias="currentLanguageId", description="FK to current learning Language"
@@ -92,8 +92,8 @@ class UserResponse(BaseModel):
     username: str = Field(..., description="User's unique username")
     first_name: str = Field(..., alias="firstName", description="User's first name")
     last_name: str = Field(..., alias="lastName", description="User's last name")
-    native_language_id: ULIDStr = Field(
-        ..., alias="nativeLanguageId", description="FK to native Language"
+    native_language_id: str = Field(
+        ..., alias="nativeLanguageId", description="Optional native language"
     )
     current_language_id: ULIDStr = Field(
         ..., alias="currentLanguageId", description="FK to current learning Language"

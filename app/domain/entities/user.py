@@ -30,7 +30,9 @@ class User(BaseModel):
         description="User's last name (optional, empty allowed)",
     )
     native_language_id: str = Field(
-        ..., alias="nativeLanguageId", description="FK to Language"
+        default="",
+        alias="nativeLanguageId",
+        description="Optional native language (simple string, can be empty)",
     )
     current_language_id: str = Field(
         ..., alias="currentLanguageId", description="FK to Language"

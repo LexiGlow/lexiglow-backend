@@ -63,7 +63,7 @@ class MongoDBUserRepository(IUserRepository):
         if "_id" in model:
             model["id"] = str(model.pop("_id"))
         if "nativeLanguageId" in model:
-            model["nativeLanguageId"] = str(model["nativeLanguageId"])
+            model["nativeLanguageId"] = model["nativeLanguageId"] or ""
         if "currentLanguageId" in model:
             model["currentLanguageId"] = str(model["currentLanguageId"])
         return UserEntity.model_validate(model)
@@ -81,6 +81,7 @@ class MongoDBUserRepository(IUserRepository):
         # Normalize optional fields
         model["firstName"] = model.get("firstName") or ""
         model["lastName"] = model.get("lastName") or ""
+        model["nativeLanguageId"] = model.get("nativeLanguageId") or ""
         model["currentLanguageId"] = str(model["currentLanguageId"])
         return model
 

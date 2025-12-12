@@ -203,10 +203,12 @@ class TestUserModel:
         self, test_user, english_language, russian_language
     ):
         """Test user relationships with languages."""
-        assert test_user.native_language.id == english_language.id
+        # Note: native_language relationship was removed (nativeLanguageId is now a
+        # simple string without FK), only current_language relationship exists
         assert test_user.current_language.id == russian_language.id
-        assert test_user.native_language.name == "English"
         assert test_user.current_language.name == "Russian"
+        # nativeLanguageId is stored as a simple string
+        assert test_user.nativeLanguageId == english_language.id
 
     def test_update_user_last_active(self, session, test_user):
         """Test updating user's last active timestamp."""

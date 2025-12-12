@@ -38,9 +38,7 @@ class Language(Base):
     )
 
     # Relationships
-    users_native = relationship(
-        "User", foreign_keys="User.nativeLanguageId", back_populates="native_language"
-    )
+    # Note: nativeLanguageId is now a simple string (no FK relationship)
     users_current = relationship(
         "User", foreign_keys="User.currentLanguageId", back_populates="current_language"
     )
@@ -63,9 +61,7 @@ class User(Base):
     passwordHash: Mapped[str] = mapped_column(String, nullable=False)
     firstName: Mapped[str] = mapped_column(String, nullable=False)
     lastName: Mapped[str] = mapped_column(String, nullable=False)
-    nativeLanguageId: Mapped[str] = mapped_column(
-        String(26), ForeignKey("Language.id"), nullable=False
-    )
+    nativeLanguageId: Mapped[str] = mapped_column(String, nullable=False)
     currentLanguageId: Mapped[str] = mapped_column(
         String(26), ForeignKey("Language.id"), nullable=False
     )
@@ -81,9 +77,7 @@ class User(Base):
     lastActiveAt: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Relationships
-    native_language = relationship(
-        "Language", foreign_keys=[nativeLanguageId], back_populates="users_native"
-    )
+    # Note: nativeLanguageId is now a simple string (no FK relationship)
     current_language = relationship(
         "Language", foreign_keys=[currentLanguageId], back_populates="users_current"
     )

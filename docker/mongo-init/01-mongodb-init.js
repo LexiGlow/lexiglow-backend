@@ -20,15 +20,15 @@ db.createCollection('User', {
     validator: {
         $jsonSchema: {
             bsonType: 'object',
-            required: ['_id', 'email', 'username', 'passwordHash', 'nativeLanguageId', 'createdAt'],
+            required: ['_id', 'email', 'username', 'passwordHash', 'createdAt'],
             properties: {
-                _id: { bsonType: 'string', pattern: ULID_PATTERN},
+                _id: { bsonType: 'string', pattern: ULID_PATTERN },
                 email: { bsonType: 'string' },
                 username: { bsonType: 'string' },
                 passwordHash: { bsonType: 'string' },
                 firstName: { bsonType: 'string' },
                 lastName: { bsonType: 'string' },
-                nativeLanguageId: { bsonType: 'string', pattern: ULID_PATTERN },
+                nativeLanguageId: { bsonType: 'string' }, // Simple string, no ULID pattern
                 currentLanguageId: { bsonType: 'string', pattern: ULID_PATTERN },
                 learningLanguages: {
                     bsonType: 'array',

@@ -20,7 +20,7 @@ class UserCreate(BaseModel):
     password: str
     first_name: str | None = Field("", alias="firstName")
     last_name: str | None = Field("", alias="lastName")
-    native_language_id: ULIDStr = Field(..., alias="nativeLanguageId")
+    native_language_id: str = Field("", alias="nativeLanguageId")
     current_language_id: ULIDStr = Field(..., alias="currentLanguageId")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -33,7 +33,7 @@ class UserUpdate(BaseModel):
     username: str | None = None
     first_name: str | None = Field(None, alias="firstName")
     last_name: str | None = Field(None, alias="lastName")
-    native_language_id: ULIDStr | None = Field(None, alias="nativeLanguageId")
+    native_language_id: str | None = Field(None, alias="nativeLanguageId")
     current_language_id: ULIDStr | None = Field(None, alias="currentLanguageId")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -47,7 +47,7 @@ class UserResponse(BaseModel):
     username: str
     first_name: str = Field(..., alias="firstName")
     last_name: str = Field(..., alias="lastName")
-    native_language_id: ULIDStr = Field(..., alias="nativeLanguageId")
+    native_language_id: str = Field(..., alias="nativeLanguageId")
     current_language_id: ULIDStr = Field(..., alias="currentLanguageId")
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")

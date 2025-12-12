@@ -1,17 +1,38 @@
-"""
-Domain schemas for API request/response models.
+"""Presentation layer schemas for API request/response models.
 
-This module contains all request and response schemas used by the API layer.
+This module exports all presentation schemas used by the API layer.
+These schemas are used for FastAPI request validation, response serialization,
+and OpenAPI documentation generation.
+
+Note: These presentation schemas should be used in API endpoints, not DTOs directly.
+Conversion methods (to_dto/from_dto) are provided for translating between layers.
 """
 
-from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
-from app.presentation.schemas.text_schema import TextCreate, TextUpdate
+from app.presentation.schemas.language_schema import (
+    LanguageCreate,
+    LanguageResponse,
+    LanguageUpdate,
+)
+from app.presentation.schemas.responses import AboutResponse, HealthResponse
+from app.presentation.schemas.text_schema import (
+    TextCreate,
+    TextResponse,
+    TextUpdate,
+)
+from app.presentation.schemas.user_schema import (
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+)
 from app.presentation.schemas.vocabulary_schema import (
     UserVocabularyItemCreate,
     UserVocabularyItemUpdate,
 )
 
 __all__ = [
+    # Health/About schemas
+    "HealthResponse",
+    "AboutResponse",
     # User schemas
     "UserCreate",
     "UserUpdate",
@@ -19,6 +40,11 @@ __all__ = [
     # Text schemas
     "TextCreate",
     "TextUpdate",
+    "TextResponse",
+    # Language schemas
+    "LanguageCreate",
+    "LanguageUpdate",
+    "LanguageResponse",
     # Vocabulary schemas
     "UserVocabularyItemCreate",
     "UserVocabularyItemUpdate",

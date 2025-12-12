@@ -8,14 +8,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.application.dto.language_dto import (
-    LanguageCreate,
-    LanguageResponse,
-    LanguageUpdate,
-)
 from app.application.services.language_service import LanguageService
 from app.core.dependencies import get_language_service
 from app.core.types import ULIDStr
+from app.presentation.schemas import LanguageCreate, LanguageResponse, LanguageUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +36,7 @@ async def get_languages(
     ] = 100,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> list[LanguageResponse]:
-    """
-    Get all languages with pagination.
+    """Get all languages with pagination.
 
     Args:
         skip: Number of languages to skip (for pagination)
@@ -56,7 +51,8 @@ async def get_languages(
     """
     try:
         logger.info(f"GET /languages called with skip={skip}, limit={limit}")
-        languages = await service.get_all_languages(skip=skip, limit=limit)
+        dto_languages = await service.get_all_languages(skip=skip, limit=limit)
+        languages = [LanguageResponse.from_dto(dto_lang) for dto_lang in dto_languages]
         logger.info(f"Retrieved {len(languages)} languages")
         return languages
 
@@ -79,8 +75,7 @@ async def get_language_by_id(
     languageId: ULIDStr,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> LanguageResponse:
-    """
-    Get a language by ID.
+    """Get a language by ID.
 
     Args:
         languageId: Language UUID
@@ -94,9 +89,9 @@ async def get_language_by_id(
     """
     try:
         logger.info(f"GET /languages/{languageId} called")
-        language = await service.get_language(languageId)
+        dto_language = await service.get_language(languageId)
 
-        if language is None:
+        if dto_language is None:
             logger.warning(f"Language not found: {languageId}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -107,7 +102,7 @@ async def get_language_by_id(
             )
 
         logger.info(f"Retrieved language: {languageId}")
-        return language
+        return LanguageResponse.from_dto(dto_language)
 
     except HTTPException:
         raise
@@ -130,8 +125,7 @@ async def create_language(
     language_data: LanguageCreate,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> LanguageResponse:
-    """
-    Create a new language.
+    """Create a new language.
 
     Args:
         language_data: Language creation data (validated automatically by FastAPI)
@@ -148,9 +142,9 @@ async def create_language(
         logger.info(f"POST /languages called with code: {language_data.code}")
 
         try:
-            created_language = await service.create_language(language_data)
-            logger.info(f"Language created successfully: {created_language.id}")
-            return created_language
+            dto_language = await service.create_language(language_data.to_dto())
+            logger.info(f"Language created successfully: {dto_language.id}")
+            return LanguageResponse.from_dto(dto_language)
 
         except ValueError as e:
             # Language code already exists
@@ -182,8 +176,7 @@ async def update_language(
     language_data: LanguageUpdate,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> LanguageResponse:
-    """
-    Update a language.
+    """Update a language.
 
     Args:
         languageId: Language UUID
@@ -201,9 +194,11 @@ async def update_language(
         logger.info(f"PUT /languages/{languageId} called")
 
         try:
-            updated_language = await service.update_language(languageId, language_data)
+            dto_language = await service.update_language(
+                languageId, language_data.to_dto()
+            )
 
-            if updated_language is None:
+            if dto_language is None:
                 logger.warning(f"Language not found: {languageId}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -214,7 +209,7 @@ async def update_language(
                 )
 
             logger.info(f"Language updated successfully: {languageId}")
-            return updated_language
+            return LanguageResponse.from_dto(dto_language)
 
         except ValueError as e:
             # Language code conflict
@@ -244,8 +239,7 @@ async def delete_language(
     languageId: ULIDStr,
     service: LanguageService = Depends(get_language_service),  # noqa: B008
 ) -> None:
-    """
-    Delete a language.
+    """Delete a language.
 
     Args:
         languageId: Language UUID

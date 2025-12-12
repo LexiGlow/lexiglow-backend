@@ -4,9 +4,9 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.application.dto.user_dto import UserCreate, UserResponse
 from app.application.services.user_service import UserService
 from app.core.dependencies import get_user_service
+from app.presentation.schemas import UserCreate, UserResponse
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +24,7 @@ async def signup(
     payload: UserCreate,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
-    """
-    Register a new user with validation and password hashing.
+    """Register a new user with validation and password hashing.
 
     Args:
         payload: Signup data including email, username, and password.
@@ -39,9 +38,9 @@ async def signup(
     """
     try:
         logger.info("POST /auth/signup called for email=%s", payload.email)
-        user = await service.create_user(payload)
-        logger.info("User signed up successfully: %s", user.id)
-        return user
+        dto_user = await service.create_user(payload.to_dto())
+        logger.info("User signed up successfully: %s", dto_user.id)
+        return UserResponse.from_dto(dto_user)
     except ValueError as exc:
         # Conflicts (email/username already exist)
         logger.warning("Signup conflict: %s", exc)

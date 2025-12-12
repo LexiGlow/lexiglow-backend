@@ -8,11 +8,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.application.dto.user_dto import UserCreate, UserResponse, UserUpdate
 from app.application.services.user_service import UserService
 from app.core.dependencies import get_user_service
 from app.core.exceptions import LanguageNotFoundError
 from app.core.types import ULIDStr
+from app.presentation.schemas import UserCreate, UserResponse, UserUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,7 @@ async def get_users(
     ] = 100,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> list[UserResponse]:
-    """
-    Get all users with pagination.
+    """Get all users with pagination.
 
     Args:
         skip: Number of users to skip (for pagination)
@@ -52,7 +51,8 @@ async def get_users(
     """
     try:
         logger.info(f"GET /users called with skip={skip}, limit={limit}")
-        users = await service.get_all_users(skip=skip, limit=limit)
+        dto_users = await service.get_all_users(skip=skip, limit=limit)
+        users = [UserResponse.from_dto(dto_user) for dto_user in dto_users]
         logger.info(f"Retrieved {len(users)} users")
         return users
 
@@ -75,8 +75,7 @@ async def get_user_by_id(
     userId: ULIDStr,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
-    """
-    Get a user by ID.
+    """Get a user by ID.
 
     Args:
         userId: User UUID
@@ -90,9 +89,9 @@ async def get_user_by_id(
     """
     try:
         logger.info(f"GET /users/{userId} called")
-        user = await service.get_user(userId)
+        dto_user = await service.get_user(userId)
 
-        if user is None:
+        if dto_user is None:
             logger.warning(f"User not found: {userId}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -103,7 +102,7 @@ async def get_user_by_id(
             )
 
         logger.info(f"Retrieved user: {userId}")
-        return user
+        return UserResponse.from_dto(dto_user)
 
     except HTTPException:
         raise
@@ -126,8 +125,7 @@ async def create_user(
     user_data: UserCreate,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
-    """
-    Create a new user.
+    """Create a new user.
 
     Args:
         user_data: User creation data (validated automatically by FastAPI)
@@ -144,9 +142,9 @@ async def create_user(
         logger.info(f"POST /users called with email: {user_data.email}")
 
         try:
-            created_user = await service.create_user(user_data)
-            logger.info(f"User created successfully: {created_user.id}")
-            return created_user
+            dto_user = await service.create_user(user_data.to_dto())
+            logger.info(f"User created successfully: {dto_user.id}")
+            return UserResponse.from_dto(dto_user)
         except LanguageNotFoundError as e:
             logger.warning(f"Language not found error: {e}")
             raise HTTPException(
@@ -183,8 +181,7 @@ async def update_user(
     user_data: UserUpdate,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserResponse:
-    """
-    Update a user.
+    """Update a user.
 
     Args:
         userId: User UUID
@@ -202,9 +199,9 @@ async def update_user(
         logger.info(f"PUT /users/{userId} called")
 
         try:
-            updated_user = await service.update_user(userId, user_data)
+            dto_user = await service.update_user(userId, user_data.to_dto())
 
-            if updated_user is None:
+            if dto_user is None:
                 logger.warning(f"User not found: {userId}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -215,7 +212,7 @@ async def update_user(
                 )
 
             logger.info(f"User updated successfully: {userId}")
-            return updated_user
+            return UserResponse.from_dto(dto_user)
 
         except ValueError as e:
             # Email or username conflict
@@ -245,8 +242,7 @@ async def delete_user(
     userId: ULIDStr,
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> None:
-    """
-    Delete a user.
+    """Delete a user.
 
     Args:
         userId: User UUID

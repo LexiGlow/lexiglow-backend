@@ -1,5 +1,4 @@
-"""
-Unit tests for the Language API handlers.
+"""Unit tests for the Language API handlers.
 
 This module contains tests for the language API handler functions in isolation,
 with the LanguageService dependency mocked.
@@ -23,6 +22,9 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# API version prefix
+API_V1 = "/api/v1"
 
 
 @pytest.fixture
@@ -85,9 +87,7 @@ class TestGetLanguages:
         mock_language_service: AsyncMock,
         sample_language_response: LanguageResponse,
     ) -> None:
-        """
-        Test get_languages returns 200 and a list of languages on success.
-        """
+        """Test get_languages returns 200 and a list of languages on success."""
         # Arrange
         mock_language_service.get_all_languages.return_value = [
             sample_language_response
@@ -95,7 +95,7 @@ class TestGetLanguages:
         logger.info("Testing get_languages with a single language")
 
         # Act
-        response = client.get("/languages/")
+        response = client.get(f"{API_V1}/languages/")
 
         # Assert
         assert response.status_code == 200
@@ -112,15 +112,13 @@ class TestGetLanguages:
     def test_get_languages_with_pagination(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
-        """
-        Test get_languages correctly passes pagination parameters to the service.
-        """
+        """Test get_languages correctly passes pagination parameters."""
         # Arrange
         mock_language_service.get_all_languages.return_value = []
         logger.info("Testing get_languages with pagination skip=10, limit=50")
 
         # Act
-        client.get("/languages/?skip=10&limit=50")
+        client.get(f"{API_V1}/languages/?skip=10&limit=50")
 
         # Assert
         mock_language_service.get_all_languages.assert_called_once_with(
@@ -131,15 +129,13 @@ class TestGetLanguages:
     def test_get_languages_empty(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
-        """
-        Test get_languages returns 200 and an empty list when no languages exist.
-        """
+        """Test get_languages returns 200 and empty list when no languages exist."""
         # Arrange
         mock_language_service.get_all_languages.return_value = []
         logger.info("Testing get_languages with no languages")
 
         # Act
-        response = client.get("/languages/")
+        response = client.get(f"{API_V1}/languages/")
 
         # Assert
         assert response.status_code == 200
@@ -151,16 +147,14 @@ class TestGetLanguages:
     def test_get_languages_handles_exception(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
-        """
-        Test get_languages returns 500 when the service raises an exception.
-        """
+        """Test get_languages returns 500 when the service raises an exception."""
         # Arrange
         error_message = "Database connection failed"
         mock_language_service.get_all_languages.side_effect = Exception(error_message)
         logger.info("Testing get_languages with a service exception")
 
         # Act
-        response = client.get("/languages/")
+        response = client.get(f"{API_V1}/languages/")
 
         # Assert
         assert response.status_code == 500
@@ -180,22 +174,22 @@ class TestGetLanguageById:
         sample_language_response: LanguageResponse,
         sample_language_id: ULID,
     ) -> None:
-        """
-        Test get_language_by_id returns 200 and a language on success.
-        """
+        """Test get_language_by_id returns 200 and a language on success."""
         # Arrange
         mock_language_service.get_language.return_value = sample_language_response
         logger.info(f"Testing get_language_by_id with ID: {sample_language_id}")
 
         # Act
-        response = client.get(f"/languages/{sample_language_id}")
+        response = client.get(f"{API_V1}/languages/{sample_language_id}")
 
         # Assert
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == str(sample_language_id)
         assert data["name"] == sample_language_response.name
-        mock_language_service.get_language.assert_called_once_with(sample_language_id)
+        mock_language_service.get_language.assert_called_once_with(
+            str(sample_language_id)
+        )
         logger.info("get_language_by_id success test passed")
 
     def test_get_language_by_id_not_found(
@@ -204,9 +198,7 @@ class TestGetLanguageById:
         mock_language_service: AsyncMock,
         sample_language_id: ULID,
     ) -> None:
-        """
-        Test get_language_by_id returns 404 when the language does not exist.
-        """
+        """Test get_language_by_id returns 404 when the language does not exist."""
         # Arrange
         mock_language_service.get_language.return_value = None
         logger.info(
@@ -214,26 +206,26 @@ class TestGetLanguageById:
         )
 
         # Act
-        response = client.get(f"/languages/{sample_language_id}")
+        response = client.get(f"{API_V1}/languages/{sample_language_id}")
 
         # Assert
         assert response.status_code == 404
         assert response.json()["detail"]["error"] == "Language not found"
-        mock_language_service.get_language.assert_called_once_with(sample_language_id)
+        mock_language_service.get_language.assert_called_once_with(
+            str(sample_language_id)
+        )
         logger.info("get_language_by_id not found test passed")
 
     def test_get_language_by_id_invalid_ulid(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
-        """
-        Test get_language_by_id returns 422 for a malformed ULID.
-        """
+        """Test get_language_by_id returns 422 for a malformed ULID."""
         # Arrange
         invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing get_language_by_id with invalid ID: {invalid_id}")
 
         # Act
-        response = client.get(f"/languages/{invalid_id}")
+        response = client.get(f"{API_V1}/languages/{invalid_id}")
 
         # Assert
         assert response.status_code == 422
@@ -246,9 +238,7 @@ class TestGetLanguageById:
         mock_language_service: AsyncMock,
         sample_language_id: ULID,
     ) -> None:
-        """
-        Test get_language_by_id returns 500 when the service raises an exception.
-        """
+        """Test get_language_by_id returns 500 when service raises an exception."""
         # Arrange
         error_message = "Service unavailable"
         mock_language_service.get_language.side_effect = Exception(error_message)
@@ -258,7 +248,7 @@ class TestGetLanguageById:
         )
 
         # Act
-        response = client.get(f"/languages/{sample_language_id}")
+        response = client.get(f"{API_V1}/languages/{sample_language_id}")
 
         # Assert
         assert response.status_code == 500
@@ -278,9 +268,7 @@ class TestCreateLanguage:
         sample_language_response: LanguageResponse,
         sample_language_create_data: dict[str, Any],
     ) -> None:
-        """
-        Test create_language returns 201 and the created language on success.
-        """
+        """Test create_language returns 201 and the created language on success."""
         # Arrange
         mock_language_service.create_language.return_value = sample_language_response
         logger.info(
@@ -288,7 +276,7 @@ class TestCreateLanguage:
         )
 
         # Act
-        response = client.post("/languages/", json=sample_language_create_data)
+        response = client.post(f"{API_V1}/languages/", json=sample_language_create_data)
 
         # Assert
         assert response.status_code == 201
@@ -304,15 +292,13 @@ class TestCreateLanguage:
         mock_language_service: AsyncMock,
         sample_language_create_data: dict[str, Any],
     ) -> None:
-        """
-        Test create_language returns 422 for an invalid request body.
-        """
+        """Test create_language returns 422 for an invalid request body."""
         # Arrange
         del sample_language_create_data["code"]  # Make the data invalid
         logger.info("Testing create_language with missing code field")
 
         # Act
-        response = client.post("/languages/", json=sample_language_create_data)
+        response = client.post(f"{API_V1}/languages/", json=sample_language_create_data)
 
         # Assert
         assert response.status_code == 422
@@ -325,9 +311,7 @@ class TestCreateLanguage:
         mock_language_service: AsyncMock,
         sample_language_create_data: dict[str, Any],
     ) -> None:
-        """
-        Test create_language returns 409 when the service reports a conflict.
-        """
+        """Test create_language returns 409 when the service reports a conflict."""
         # Arrange
         error_message = "Language code es is already registered"
         mock_language_service.create_language.side_effect = ValueError(error_message)
@@ -336,7 +320,7 @@ class TestCreateLanguage:
         )
 
         # Act
-        response = client.post("/languages/", json=sample_language_create_data)
+        response = client.post(f"{API_V1}/languages/", json=sample_language_create_data)
 
         # Assert
         assert response.status_code == 409
@@ -351,17 +335,14 @@ class TestCreateLanguage:
         mock_language_service: AsyncMock,
         sample_language_create_data: dict[str, Any],
     ) -> None:
-        """
-        Test create_language returns 500 when the service raises
-        an unexpected exception.
-        """
+        """Test create_language returns 500 when service raises an exception."""
         # Arrange
         error_message = "Internal service failure"
         mock_language_service.create_language.side_effect = Exception(error_message)
         logger.info("Testing create_language with an unexpected service exception")
 
         # Act
-        response = client.post("/languages/", json=sample_language_create_data)
+        response = client.post(f"{API_V1}/languages/", json=sample_language_create_data)
 
         # Assert
         assert response.status_code == 500
@@ -382,16 +363,14 @@ class TestUpdateLanguage:
         sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
-        """
-        Test update_language returns 200 and the updated language on success.
-        """
+        """Test update_language returns 200 and the updated language on success."""
         # Arrange
         mock_language_service.update_language.return_value = sample_language_response
         logger.info(f"Testing update_language for ID: {sample_language_id}")
 
         # Act
         response = client.put(
-            f"/languages/{sample_language_id}", json=sample_language_update_data
+            f"{API_V1}/languages/{sample_language_id}", json=sample_language_update_data
         )
 
         # Assert
@@ -408,9 +387,7 @@ class TestUpdateLanguage:
         sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
-        """
-        Test update_language returns 404 when the language does not exist.
-        """
+        """Test update_language returns 404 when the language does not exist."""
         # Arrange
         mock_language_service.update_language.return_value = None
         logger.info(
@@ -419,7 +396,7 @@ class TestUpdateLanguage:
 
         # Act
         response = client.put(
-            f"/languages/{sample_language_id}", json=sample_language_update_data
+            f"{API_V1}/languages/{sample_language_id}", json=sample_language_update_data
         )
 
         # Assert
@@ -434,16 +411,14 @@ class TestUpdateLanguage:
         mock_language_service: AsyncMock,
         sample_language_update_data: dict[str, Any],
     ) -> None:
-        """
-        Test update_language returns 422 for a malformed ULID.
-        """
+        """Test update_language returns 422 for a malformed ULID."""
         # Arrange
         invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing update_language with invalid ID: {invalid_id}")
 
         # Act
         response = client.put(
-            f"/languages/{invalid_id}", json=sample_language_update_data
+            f"{API_V1}/languages/{invalid_id}", json=sample_language_update_data
         )
 
         # Assert
@@ -458,9 +433,7 @@ class TestUpdateLanguage:
         sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
-        """
-        Test update_language returns 409 when the service reports a conflict.
-        """
+        """Test update_language returns 409 when the service reports a conflict."""
         # Arrange
         error_message = "Language code en is already registered"
         mock_language_service.update_language.side_effect = ValueError(error_message)
@@ -468,7 +441,7 @@ class TestUpdateLanguage:
 
         # Act
         response = client.put(
-            f"/languages/{sample_language_id}", json=sample_language_update_data
+            f"{API_V1}/languages/{sample_language_id}", json=sample_language_update_data
         )
 
         # Assert
@@ -485,9 +458,7 @@ class TestUpdateLanguage:
         sample_language_id: ULID,
         sample_language_update_data: dict[str, Any],
     ) -> None:
-        """
-        Test update_language returns 500 for an unexpected service exception.
-        """
+        """Test update_language returns 500 for an unexpected service exception."""
         # Arrange
         error_message = "Database transaction failed"
         mock_language_service.update_language.side_effect = Exception(error_message)
@@ -495,7 +466,7 @@ class TestUpdateLanguage:
 
         # Act
         response = client.put(
-            f"/languages/{sample_language_id}", json=sample_language_update_data
+            f"{API_V1}/languages/{sample_language_id}", json=sample_language_update_data
         )
 
         # Assert
@@ -515,20 +486,18 @@ class TestDeleteLanguage:
         mock_language_service: AsyncMock,
         sample_language_id: ULID,
     ) -> None:
-        """
-        Test delete_language returns 204 on successful deletion.
-        """
+        """Test delete_language returns 204 on successful deletion."""
         # Arrange
         mock_language_service.delete_language.return_value = True
         logger.info(f"Testing delete_language for ID: {sample_language_id}")
 
         # Act
-        response = client.delete(f"/languages/{sample_language_id}")
+        response = client.delete(f"{API_V1}/languages/{sample_language_id}")
 
         # Assert
         assert response.status_code == 204
         mock_language_service.delete_language.assert_called_once_with(
-            sample_language_id
+            str(sample_language_id)
         )
         logger.info("delete_language success test passed")
 
@@ -538,9 +507,7 @@ class TestDeleteLanguage:
         mock_language_service: AsyncMock,
         sample_language_id: ULID,
     ) -> None:
-        """
-        Test delete_language returns 404 when the language does not exist.
-        """
+        """Test delete_language returns 404 when the language does not exist."""
         # Arrange
         mock_language_service.delete_language.return_value = False
         logger.info(
@@ -548,29 +515,27 @@ class TestDeleteLanguage:
         )
 
         # Act
-        response = client.delete(f"/languages/{sample_language_id}")
+        response = client.delete(f"{API_V1}/languages/{sample_language_id}")
 
         # Assert
         assert response.status_code == 404
         data = response.json()
         assert data["detail"]["error"] == "Language not found"
         mock_language_service.delete_language.assert_called_once_with(
-            sample_language_id
+            str(sample_language_id)
         )
         logger.info("delete_language not found test passed")
 
     def test_delete_language_invalid_ulid(
         self, client: TestClient, mock_language_service: AsyncMock
     ) -> None:
-        """
-        Test delete_language returns 422 for a malformed ULID.
-        """
+        """Test delete_language returns 422 for a malformed ULID."""
         # Arrange
         invalid_id = "not-a-valid-ulid"
         logger.info(f"Testing delete_language with invalid ID: {invalid_id}")
 
         # Act
-        response = client.delete(f"/languages/{invalid_id}")
+        response = client.delete(f"{API_V1}/languages/{invalid_id}")
 
         # Assert
         assert response.status_code == 422
@@ -583,16 +548,14 @@ class TestDeleteLanguage:
         mock_language_service: AsyncMock,
         sample_language_id: ULID,
     ) -> None:
-        """
-        Test delete_language returns 500 for an unexpected service exception.
-        """
+        """Test delete_language returns 500 for an unexpected service exception."""
         # Arrange
         error_message = "Failed to delete language"
         mock_language_service.delete_language.side_effect = Exception(error_message)
         logger.info("Testing delete_language with an unexpected service exception")
 
         # Act
-        response = client.delete(f"/languages/{sample_language_id}")
+        response = client.delete(f"{API_V1}/languages/{sample_language_id}")
 
         # Assert
         assert response.status_code == 500

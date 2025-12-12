@@ -1,5 +1,4 @@
-"""
-Unit tests for the Text API handlers.
+"""Unit tests for the Text API handlers.
 
 This module contains tests for the text API handler functions in isolation,
 with the TextService dependency mocked.
@@ -24,6 +23,9 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# API version prefix
+API_V1 = "/api/v1"
 
 
 @pytest.fixture
@@ -71,11 +73,11 @@ def sample_text_create_data() -> dict[str, Any]:
     return {
         "title": "New Title",
         "content": "A new piece of text content.",
-        "language_id": str(ULID()),
-        "user_id": str(ULID()),
-        "proficiency_level": "B1",
-        "word_count": 10,
-        "is_public": False,
+        "languageId": str(ULID()),
+        "userId": str(ULID()),
+        "proficiencyLevel": "B1",
+        "wordCount": 10,
+        "isPublic": False,
         "source": "http://example.com/new",
     }
 
@@ -85,7 +87,7 @@ def sample_text_update_data() -> dict[str, Any]:
     """Fixture for sample text update request body."""
     return {
         "title": "Updated Title",
-        "proficiency_level": "B2",
+        "proficiencyLevel": "B2",
     }
 
 
@@ -102,7 +104,7 @@ class TestGetTexts:
         mock_text_service.get_all_texts.return_value = [sample_text_response]
         logger.info("Testing get_texts with a single text")
 
-        response = client.get("/texts/")
+        response = client.get(f"{API_V1}/texts/")
 
         assert response.status_code == 200
         data = response.json()
@@ -120,7 +122,7 @@ class TestGetTexts:
         mock_text_service.get_all_texts.return_value = []
         logger.info("Testing get_texts with pagination skip=5, limit=20")
 
-        client.get("/texts/?skip=5&limit=20")
+        client.get(f"{API_V1}/texts/?skip=5&limit=20")
 
         mock_text_service.get_all_texts.assert_called_once_with(skip=5, limit=20)
         logger.info("get_texts pagination test passed")
@@ -132,7 +134,7 @@ class TestGetTexts:
         mock_text_service.get_all_texts.return_value = []
         logger.info("Testing get_texts with no texts")
 
-        response = client.get("/texts/")
+        response = client.get(f"{API_V1}/texts/")
 
         assert response.status_code == 200
         data = response.json()
@@ -148,7 +150,7 @@ class TestGetTexts:
         mock_text_service.get_all_texts.side_effect = Exception(error_message)
         logger.info("Testing get_texts with a service exception")
 
-        response = client.get("/texts/")
+        response = client.get(f"{API_V1}/texts/")
 
         assert response.status_code == 500
         data = response.json()
@@ -171,13 +173,13 @@ class TestGetTextById:
         mock_text_service.get_text.return_value = sample_text_response
         logger.info(f"Testing get_text_by_id with ID: {sample_text_id}")
 
-        response = client.get(f"/texts/{sample_text_id}")
+        response = client.get(f"{API_V1}/texts/{sample_text_id}")
 
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == str(sample_text_id)
         assert data["title"] == sample_text_response.title
-        mock_text_service.get_text.assert_called_once_with(sample_text_id)
+        mock_text_service.get_text.assert_called_once_with(str(sample_text_id))
         logger.info("get_text_by_id success test passed")
 
     def test_get_text_by_id_not_found(
@@ -187,11 +189,11 @@ class TestGetTextById:
         mock_text_service.get_text.return_value = None
         logger.info(f"Testing get_text_by_id with non-existent ID: {sample_text_id}")
 
-        response = client.get(f"/texts/{sample_text_id}")
+        response = client.get(f"{API_V1}/texts/{sample_text_id}")
 
         assert response.status_code == 404
         assert response.json()["detail"]["error"] == "Text not found"
-        mock_text_service.get_text.assert_called_once_with(sample_text_id)
+        mock_text_service.get_text.assert_called_once_with(str(sample_text_id))
         logger.info("get_text_by_id not found test passed")
 
     def test_get_text_by_id_invalid_ulid(
@@ -201,7 +203,7 @@ class TestGetTextById:
         invalid_id = "not-a-ulid"
         logger.info(f"Testing get_text_by_id with invalid ID: {invalid_id}")
 
-        response = client.get(f"/texts/{invalid_id}")
+        response = client.get(f"{API_V1}/texts/{invalid_id}")
 
         assert response.status_code == 422
         mock_text_service.get_text.assert_not_called()
@@ -217,7 +219,7 @@ class TestGetTextById:
             f"Testing get_text_by_id with service exception for ID: {sample_text_id}"
         )
 
-        response = client.get(f"/texts/{sample_text_id}")
+        response = client.get(f"{API_V1}/texts/{sample_text_id}")
 
         assert response.status_code == 500
         data = response.json()
@@ -242,7 +244,7 @@ class TestCreateText:
             f"Testing create_text with title: {sample_text_create_data['title']}"
         )
 
-        response = client.post("/texts/", json=sample_text_create_data)
+        response = client.post(f"{API_V1}/texts/", json=sample_text_create_data)
 
         assert response.status_code == 201
         data = response.json()
@@ -261,7 +263,7 @@ class TestCreateText:
         del sample_text_create_data["title"]  # Make data invalid
         logger.info("Testing create_text with missing title field")
 
-        response = client.post("/texts/", json=sample_text_create_data)
+        response = client.post(f"{API_V1}/texts/", json=sample_text_create_data)
 
         assert response.status_code == 422
         mock_text_service.create_text.assert_not_called()
@@ -278,7 +280,7 @@ class TestCreateText:
         mock_text_service.create_text.side_effect = ValueError(error_message)
         logger.info("Testing create_text with a data conflict")
 
-        response = client.post("/texts/", json=sample_text_create_data)
+        response = client.post(f"{API_V1}/texts/", json=sample_text_create_data)
 
         assert response.status_code == 409
         data = response.json()
@@ -297,7 +299,7 @@ class TestCreateText:
         mock_text_service.create_text.side_effect = Exception(error_message)
         logger.info("Testing create_text with an unexpected service exception")
 
-        response = client.post("/texts/", json=sample_text_create_data)
+        response = client.post(f"{API_V1}/texts/", json=sample_text_create_data)
 
         assert response.status_code == 500
         data = response.json()
@@ -321,7 +323,9 @@ class TestUpdateText:
         mock_text_service.update_text.return_value = sample_text_response
         logger.info(f"Testing update_text for ID: {sample_text_id}")
 
-        response = client.put(f"/texts/{sample_text_id}", json=sample_text_update_data)
+        response = client.put(
+            f"{API_V1}/texts/{sample_text_id}", json=sample_text_update_data
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -340,7 +344,9 @@ class TestUpdateText:
         mock_text_service.update_text.return_value = None
         logger.info(f"Testing update_text for non-existent ID: {sample_text_id}")
 
-        response = client.put(f"/texts/{sample_text_id}", json=sample_text_update_data)
+        response = client.put(
+            f"{API_V1}/texts/{sample_text_id}", json=sample_text_update_data
+        )
 
         assert response.status_code == 404
         assert response.json()["detail"]["error"] == "Text not found"
@@ -357,7 +363,9 @@ class TestUpdateText:
         invalid_id = "not-a-ulid"
         logger.info(f"Testing update_text with invalid ID: {invalid_id}")
 
-        response = client.put(f"/texts/{invalid_id}", json=sample_text_update_data)
+        response = client.put(
+            f"{API_V1}/texts/{invalid_id}", json=sample_text_update_data
+        )
 
         assert response.status_code == 422
         mock_text_service.update_text.assert_not_called()
@@ -367,10 +375,10 @@ class TestUpdateText:
         self, client: TestClient, mock_text_service: AsyncMock, sample_text_id: ULID
     ) -> None:
         """Test update_text returns 422 for an invalid request body."""
-        invalid_body = {"proficiency_level": "INVALID_LEVEL"}
+        invalid_body = {"proficiencyLevel": "INVALID_LEVEL"}
         logger.info("Testing update_text with invalid body")
 
-        response = client.put(f"/texts/{sample_text_id}", json=invalid_body)
+        response = client.put(f"{API_V1}/texts/{sample_text_id}", json=invalid_body)
 
         assert response.status_code == 422
         mock_text_service.update_text.assert_not_called()
@@ -388,7 +396,9 @@ class TestUpdateText:
         mock_text_service.update_text.side_effect = ValueError(error_message)
         logger.info("Testing update_text with a data conflict")
 
-        response = client.put(f"/texts/{sample_text_id}", json=sample_text_update_data)
+        response = client.put(
+            f"{API_V1}/texts/{sample_text_id}", json=sample_text_update_data
+        )
 
         assert response.status_code == 409
         data = response.json()
@@ -408,7 +418,9 @@ class TestUpdateText:
         mock_text_service.update_text.side_effect = Exception(error_message)
         logger.info("Testing update_text with an unexpected service exception")
 
-        response = client.put(f"/texts/{sample_text_id}", json=sample_text_update_data)
+        response = client.put(
+            f"{API_V1}/texts/{sample_text_id}", json=sample_text_update_data
+        )
 
         assert response.status_code == 500
         data = response.json()
@@ -427,10 +439,10 @@ class TestDeleteText:
         mock_text_service.delete_text.return_value = True
         logger.info(f"Testing delete_text for ID: {sample_text_id}")
 
-        response = client.delete(f"/texts/{sample_text_id}")
+        response = client.delete(f"{API_V1}/texts/{sample_text_id}")
 
         assert response.status_code == 204
-        mock_text_service.delete_text.assert_called_once_with(sample_text_id)
+        mock_text_service.delete_text.assert_called_once_with(str(sample_text_id))
         logger.info("delete_text success test passed")
 
     def test_delete_text_not_found(
@@ -440,12 +452,12 @@ class TestDeleteText:
         mock_text_service.delete_text.return_value = False
         logger.info(f"Testing delete_text for non-existent ID: {sample_text_id}")
 
-        response = client.delete(f"/texts/{sample_text_id}")
+        response = client.delete(f"{API_V1}/texts/{sample_text_id}")
 
         assert response.status_code == 404
         data = response.json()
         assert data["detail"]["error"] == "Text not found"
-        mock_text_service.delete_text.assert_called_once_with(sample_text_id)
+        mock_text_service.delete_text.assert_called_once_with(str(sample_text_id))
         logger.info("delete_text not found test passed")
 
     def test_delete_text_invalid_ulid(
@@ -455,7 +467,7 @@ class TestDeleteText:
         invalid_id = "not-a-ulid"
         logger.info(f"Testing delete_text with invalid ID: {invalid_id}")
 
-        response = client.delete(f"/texts/{invalid_id}")
+        response = client.delete(f"{API_V1}/texts/{invalid_id}")
 
         assert response.status_code == 422
         mock_text_service.delete_text.assert_not_called()
@@ -469,7 +481,7 @@ class TestDeleteText:
         mock_text_service.delete_text.side_effect = Exception(error_message)
         logger.info("Testing delete_text with an unexpected service exception")
 
-        response = client.delete(f"/texts/{sample_text_id}")
+        response = client.delete(f"{API_V1}/texts/{sample_text_id}")
 
         assert response.status_code == 500
         data = response.json()

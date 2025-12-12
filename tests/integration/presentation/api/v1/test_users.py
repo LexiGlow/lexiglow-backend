@@ -1,5 +1,4 @@
-"""
-Integration tests for User API endpoints.
+"""Integration tests for User API endpoints.
 
 This module provides comprehensive integration-style tests for user CRUD endpoints,
 using FastAPI's TestClient with temporary SQLite database fixtures.
@@ -30,14 +29,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# API version prefix
+API_V1 = "/api/v1"
+
 
 # Fixtures
 
 
 @pytest.fixture(scope="function")
 def test_db_with_languages(tmp_path, monkeypatch):
-    """
-    Create temporary SQLite database with language fixtures.
+    """Create temporary SQLite database with language fixtures.
 
     This fixture:
     - Creates a temporary database
@@ -88,9 +89,7 @@ def test_db_with_languages(tmp_path, monkeypatch):
 
 @pytest.fixture
 def client(test_db_with_languages: dict[str, Any]) -> Generator[TestClient, None, None]:
-    """
-    Create a test client with a real user service connected to a test database.
-    """
+    """Create a test client with a real user service connected to a test database."""
     test_repo = SQLiteUserRepository(db_path=test_db_with_languages["db_path"])
     test_user_service = UserService(repository=test_repo)
 
@@ -149,11 +148,11 @@ def create_update_data(
 
 
 class TestGetUsers:
-    """Test GET /users endpoint."""
+    """Test GET /api/v1/users endpoint."""
 
     def test_get_users_empty(self, client: TestClient) -> None:
         """Test retrieving users when database is empty."""
-        response = client.get("/users/")
+        response = client.get(f"{API_V1}/users/")
 
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/json"
@@ -176,11 +175,11 @@ class TestGetUsers:
             test_db_with_languages, email="user2@example.com", username="user2"
         )
 
-        client.post("/users/", json=user1_data)
-        client.post("/users/", json=user2_data)
+        client.post(f"{API_V1}/users/", json=user1_data)
+        client.post(f"{API_V1}/users/", json=user2_data)
 
         # Get all users
-        response = client.get("/users/")
+        response = client.get(f"{API_V1}/users/")
 
         assert response.status_code == 200
         data = response.json()
@@ -202,22 +201,22 @@ class TestGetUsers:
                 email=f"user{i}@example.com",
                 username=f"user{i}",
             )
-            client.post("/users/", json=user_data)
+            client.post(f"{API_V1}/users/", json=user_data)
 
         # Test skip=0, limit=2
-        response = client.get("/users/?skip=0&limit=2")
+        response = client.get(f"{API_V1}/users/?skip=0&limit=2")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
 
         # Test skip=2, limit=2
-        response = client.get("/users/?skip=2&limit=2")
+        response = client.get(f"{API_V1}/users/?skip=2&limit=2")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
 
         # Test skip=4, limit=10 (should return 1)
-        response = client.get("/users/?skip=4&limit=10")
+        response = client.get(f"{API_V1}/users/?skip=4&limit=10")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -227,32 +226,32 @@ class TestGetUsers:
     def test_get_users_invalid_pagination(self, client: TestClient) -> None:
         """Test with invalid pagination parameters."""
         # Negative skip is rejected by FastAPI validation (422)
-        response = client.get("/users/?skip=-1&limit=10")
+        response = client.get(f"{API_V1}/users/?skip=-1&limit=10")
         assert response.status_code == 422
 
         # Negative limit should also be rejected
-        response = client.get("/users/?skip=0&limit=-1")
+        response = client.get(f"{API_V1}/users/?skip=0&limit=-1")
         assert response.status_code == 422
 
         # Valid edge cases
-        response = client.get("/users/?skip=0&limit=0")
+        response = client.get(f"{API_V1}/users/?skip=0&limit=0")
         assert response.status_code == 422
 
         logger.info("Get users invalid pagination test passed")
 
     def test_get_users_method_not_allowed(self, client: TestClient) -> None:
         """Test that only GET is allowed on /users."""
-        response = client.put("/users/")
+        response = client.put(f"{API_V1}/users/")
         assert response.status_code == 405
 
-        response = client.delete("/users/")
+        response = client.delete(f"{API_V1}/users/")
         assert response.status_code == 405
 
         logger.info("Get users method not allowed test passed")
 
 
 class TestGetUserById:
-    """Test GET /users/{userId} endpoint."""
+    """Test GET /api/v1/users/{userId} endpoint."""
 
     def test_get_user_by_id_success(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
@@ -260,12 +259,12 @@ class TestGetUserById:
         """Test retrieving an existing user by ID."""
         # Create a user
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         created_user = create_response.json()
         user_id = created_user["id"]
 
         # Get user by ID
-        response = client.get(f"/users/{user_id}")
+        response = client.get(f"{API_V1}/users/{user_id}")
 
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/json"
@@ -285,7 +284,7 @@ class TestGetUserById:
         """Test retrieving non-existent user returns 404."""
         non_existent_id = get_ulid()
 
-        response = client.get(f"/users/{non_existent_id}")
+        response = client.get(f"{API_V1}/users/{non_existent_id}")
 
         assert response.status_code == 404
         assert response.headers["content-type"] == "application/json"
@@ -301,7 +300,7 @@ class TestGetUserById:
         invalid_ids = ["not-a-ulid", "12345", "abc-def-ghi"]
 
         for invalid_id in invalid_ids:
-            response = client.get(f"/users/{invalid_id}")
+            response = client.get(f"{API_V1}/users/{invalid_id}")
 
             assert response.status_code == 422
             data = response.json()
@@ -315,18 +314,18 @@ class TestGetUserById:
         """Test that only specified methods are allowed."""
         # Create a user first
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         user_id = create_response.json()["id"]
 
         # POST on specific user endpoint should not be allowed
-        response = client.post(f"/users/{user_id}")
+        response = client.post(f"{API_V1}/users/{user_id}")
         assert response.status_code == 405
 
         logger.info("Get user by ID method not allowed test passed")
 
 
 class TestCreateUser:
-    """Test POST /users endpoint."""
+    """Test POST /api/v1/users endpoint."""
 
     def test_create_user_success(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
@@ -334,7 +333,7 @@ class TestCreateUser:
         """Test creating a user with valid data."""
         user_data = create_user_data(test_db_with_languages)
 
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
 
         assert response.status_code == 201
         assert response.headers["content-type"] == "application/json"
@@ -361,14 +360,14 @@ class TestCreateUser:
         user_data = create_user_data(test_db_with_languages)
 
         # Create first user
-        response1 = client.post("/users/", json=user_data)
+        response1 = client.post(f"{API_V1}/users/", json=user_data)
         assert response1.status_code == 201
 
         # Try to create second user with same email
         user_data2 = user_data.copy()
         user_data2["username"] = "different_username"
 
-        response2 = client.post("/users/", json=user_data2)
+        response2 = client.post(f"{API_V1}/users/", json=user_data2)
 
         assert response2.status_code == 409
         data = response2.json()
@@ -384,14 +383,14 @@ class TestCreateUser:
         user_data = create_user_data(test_db_with_languages)
 
         # Create first user
-        response1 = client.post("/users/", json=user_data)
+        response1 = client.post(f"{API_V1}/users/", json=user_data)
         assert response1.status_code == 201
 
         # Try to create second user with same username
         user_data2 = user_data.copy()
         user_data2["email"] = "different@example.com"
 
-        response2 = client.post("/users/", json=user_data2)
+        response2 = client.post(f"{API_V1}/users/", json=user_data2)
 
         assert response2.status_code == 409
         data = response2.json()
@@ -413,7 +412,7 @@ class TestCreateUser:
 
         for invalid_email in invalid_emails:
             user_data = create_user_data(test_db_with_languages, email=invalid_email)
-            response = client.post("/users/", json=user_data)
+            response = client.post(f"{API_V1}/users/", json=user_data)
             assert response.status_code == 422
 
         logger.info("Create user invalid email test passed")
@@ -425,25 +424,25 @@ class TestCreateUser:
         # Missing email
         user_data = create_user_data(test_db_with_languages)
         del user_data["email"]
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 422
 
         # Missing username
         user_data = create_user_data(test_db_with_languages)
         del user_data["username"]
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 422
 
         # Missing password
         user_data = create_user_data(test_db_with_languages)
         del user_data["password"]
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 422
 
-        # Missing firstName
+        # Missing nativeLanguageId
         user_data = create_user_data(test_db_with_languages)
-        del user_data["firstName"]
-        response = client.post("/users/", json=user_data)
+        del user_data["nativeLanguageId"]
+        response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 422
 
         logger.info("Create user missing fields test passed")
@@ -455,7 +454,7 @@ class TestCreateUser:
         user_data = create_user_data(test_db_with_languages)
         user_data["nativeLanguageId"] = str(get_ulid())
 
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
 
         # This should ideally be a 400 or 404, but let's check for 409
         # because of the conflict with the database
@@ -474,7 +473,7 @@ class TestCreateUser:
     ) -> None:
         """Test that response has all expected fields."""
         user_data = create_user_data(test_db_with_languages)
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 201
         data = response.json()
 
@@ -501,14 +500,14 @@ class TestCreateUser:
 
 
 class TestUpdateUser:
-    """Test PUT /users/{userId} endpoint."""
+    """Test PUT /api/v1/users/{userId} endpoint."""
 
     def test_update_user_success(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
     ) -> None:
         """Test updating a user successfully."""
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         user_id = create_response.json()["id"]
 
         update_data = create_update_data(
@@ -517,7 +516,7 @@ class TestUpdateUser:
             first_name="Updated",
             last_name="Name",
         )
-        response = client.put(f"/users/{user_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{user_id}", json=update_data)
 
         assert response.status_code == 200
         assert response.headers["content-type"] == "application/json"
@@ -536,12 +535,12 @@ class TestUpdateUser:
     ) -> None:
         """Test updating only some fields."""
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         created_user = create_response.json()
         user_id = created_user["id"]
 
         update_data = create_update_data(email="newemail@example.com")
-        response = client.put(f"/users/{user_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{user_id}", json=update_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -555,7 +554,7 @@ class TestUpdateUser:
         """Test updating non-existent user returns 404."""
         non_existent_id = get_ulid()
         update_data = create_update_data(email="test@example.com")
-        response = client.put(f"/users/{non_existent_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{non_existent_id}", json=update_data)
 
         assert response.status_code == 404
         data = response.json()
@@ -568,7 +567,7 @@ class TestUpdateUser:
         """Test updating with malformed ULID returns 422."""
         invalid_id = "not-a-ulid"
         update_data = create_update_data(email="test@example.com")
-        response = client.put(f"/users/{invalid_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{invalid_id}", json=update_data)
 
         assert response.status_code == 422
 
@@ -584,12 +583,12 @@ class TestUpdateUser:
         user2_data = create_user_data(
             test_db_with_languages, email="user2@example.com", username="user2"
         )
-        client.post("/users/", json=user1_data)
-        create_response2 = client.post("/users/", json=user2_data)
+        client.post(f"{API_V1}/users/", json=user1_data)
+        create_response2 = client.post(f"{API_V1}/users/", json=user2_data)
         user2_id = create_response2.json()["id"]
 
         update_data = create_update_data(email="user1@example.com")
-        response = client.put(f"/users/{user2_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{user2_id}", json=update_data)
 
         assert response.status_code == 409
         data = response.json()
@@ -608,12 +607,12 @@ class TestUpdateUser:
         user2_data = create_user_data(
             test_db_with_languages, email="user2@example.com", username="user2"
         )
-        client.post("/users/", json=user1_data)
-        create_response2 = client.post("/users/", json=user2_data)
+        client.post(f"{API_V1}/users/", json=user1_data)
+        create_response2 = client.post(f"{API_V1}/users/", json=user2_data)
         user2_id = create_response2.json()["id"]
 
         update_data = create_update_data(username="user1")
-        response = client.put(f"/users/{user2_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{user2_id}", json=update_data)
 
         assert response.status_code == 409
         data = response.json()
@@ -627,11 +626,11 @@ class TestUpdateUser:
     ) -> None:
         """Test updating with invalid data returns 422."""
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         user_id = create_response.json()["id"]
 
         update_data = {"email": "not-an-email"}
-        response = client.put(f"/users/{user_id}", json=update_data)
+        response = client.put(f"{API_V1}/users/{user_id}", json=update_data)
 
         assert response.status_code == 422
 
@@ -639,20 +638,20 @@ class TestUpdateUser:
 
 
 class TestDeleteUser:
-    """Test DELETE /users/{userId} endpoint."""
+    """Test DELETE /api/v1/users/{userId} endpoint."""
 
     def test_delete_user_success(
         self, client: TestClient, test_db_with_languages: dict[str, Any]
     ) -> None:
         """Test deleting a user successfully."""
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         user_id = create_response.json()["id"]
 
-        response = client.delete(f"/users/{user_id}")
+        response = client.delete(f"{API_V1}/users/{user_id}")
         assert response.status_code == 204
 
-        get_response = client.get(f"/users/{user_id}")
+        get_response = client.get(f"{API_V1}/users/{user_id}")
         assert get_response.status_code == 404
 
         logger.info(f"Delete user success test passed: {user_id}")
@@ -660,7 +659,7 @@ class TestDeleteUser:
     def test_delete_user_not_found(self, client: TestClient) -> None:
         """Test deleting non-existent user returns 404."""
         non_existent_id = get_ulid()
-        response = client.delete(f"/users/{non_existent_id}")
+        response = client.delete(f"{API_V1}/users/{non_existent_id}")
         assert response.status_code == 404
 
         data = response.json()
@@ -672,7 +671,7 @@ class TestDeleteUser:
     def test_delete_user_invalid_ulid(self, client: TestClient) -> None:
         """Test deleting with malformed ULID returns 422."""
         invalid_id = "not-a-ulid"
-        response = client.delete(f"/users/{invalid_id}")
+        response = client.delete(f"{API_V1}/users/{invalid_id}")
         assert response.status_code == 422
 
         logger.info("Delete user invalid ULID test passed")
@@ -682,13 +681,13 @@ class TestDeleteUser:
     ) -> None:
         """Test that second delete returns 404."""
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         user_id = create_response.json()["id"]
 
-        response1 = client.delete(f"/users/{user_id}")
+        response1 = client.delete(f"{API_V1}/users/{user_id}")
         assert response1.status_code == 204
 
-        response2 = client.delete(f"/users/{user_id}")
+        response2 = client.delete(f"{API_V1}/users/{user_id}")
         assert response2.status_code == 404
 
         logger.info("Delete user idempotent test passed")
@@ -698,10 +697,12 @@ class TestDeleteUser:
     ) -> None:
         """Test that only valid methods work on user endpoint."""
         user_data = create_user_data(test_db_with_languages)
-        create_response = client.post("/users/", json=user_data)
+        create_response = client.post(f"{API_V1}/users/", json=user_data)
         user_id = create_response.json()["id"]
 
-        response = client.patch(f"/users/{user_id}", json={"email": "test@example.com"})
+        response = client.patch(
+            f"{API_V1}/users/{user_id}", json={"email": "test@example.com"}
+        )
         assert response.status_code == 405
 
         logger.info("Delete user method not allowed test passed")
@@ -717,26 +718,26 @@ def test_user_crud_workflow(
     user_data = create_user_data(
         test_db_with_languages, email="workflow@example.com", username="workflow"
     )
-    create_response = client.post("/users/", json=user_data)
+    create_response = client.post(f"{API_V1}/users/", json=user_data)
     assert create_response.status_code == 201
     created_user = create_response.json()
     user_id = created_user["id"]
 
-    get_response = client.get(f"/users/{user_id}")
+    get_response = client.get(f"{API_V1}/users/{user_id}")
     assert get_response.status_code == 200
     retrieved_user = get_response.json()
     assert retrieved_user["email"] == "workflow@example.com"
 
     update_data = create_update_data(email="updated_workflow@example.com")
-    update_response = client.put(f"/users/{user_id}", json=update_data)
+    update_response = client.put(f"{API_V1}/users/{user_id}", json=update_data)
     assert update_response.status_code == 200
     updated_user = update_response.json()
     assert updated_user["email"] == "updated_workflow@example.com"
 
-    delete_response = client.delete(f"/users/{user_id}")
+    delete_response = client.delete(f"{API_V1}/users/{user_id}")
     assert delete_response.status_code == 204
 
-    verify_response = client.get(f"/users/{user_id}")
+    verify_response = client.get(f"{API_V1}/users/{user_id}")
     assert verify_response.status_code == 404
 
     logger.info("User CRUD workflow integration test passed")
@@ -751,21 +752,21 @@ def test_multiple_users_pagination(
         user_data = create_user_data(
             test_db_with_languages, email=f"user{i}@example.com", username=f"user{i}"
         )
-        response = client.post("/users/", json=user_data)
+        response = client.post(f"{API_V1}/users/", json=user_data)
         assert response.status_code == 201
         created_ids.append(response.json()["id"])
 
-    response = client.get("/users/")
+    response = client.get(f"{API_V1}/users/")
     assert response.status_code == 200
     all_users = response.json()
     assert len(all_users) == 10
 
-    response = client.get("/users/?skip=0&limit=5")
+    response = client.get(f"{API_V1}/users/?skip=0&limit=5")
     assert response.status_code == 200
     page1 = response.json()
     assert len(page1) == 5
 
-    response = client.get("/users/?skip=5&limit=5")
+    response = client.get(f"{API_V1}/users/?skip=5&limit=5")
     assert response.status_code == 200
     page2 = response.json()
     assert len(page2) == 5
@@ -782,23 +783,25 @@ def test_user_endpoints_json_structure(
 ) -> None:
     """Integration test to verify all responses are valid JSON."""
     user_data = create_user_data(test_db_with_languages)
-    create_response = client.post("/users/", json=user_data)
+    create_response = client.post(f"{API_V1}/users/", json=user_data)
     assert create_response.headers["content-type"] == "application/json"
     user_id = create_response.json()["id"]
 
-    list_response = client.get("/users/")
+    list_response = client.get(f"{API_V1}/users/")
     assert list_response.headers["content-type"] == "application/json"
     assert isinstance(list_response.json(), list)
 
-    get_response = client.get(f"/users/{user_id}")
+    get_response = client.get(f"{API_V1}/users/{user_id}")
     assert get_response.headers["content-type"] == "application/json"
     assert isinstance(get_response.json(), dict)
 
-    update_response = client.put(f"/users/{user_id}", json={"firstName": "NewName"})
+    update_response = client.put(
+        f"{API_V1}/users/{user_id}", json={"firstName": "NewName"}
+    )
     assert update_response.headers["content-type"] == "application/json"
     assert isinstance(update_response.json(), dict)
 
-    error_response = client.get("/users/invalid-ulid")
+    error_response = client.get(f"{API_V1}/users/invalid-ulid")
     assert error_response.headers["content-type"] == "application/json"
     error_data = error_response.json()
     assert "detail" in error_data

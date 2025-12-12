@@ -1,5 +1,4 @@
-"""
-Integration tests for Text API endpoints.
+"""Integration tests for Text API endpoints.
 
 This module provides integration-style tests for text CRUD endpoints,
 using FastAPI's TestClient with a temporary SQLite database.
@@ -31,6 +30,9 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# API version prefix
+API_V1 = "/api/v1"
 
 
 # Fixtures
@@ -140,11 +142,11 @@ def create_update_data(
 
 @pytest.mark.integration
 class TestGetTexts:
-    """Test GET /texts endpoint."""
+    """Test GET /api/v1/texts endpoint."""
 
     def test_get_texts_empty(self, client: TestClient) -> None:
         """Test retrieving texts when database is empty."""
-        response = client.get("/texts/")
+        response = client.get(f"{API_V1}/texts/")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
         assert len(response.json()) == 0
@@ -156,10 +158,10 @@ class TestGetTexts:
         """Test retrieving multiple texts."""
         text1_data = create_text_data(test_db_setup, title="Text 1")
         text2_data = create_text_data(test_db_setup, title="Text 2")
-        client.post("/texts/", json=text1_data)
-        client.post("/texts/", json=text2_data)
+        client.post(f"{API_V1}/texts/", json=text1_data)
+        client.post(f"{API_V1}/texts/", json=text2_data)
 
-        response = client.get("/texts/")
+        response = client.get(f"{API_V1}/texts/")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -169,17 +171,17 @@ class TestGetTexts:
 
 @pytest.mark.integration
 class TestGetTextById:
-    """Test GET /texts/{textId} endpoint."""
+    """Test GET /api/v1/texts/{textId} endpoint."""
 
     def test_get_text_by_id_success(
         self, client: TestClient, test_db_setup: dict[str, Any]
     ) -> None:
         """Test retrieving an existing text by ID."""
         text_data = create_text_data(test_db_setup)
-        create_response = client.post("/texts/", json=text_data)
+        create_response = client.post(f"{API_V1}/texts/", json=text_data)
         text_id = create_response.json()["id"]
 
-        response = client.get(f"/texts/{text_id}")
+        response = client.get(f"{API_V1}/texts/{text_id}")
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == text_id
@@ -189,21 +191,21 @@ class TestGetTextById:
     def test_get_text_by_id_not_found(self, client: TestClient) -> None:
         """Test retrieving non-existent text returns 404."""
         non_existent_id = ULID()
-        response = client.get(f"/texts/{non_existent_id}")
+        response = client.get(f"{API_V1}/texts/{non_existent_id}")
         assert response.status_code == 404
         logger.info("Get text by ID not found test passed")
 
 
 @pytest.mark.integration
 class TestCreateText:
-    """Test POST /texts/ endpoint."""
+    """Test POST /api/v1/texts/ endpoint."""
 
     def test_create_text_success(
         self, client: TestClient, test_db_setup: dict[str, Any]
     ) -> None:
         """Test creating a text with valid data."""
         text_data = create_text_data(test_db_setup)
-        response = client.post("/texts/", json=text_data)
+        response = client.post(f"{API_V1}/texts/", json=text_data)
         assert response.status_code == 201
         data = response.json()
         assert "id" in data
@@ -216,25 +218,25 @@ class TestCreateText:
         """Test creating a text with missing required fields returns 422."""
         text_data = create_text_data(test_db_setup)
         del text_data["title"]
-        response = client.post("/texts/", json=text_data)
+        response = client.post(f"{API_V1}/texts/", json=text_data)
         assert response.status_code == 422
         logger.info("Create text missing fields test passed")
 
 
 @pytest.mark.integration
 class TestUpdateText:
-    """Test PUT /texts/{textId} endpoint."""
+    """Test PUT /api/v1/texts/{textId} endpoint."""
 
     def test_update_text_success(
         self, client: TestClient, test_db_setup: dict[str, Any]
     ) -> None:
         """Test updating a text successfully."""
         text_data = create_text_data(test_db_setup)
-        create_response = client.post("/texts/", json=text_data)
+        create_response = client.post(f"{API_V1}/texts/", json=text_data)
         text_id = create_response.json()["id"]
 
         update_data = create_update_data(title="Updated Title")
-        response = client.put(f"/texts/{text_id}", json=update_data)
+        response = client.put(f"{API_V1}/texts/{text_id}", json=update_data)
         assert response.status_code == 200
         data = response.json()
         assert data["title"] == "Updated Title"
@@ -247,34 +249,34 @@ class TestUpdateText:
         """Test updating non-existent text returns 404."""
         non_existent_id = ULID()
         update_data = create_update_data(title="Non-existent")
-        response = client.put(f"/texts/{non_existent_id}", json=update_data)
+        response = client.put(f"{API_V1}/texts/{non_existent_id}", json=update_data)
         assert response.status_code == 404
         logger.info("Update text not found test passed")
 
 
 @pytest.mark.integration
 class TestDeleteText:
-    """Test DELETE /texts/{textId} endpoint."""
+    """Test DELETE /api/v1/texts/{textId} endpoint."""
 
     def test_delete_text_success(
         self, client: TestClient, test_db_setup: dict[str, Any]
     ) -> None:
         """Test deleting a text successfully."""
         text_data = create_text_data(test_db_setup)
-        create_response = client.post("/texts/", json=text_data)
+        create_response = client.post(f"{API_V1}/texts/", json=text_data)
         text_id = create_response.json()["id"]
 
-        response = client.delete(f"/texts/{text_id}")
+        response = client.delete(f"{API_V1}/texts/{text_id}")
         assert response.status_code == 204
 
-        get_response = client.get(f"/texts/{text_id}")
+        get_response = client.get(f"{API_V1}/texts/{text_id}")
         assert get_response.status_code == 404
         logger.info(f"Delete text success test passed: {text_id}")
 
     def test_delete_text_not_found(self, client: TestClient) -> None:
         """Test deleting non-existent text returns 404."""
         non_existent_id = ULID()
-        response = client.delete(f"/texts/{non_existent_id}")
+        response = client.delete(f"{API_V1}/texts/{non_existent_id}")
         assert response.status_code == 404
         logger.info("Delete text not found test passed")
 
@@ -284,37 +286,37 @@ def test_text_crud_workflow(client: TestClient, test_db_setup: dict[str, Any]) -
     """Full integration test for the complete Text CRUD workflow."""
     # 1. Create
     text_data = create_text_data(test_db_setup, title="Workflow Text")
-    create_response = client.post("/texts/", json=text_data)
+    create_response = client.post(f"{API_V1}/texts/", json=text_data)
     assert create_response.status_code == 201
     created_text = create_response.json()
     text_id = created_text["id"]
     logger.info(f"Workflow: Created text {text_id}")
 
     # 2. Read (Get by ID)
-    get_response = client.get(f"/texts/{text_id}")
+    get_response = client.get(f"{API_V1}/texts/{text_id}")
     assert get_response.status_code == 200
     assert get_response.json()["title"] == "Workflow Text"
     logger.info(f"Workflow: Retrieved text {text_id}")
 
     # 3. Read (Get all)
-    all_texts_response = client.get("/texts/")
+    all_texts_response = client.get(f"{API_V1}/texts/")
     assert all_texts_response.status_code == 200
     assert len(all_texts_response.json()) == 1
     logger.info("Workflow: Retrieved all texts")
 
     # 4. Update
     update_data = create_update_data(title="Updated Workflow Text")
-    update_response = client.put(f"/texts/{text_id}", json=update_data)
+    update_response = client.put(f"{API_V1}/texts/{text_id}", json=update_data)
     assert update_response.status_code == 200
     assert update_response.json()["title"] == "Updated Workflow Text"
     logger.info(f"Workflow: Updated text {text_id}")
 
     # 5. Delete
-    delete_response = client.delete(f"/texts/{text_id}")
+    delete_response = client.delete(f"{API_V1}/texts/{text_id}")
     assert delete_response.status_code == 204
     logger.info(f"Workflow: Deleted text {text_id}")
 
     # 6. Verify Deletion
-    verify_response = client.get(f"/texts/{text_id}")
+    verify_response = client.get(f"{API_V1}/texts/{text_id}")
     assert verify_response.status_code == 404
     logger.info("Workflow: Verified text deletion")
